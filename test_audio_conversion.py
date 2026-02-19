@@ -6,7 +6,7 @@ from kokoro import KPipeline
 import soundfile as sf
 import numpy as np
 from docling_parser import DoclingParser
-from custom_haystack_components import load_valid_pages
+from utils import load_valid_pages
 
 
 # https://huggingface.co/hexgrad/Kokoro-82M
