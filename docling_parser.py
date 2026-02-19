@@ -1,7 +1,5 @@
 from typing import List, Dict, Tuple, Optional, Union
 import re
-# noinspection PyPackageRequirements
-from haystack.dataclasses import ByteStream
 from docling_core.types import DoclingDocument
 from docling_core.types.doc import CoordOrigin
 from docling_core.types.doc.document import SectionHeaderItem, ListItem, TextItem, DocItem
@@ -370,7 +368,7 @@ class DoclingParser:
                  double_notes: bool = False):
         self._doc: DoclingDocument = doc
         self._min_paragraph_size: int = min_paragraph_size
-        self._docs_list: List[ByteStream] = []
+        self._docs_list: List[str] = []
         self._meta_list: List[Dict[str, str]] = []
         self._meta_data: dict[str, str] = meta_data
         self._start_page: Optional[int] = start_page
@@ -378,8 +376,8 @@ class DoclingParser:
         self._double_notes: bool = double_notes
         self._mislabeled: List[DocItem] = []
 
-    def run(self) -> Tuple[List[ByteStream], List[Dict[str, str]]]:
-        temp_docs: List[ByteStream] = []
+    def run(self) -> Tuple[List[str], List[Dict[str, str]]]:
+        temp_docs: List[str] = []
         temp_meta: List[Dict[str, str]] = []
         combined_paragraph: str = ""
         i: int
@@ -515,8 +513,8 @@ class DoclingParser:
         return regular_texts + notes
 
     def _add_paragraph(self, text: str, para_num: int, section: str,
-                       page: Optional[int], docs: List[ByteStream], meta: List[Dict]):
-        docs.append(ByteStream(text.encode('utf-8')))
+                       page: Optional[int], docs: List[str], meta: List[Dict]):
+        docs.append(text)
         meta.append({
             **self._meta_data,
             # "paragraph_#": str(para_num),
