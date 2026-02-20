@@ -7,6 +7,9 @@ import soundfile as sf
 import numpy as np
 from docling_parser import DoclingParser
 from utils import load_valid_pages
+from docling.datamodel.pipeline_options import PdfPipelineOptions
+from docling.datamodel.base_models import InputFormat
+from docling.document_converter import DocumentConverter, PdfFormatOption
 
 
 # https://huggingface.co/hexgrad/Kokoro-82M
@@ -63,7 +66,12 @@ def simple_pdf_to_audio():
 def docling_parser_pdf_to_audio(file_path: str,
                                 voice: str = 'af_heart',
                                 sample_rate: int = 24000):
-    converter = DocumentConverter()
+    pipeline_options = PdfPipelineOptions(do_ocr=False, do_table_structure=False)
+    converter = DocumentConverter(
+        format_options={
+            InputFormat.PDF: PdfFormatOption(pipeline_options=pipeline_options)
+        }
+    )
     result: ConversionResult = converter.convert(file_path)
     book: DoclingDocument = result.document
     valid_pages = load_valid_pages("documents/pdf_valid_pages.csv")
@@ -83,8 +91,7 @@ def docling_parser_pdf_to_audio(file_path: str,
     audio_segments = []
     for i, paragraph in enumerate(paragraphs):
         print(f"Generating audio for paragraph {i+1}/{len(paragraphs)}")
-        # convert paragraph which is a ByteSteam back to regular text
-        text = paragraph.to_string('utf-8')
+        text = paragraph
 
         for j, (gs, ps, audio) in enumerate(pipeline(text, voice=voice, speed=1, split_pattern=r'\n+')):
             print(f"Segment {j}: Graphemes: {gs} | Phonemes: {ps}")
