@@ -245,11 +245,6 @@ def is_too_short(doc_item: DocItem, threshold: int = 2) -> bool:
 
 def is_bottom_note(text: DocItem,
                    near_bottom: bool = False) -> bool:
-    if 'Morgenstern was then the director' in text.text:
-        pass
-    if text.text.startswith("10. Summing up o f"):
-        pass
-
     # If it is specifically digits followed by a period, followed by a space, and it is
     # a section header or a list item, then it is NOT a bottom note
     if bool(re.match(r"^\d+\.\s", text.text)) and (is_section_header(text) or is_list_item(text)):
@@ -374,7 +369,6 @@ class DoclingParser:
         self._start_page: Optional[int] = start_page
         self._end_page: Optional[int] = end_page
         self._double_notes: bool = double_notes
-        self._mislabeled: List[DocItem] = []
 
     def run(self, debug: bool = False) -> Tuple[List[str], List[Dict[str, str]]]:
         temp_docs: List[str] = []
@@ -405,7 +399,7 @@ class DoclingParser:
 
             # Update section header if the element is a section header
             # TODO: Need a stronger check on section headers that takes top of page into account, etc
-            if is_section_header(text) and text not in self._mislabeled:
+            if is_section_header(text):
                 section_name = text.text
                 # Flush the current accumulated paragraph before the section header
                 if combined_paragraph:
@@ -488,9 +482,6 @@ class DoclingParser:
         regular_texts: List[DocItem] = []
         notes: List[DocItem] = []
         processed_pages: set[int] = set()  # Keep track of processed pages
-        reached_bottom_notes: bool = False
-        same_page_items: List[DocItem] = []
-        near_bottom: bool = False
 
         for text_item in self._doc.texts:
             page_number = text_item.prov[0].page_no
@@ -501,24 +492,13 @@ class DoclingParser:
                     item for item in self._doc.texts if item.prov[0].page_no == page_number
                 ]
                 processed_pages.add(page_number)  # Mark the page as processed
-                reached_bottom_notes = False
-
-            if not reached_bottom_notes:
-                near_bottom = is_near_bottom(text_item, same_page_items, threshold=0.5)
 
             if is_too_short(text_item):
                 continue
-            elif reached_bottom_notes or is_footnote(text_item):
+            elif is_footnote(text_item):
                 notes.append(text_item)
-            elif is_bottom_note(text_item, near_bottom=near_bottom):
-                notes.append(text_item)
-                reached_bottom_notes = True
             else:
                 regular_texts.append(text_item)
-
-            # Check if the DocItem is a SectionHeaderItem. If so, turn it into a TextItem.
-            if reached_bottom_notes and is_section_header(text_item):
-                self._mislabeled.append(text_item)
 
         return regular_texts + notes
 
