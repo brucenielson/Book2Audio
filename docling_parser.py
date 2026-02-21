@@ -390,24 +390,6 @@ class DoclingParser:
         texts = self._get_processed_texts()
 
         for i, text in enumerate(texts):
-            if 'The preceding section was' in text.text:
-                # Thinks this is a section header
-                pass
-            if 'Indeed, (cc) is an immediate consequence' in text.text:
-                # Doesn't break this section up right
-                pass
-            if '(iii) More generally even' in text.text:
-                # Inappropriately sent to footnotes
-                pass
-            if 'What seduces so many people' in text.text:
-                # This whole section seems messed up in paragraphs before and after.
-                pass
-            if '18. A' in text.text:
-                pass
-            if text.text.startswith('In order to show that these'):
-                # Stops before the one above
-                pass
-
             next_text = get_next_text(texts, i)
             page_no = get_current_page(text, combined_paragraph, page_no)
 
@@ -425,6 +407,19 @@ class DoclingParser:
             # TODO: Need a stronger check on section headers that takes top of page into account, etc
             if is_section_header(text) and text not in self._mislabeled:
                 section_name = text.text
+                # Flush the current accumulated paragraph before the section header
+                if combined_paragraph:
+                    combined_paragraph = combine_hyphenated_words(combined_paragraph)
+                    para_num += 1
+                    self._add_paragraph(combined_paragraph, para_num, section_name, page_no, temp_docs, temp_meta)
+                    combined_paragraph, combined_chars = "", 0
+                    page_no = None
+                # Add the section header itself as its own paragraph
+                header_str = clean_text(text.text)
+                if header_str:
+                    para_num += 1
+                    self._add_paragraph(header_str, para_num, section_name, page_no, temp_docs, temp_meta)
+                    page_no = None
                 continue
 
             if should_skip_element(text):

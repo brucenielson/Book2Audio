@@ -30,6 +30,17 @@ def load_pdf_text(file_path: str) -> str:
     return book.export_to_text()
 
 
+def load_pdf_document(file_path: str) -> DoclingDocument:
+    """Load a PDF, caching as JSON if needed."""
+    json_path = Path(file_path).with_suffix('.json')
+    if json_path.exists():
+        return DoclingDocument.load_from_json(json_path)
+    converter = DocumentConverter()
+    result = converter.convert(file_path)
+    book = result.document
+    book.save_as_json(json_path)
+    return book
+
 def simple_generate_and_save_audio(text: str,
                                    output_file: str,
                                    voice: str = 'af_heart',
@@ -66,14 +77,16 @@ def simple_pdf_to_audio():
 def docling_parser_pdf_to_audio(file_path: str,
                                 voice: str = 'af_heart',
                                 sample_rate: int = 24000):
-    pipeline_options = PdfPipelineOptions(do_ocr=False, do_table_structure=False)
-    converter = DocumentConverter(
-        format_options={
-            InputFormat.PDF: PdfFormatOption(pipeline_options=pipeline_options)
-        }
-    )
-    result: ConversionResult = converter.convert(file_path)
-    book: DoclingDocument = result.document
+    # pipeline_options = PdfPipelineOptions(do_ocr=False, do_table_structure=False)
+    # converter = DocumentConverter(
+    #     format_options={
+    #         InputFormat.PDF: PdfFormatOption(pipeline_options=pipeline_options)
+    #     }
+    # )
+    # converter = DocumentConverter()
+    # result: ConversionResult = converter.convert(file_path)
+    # book: DoclingDocument = result.document
+    book = load_pdf_document(file_path)
     valid_pages = load_valid_pages("documents/pdf_valid_pages.csv")
     start_page = None
     end_page = None
@@ -104,7 +117,8 @@ def docling_parser_pdf_to_audio(file_path: str,
 
 
 def main():
-    file_path = r"documents\A World of Propensities -- Karl Popper -- 2018.pdf"
+    # file_path = r"documents\A World of Propensities -- Karl Popper -- 2018.pdf"
+    file_path = r"documents\The Myth of the Closed Mind.pdf"
     docling_parser_pdf_to_audio(file_path)
     # text = load_pdf_text(file_path)
     # simple_generate_and_save_audio(text, "output2.wav")
