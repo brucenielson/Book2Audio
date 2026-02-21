@@ -1,17 +1,20 @@
-from docling.document_converter import DocumentConverter, ConversionResult
+# Run this script with the path to a PDF file as an argument, e.g.:
+# python book_to_audio.py "documents/BookTitle.pdf"
+
 from docling_core.types import DoclingDocument
 from pathlib import Path
 from kokoro import KPipeline
-# import sounddevice as sd
 import soundfile as sf
 import numpy as np
 from docling_parser import DoclingParser
 from utils import load_valid_pages
-# from docling.datamodel.pipeline_options import PdfPipelineOptions
-# from docling.datamodel.base_models import InputFormat
-from docling.document_converter import DocumentConverter, PdfFormatOption
 import torch
 import sys
+from docling.document_converter import DocumentConverter
+# from docling.document_converter import DocumentConverter, ConversionResult
+# import sounddevice as sd
+# from docling.datamodel.pipeline_options import PdfPipelineOptions
+# from docling.datamodel.base_models import InputFormat
 
 
 # https://huggingface.co/hexgrad/Kokoro-82M
@@ -19,17 +22,6 @@ import sys
 # https://huggingface.co/hexgrad/Kokoro-82M/discussions/120
 # pip install kokoro
 # pip install soundfile
-def load_pdf_text(file_path: str) -> str:
-    """Load a PDF, caching as JSON if needed, and export its text."""
-    converter = DocumentConverter()
-    json_path = Path(file_path).with_suffix('.json')
-    if json_path.exists():
-        book = DoclingDocument.load_from_json(json_path)
-    else:
-        result = converter.convert(file_path)
-        book = result.document
-        book.save_as_json(json_path)
-    return book.export_to_text()
 
 
 def load_pdf_document(file_path: str) -> DoclingDocument:
@@ -42,6 +34,15 @@ def load_pdf_document(file_path: str) -> DoclingDocument:
     book = result.document
     book.save_as_json(json_path)
     return book
+
+
+def load_pdf_text(file_path: str) -> str:
+    """Load a PDF, caching as JSON if needed, and export its text."""
+    return load_pdf_document(file_path).export_to_text()
+
+def get_audio_file_path(pdf_file_path: str) -> str:
+    return pdf_file_path.replace('.pdf', '.wav')
+
 
 def simple_generate_and_save_audio(text: str,
                                    output_file: str,
@@ -75,7 +76,8 @@ def simple_pdf_to_audio(file_path: str):
         return
     text = load_pdf_text(file_path)
     print("Extracted text from PDF.")
-    simple_generate_and_save_audio(text, "output.wav")
+    output_file = get_audio_file_path(file_path)
+    simple_generate_and_save_audio(text, output_file=output_file)
 
 
 def docling_parser_pdf_to_audio(file_path: str,
@@ -121,9 +123,10 @@ def docling_parser_pdf_to_audio(file_path: str,
             audio_segments.append(audio)
 
     combined_audio = np.concatenate(audio_segments)
-    output_file = file_path.replace('.pdf', '.wav')
+    output_file = get_audio_file_path(file_path)
     sf.write(output_file, combined_audio, sample_rate)
     print(f"Audio saved to {output_file}")
+
 
 def main(file_path: str = None, use_simple: bool = False):
     if file_path is None:
