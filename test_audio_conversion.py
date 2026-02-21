@@ -7,9 +7,10 @@ import soundfile as sf
 import numpy as np
 from docling_parser import DoclingParser
 from utils import load_valid_pages
-from docling.datamodel.pipeline_options import PdfPipelineOptions
-from docling.datamodel.base_models import InputFormat
+# from docling.datamodel.pipeline_options import PdfPipelineOptions
+# from docling.datamodel.base_models import InputFormat
 from docling.document_converter import DocumentConverter, PdfFormatOption
+import torch
 
 
 # https://huggingface.co/hexgrad/Kokoro-82M
@@ -105,7 +106,8 @@ def docling_parser_pdf_to_audio(file_path: str,
         return
 
     """Generate audio from text using Kokoro, play each segment, and save combined audio to a WAV file."""
-    pipeline = KPipeline(lang_code='a')
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    pipeline = KPipeline(lang_code='a', device=device)
     audio_segments = []
     for i, paragraph in enumerate(paragraphs):
         print(f"Generating audio for paragraph {i+1}/{len(paragraphs)}")
