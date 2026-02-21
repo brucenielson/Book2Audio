@@ -376,7 +376,7 @@ class DoclingParser:
         self._double_notes: bool = double_notes
         self._mislabeled: List[DocItem] = []
 
-    def run(self) -> Tuple[List[str], List[Dict[str, str]]]:
+    def run(self, debug: bool = False) -> Tuple[List[str], List[Dict[str, str]]]:
         temp_docs: List[str] = []
         temp_meta: List[Dict[str, str]] = []
         combined_paragraph: str = ""
@@ -462,6 +462,21 @@ class DoclingParser:
                 para_num += 1
                 self._add_paragraph(p_str, para_num, section_name, page_no, temp_docs, temp_meta)
                 page_no = None
+
+        if debug:
+            # Print the processed text to a file in the same directory as the document with the name of the document and _processed_texts.txt at the end
+            output_path = "documents/" + self._doc.name + "_processed_texts.txt"
+
+            with open (output_path , "w", encoding="utf-8") as f:
+                for text in texts:
+                    f.write(f"{text.prov[0].page_no if text.prov else 'N/A'}: {text.label}: {text.text}\n")
+
+            output_path = "documents/" + self._doc.name + "_processed_paragraphs.txt"
+            with open(output_path, "w", encoding="utf-8") as f:
+                for text in temp_docs:
+                    f.write(text + "\n")
+
+            return [], []  # Return empty lists if in debug mode after writing the processed texts to a file
 
         return temp_docs, temp_meta
 
