@@ -11,6 +11,7 @@ from utils import load_valid_pages
 # from docling.datamodel.base_models import InputFormat
 from docling.document_converter import DocumentConverter, PdfFormatOption
 import torch
+import sys
 
 
 # https://huggingface.co/hexgrad/Kokoro-82M
@@ -68,8 +69,10 @@ def simple_example():
     simple_generate_and_save_audio(text, "output2.wav", play_audio=True)
 
 
-def simple_pdf_to_audio():
-    file_path = r"D:\Documents\AI\BookSearchArchive\documents\Realism and the Aim of Science -- Karl Popper -- 2017.pdf"
+def simple_pdf_to_audio(file_path: str):
+    if not file_path:
+        print("No file path provided.")
+        return
     text = load_pdf_text(file_path)
     print("Extracted text from PDF.")
     simple_generate_and_save_audio(text, "output.wav")
@@ -122,14 +125,14 @@ def docling_parser_pdf_to_audio(file_path: str,
     sf.write(output_file, combined_audio, sample_rate)
     print(f"Audio saved to {output_file}")
 
+def main(file_path: str = None, use_simple: bool = False):
+    if file_path is None:
+        file_path = sys.argv[1] if len(sys.argv) > 1 else None
 
-def main():
-    # file_path = r"documents\A World of Propensities -- Karl Popper -- 2018.pdf"
-    file_path = r"documents\The Myth of the Closed Mind.pdf"
-    docling_parser_pdf_to_audio(file_path)
-    # text = load_pdf_text(file_path)
-    # simple_generate_and_save_audio(text, "output2.wav")
-
+    if use_simple:
+        simple_pdf_to_audio(file_path)
+    else:
+        docling_parser_pdf_to_audio(file_path)
 
 if __name__ == "__main__":
-    main()
+    main(r"documents\The Myth of the Closed Mind.pdf")
