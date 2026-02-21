@@ -98,7 +98,7 @@ def docling_parser_pdf_to_audio(file_path: str,
                            start_page=start_page,
                            end_page=end_page,
                            double_notes=True)
-    paragraphs, meta = parser.run(debug=True)
+    paragraphs, meta = parser.run(debug=False)
 
     if not paragraphs:
         print("No paragraphs extracted from the document.")

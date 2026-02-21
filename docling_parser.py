@@ -306,10 +306,12 @@ def remove_extra_whitespace(text: str) -> str:
 
 def combine_paragraphs(p1_str: str, p2_str: str):
     # If the paragraph ends without final punctuation, combine it with the next paragraph
+    combined: str
     if is_sentence_end(p1_str):
-        return p1_str + "\n" + p2_str
+        combined = p1_str + "\n" + p2_str
     else:
-        return p1_str + " " + p2_str
+        combined =  p1_str + " " + p2_str
+    return combined.strip()
 
 
 def is_roman_numeral(s: str) -> bool:
@@ -347,11 +349,15 @@ def clean_text(p_str: str) -> str:
     p_str = re.sub(r'(?<=\s)\.([a-zA-Z])', r'\1',
                    p_str)  # Remove a period that follows a whitespace and comes before a letter
     p_str = re.sub(r'\s+\.', '.', p_str)  # Remove any whitespace before a period
+    p_str = re.sub(r'\s+\?', '?', p_str)  # Remove any whitespace before a question mark
+    p_str = re.sub(r'\s+!', '!', p_str)  # Remove any whitespace before an exclamation point
+    # Remove white space between an ' and an s if there is a white space after the s (i.e. possessive apostrophe) or is this is a punctuation mark {., !, ?, :}
+    p_str = re.sub(r"'\s+s(\s|[.,!?;:])", r"'s\1", p_str)
     # Remove footnote numbers at end of a sentence. Check for a digit at the end and drop it
     # until there are no more digits or the sentence is now a valid end of a sentence.
     while p_str and p_str[-1].isdigit() and not is_sentence_end(p_str):
         p_str = p_str[:-1].strip()
-    return p_str
+    return p_str.strip()
 
 
 class DoclingParser:
@@ -398,7 +404,6 @@ class DoclingParser:
                 continue
 
             # Update section header if the element is a section header
-            # TODO: Need a stronger check on section headers that takes top of page into account, etc
             if is_section_header(text):
                 section_name = text.text
                 # Flush the current accumulated paragraph before the section header
@@ -468,7 +473,7 @@ class DoclingParser:
             output_path = "documents/" + self._doc.name + "_processed_paragraphs.txt"
             with open(output_path, "w", encoding="utf-8") as f:
                 for text in temp_docs:
-                    f.write(text + "\n")
+                    f.write(text + "\n\n")
 
             return [], []  # Return empty lists if in debug mode after writing the processed texts to a file
 
