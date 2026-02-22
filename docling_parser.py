@@ -1,4 +1,4 @@
-from typing import List, Dict, Tuple, Optional, Union
+from typing import List, Dict, Tuple
 import re
 from docling_core.types import DoclingDocument
 from docling_core.types.doc.document import SectionHeaderItem, ListItem, TextItem, DocItem
@@ -128,7 +128,7 @@ def is_text_item(item: DocItem | None) -> bool:
                 or is_page_header(item))
 
 
-def get_next_text(texts: List[DocItem], i: int) -> Optional[DocItem]:
+def get_next_text(texts: List[DocItem], i: int) -> DocItem | None:
     # Seek through the list of texts to find the next text item using is_text_item
     # Should return None if no more text items are found
     for j in range(i + 1, len(texts)):
@@ -159,7 +159,7 @@ def is_roman_numeral(s: str) -> bool:
 
 def get_current_page(text: DocItem,
                      combined_paragraph: str,
-                     current_page: Optional[int]) -> Optional[int]:
+                     current_page: int | None) -> int | None:
     if not isinstance(text, (SectionHeaderItem, ListItem, TextItem)):
         return current_page
     # noinspection PyTypeHints
@@ -207,16 +207,16 @@ class DoclingParser:
     def __init__(self, doc: DoclingDocument,
                  meta_data: dict[str, str],
                  min_paragraph_size: int = 300,
-                 start_page: Optional[int] = None,
-                 end_page: Optional[int] = None,
+                 start_page: int | None = None,
+                 end_page: int | None = None,
                  double_notes: bool = False) -> None:
         self._doc: DoclingDocument = doc
         self._min_paragraph_size: int = min_paragraph_size
         self._docs_list: List[str] = []
         self._meta_list: List[Dict[str, str]] = []
         self._meta_data: dict[str, str] = meta_data
-        self._start_page: Optional[int] = start_page
-        self._end_page: Optional[int] = end_page
+        self._start_page: int | None = start_page
+        self._end_page: int | None = end_page
         self._double_notes: bool = double_notes
 
     def run(self, debug: bool = False) -> Tuple[List[str], List[Dict[str, str]]]:
@@ -227,13 +227,13 @@ class DoclingParser:
         combined_chars: int = 0
         para_num: int = 0
         section_name: str = ""
-        page_no: Optional[int] = None
+        page_no: int | None = None
         first_note: bool = False
 
         texts: List[DocItem] = self._get_processed_texts()
 
         for i, text in enumerate(texts):
-            next_text: Optional[Union[ListItem, TextItem]] = get_next_text(texts, i)
+            next_text: DocItem | None = get_next_text(texts, i)
             page_no = get_current_page(text, combined_paragraph, page_no)
 
             # Check if the current page is within the valid range
@@ -354,7 +354,7 @@ class DoclingParser:
         return regular_texts + notes
 
     def _add_paragraph(self, text: str, para_num: int, section: str,
-                       page: Optional[int], docs: List[str], meta: List[Dict]) -> None:
+                       page: int | None, docs: List[str], meta: List[Dict]) -> None:
         docs.append(text)
         meta.append({
             **self._meta_data,
