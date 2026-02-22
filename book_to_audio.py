@@ -224,16 +224,20 @@ def main(file_path: str | None = None,
     args: argparse.Namespace = parser.parse_args()
 
     converter: BookToAudio = BookToAudio(AudioGenerator(voice=args.voice))
+
+    supported_file_types: List[str] = ['.pdf']
     if args.text is not None:
         converter.text_to_audio(args.text, args.output_file)
-    elif (args.file_path is not None
-          and Path(args.file_path).exists()
-          and Path(args.file_path).is_file()
-          and Path(args.file_path).suffix.lower() in ['.pdf']):
-        converter.document_to_audio(args.file_path, start_page=int(args.start_page), end_page=int(args.end_page))
-    else:
+    elif args.file_path is None:
         print("No file path or text provided.")
-
+    elif not Path(args.file_path).exists():
+        print(f"File not found: {args.file_path}")
+    elif not Path(args.file_path).is_file():
+        print(f"Path is not a file: {args.file_path}")
+    elif Path(args.file_path).suffix.lower() not in ['.pdf']:
+        print(f"Unsupported file type: '{Path(args.file_path).suffix}'. Supported types: {', '.join(supported_file_types)}")
+    else:
+        converter.document_to_audio(args.file_path, start_page=args.start_page, end_page=args.end_page)
 
 if __name__ == "__main__":
     main(r"documents\The Myth of the Closed Mind.pdf", start_page=129, end_page=129) # 289
