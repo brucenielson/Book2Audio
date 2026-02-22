@@ -195,8 +195,8 @@ def main(file_path: str | None = None,
          text: str | None = None,
          output_file: str | None = None,
          voice: str | None = None,
-         start_page: str | None = None,
-         end_page: str | None = None) -> None:
+         start_page: str | int | None = None,
+         end_page: str | int | None = None) -> None:
     """Entry point for the book-to-audio conversion tool.
 
     Parses command line arguments (falling back to the provided parameter
@@ -227,7 +227,7 @@ def main(file_path: str | None = None,
     if args.text is not None:
         converter.text_to_audio(args.text, args.output_file)
     elif args.file_path is not None:
-        converter.document_to_audio(args.file_path, start_page=args.start_page, end_page=args.end_page)
+        converter.document_to_audio(args.file_path, start_page=int(args.start_page), end_page=int(args.end_page))
     else:
         print("No file path or text provided.")
 

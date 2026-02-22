@@ -138,4 +138,4 @@ class WordValidator:
 
 
 # Module-level instance for use across the codebase
-_word_validator = WordValidator()
+word_validator = WordValidator()

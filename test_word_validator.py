@@ -1,5 +1,5 @@
 import pytest
-from word_validator import WordValidator, _word_validator
+from word_validator import WordValidator, word_validator
 
 
 # --- Fixtures ---
@@ -153,8 +153,8 @@ class TestCombineHyphenatedWords:
 class TestModuleLevelInstance:
     def test_module_instance_exists(self):
         """The module-level _word_validator instance should exist."""
-        assert _word_validator is not None
+        assert word_validator is not None
 
     def test_module_instance_is_word_validator(self):
         """The module-level instance should be a WordValidator."""
-        assert isinstance(_word_validator, WordValidator)
+        assert isinstance(word_validator, WordValidator)
