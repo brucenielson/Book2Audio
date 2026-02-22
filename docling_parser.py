@@ -6,25 +6,33 @@ from word_validator import word_validator
 from docling_core.types.doc.document import ProvenanceItem
 
 
-def is_section_header(text: Union[SectionHeaderItem, ListItem, TextItem, None]) -> bool:
-    if text is None:
+def is_section_header(text: DocItem | None) -> bool:
+    if not isinstance(text, (SectionHeaderItem, ListItem, TextItem)):
         return False
     return text.label == "section_header"
 
 
-def is_page_footer(text: Union[SectionHeaderItem, ListItem, TextItem]) -> bool:
+def is_page_footer(text: DocItem | None) -> bool:
+    if not isinstance(text, (SectionHeaderItem, ListItem, TextItem)):
+        return False
     return text.label == "page_footer"
 
 
-def is_page_header(text: Union[SectionHeaderItem, ListItem, TextItem]) -> bool:
+def is_page_header(text: DocItem | None) -> bool:
+    if not isinstance(text, (SectionHeaderItem, ListItem, TextItem)):
+        return False
     return text.label == "page_header"
 
 
-def is_footnote(text: Union[SectionHeaderItem, ListItem, TextItem]) -> bool:
+def is_footnote(text: DocItem | None) -> bool:
+    if not isinstance(text, (SectionHeaderItem, ListItem, TextItem)):
+        return False
     return text.label == "footnote"
 
 
-def is_list_item(text: Union[SectionHeaderItem, ListItem, TextItem]) -> bool:
+def is_list_item(text: DocItem | None) -> bool:
+    if not isinstance(text, (SectionHeaderItem, ListItem, TextItem)):
+        return False
     return text.label == "list_item"
 
 
@@ -32,7 +40,9 @@ def is_text_break(text: Union[SectionHeaderItem, ListItem, TextItem]) -> bool:
     return is_page_header(text) or is_section_header(text) or is_footnote(text)
 
 
-def is_page_not_text(text: Union[SectionHeaderItem, ListItem, TextItem]) -> bool:
+def is_page_not_text(text: DocItem | None) -> bool:
+    if not isinstance(text, (SectionHeaderItem, ListItem, TextItem)):
+        return True
     return text.label not in ["text", "list_item", "formula"]
 
 
@@ -107,7 +117,9 @@ def is_sentence_end(text: str) -> bool:
             (ends_with_bracket and is_ends_with_punctuation(text[0:-1])))
 
 
-def is_text_item(item: Union[SectionHeaderItem, ListItem, TextItem]) -> bool:
+def is_text_item(item: DocItem | None) -> bool:
+    if not isinstance(item, (SectionHeaderItem, ListItem, TextItem)):
+        return False
     return not (is_section_header(item)
                 or is_page_footer(item)
                 or is_page_header(item))
@@ -151,6 +163,9 @@ def get_current_page(text: Union[SectionHeaderItem, ListItem, TextItem],
 
 
 def should_skip_element(text: Union[SectionHeaderItem, ListItem, TextItem]) -> bool:
+def should_skip_element(text: DocItem) -> bool:
+    if not isinstance(text, (SectionHeaderItem, ListItem, TextItem)):
+        return True
     return any([
         is_page_footer(text),
         is_page_header(text),
