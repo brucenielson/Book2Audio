@@ -229,13 +229,13 @@ def main(file_path: str | None = None,
     if args.text is not None:
         converter.text_to_audio(args.text, args.output_file)
     elif args.file_path is None:
-        print("No file path or text provided.")
+        raise ValueError("No file path or text provided.")
     elif not Path(args.file_path).exists():
-        print(f"File not found: {args.file_path}")
+        raise FileNotFoundError(f"File not found: {args.file_path}")
     elif not Path(args.file_path).is_file():
-        print(f"Path is not a file: {args.file_path}")
+        raise ValueError(f"Path is not a file: {args.file_path}")
     elif Path(args.file_path).suffix.lower() not in ['.pdf']:
-        print(f"Unsupported file type: '{Path(args.file_path).suffix}'. Supported types: {', '.join(supported_file_types)}")
+        raise ValueError(f"Unsupported file type: '{Path(args.file_path).suffix}'. Supported types: {supported_file_types}")
     else:
         converter.document_to_audio(args.file_path, start_page=args.start_page, end_page=args.end_page)
 
