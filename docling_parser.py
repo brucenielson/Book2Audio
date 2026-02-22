@@ -163,7 +163,6 @@ def get_current_page(text: Union[SectionHeaderItem, ListItem, TextItem],
 
 
 def should_skip_element(text: Union[SectionHeaderItem, ListItem, TextItem]) -> bool:
-def should_skip_element(text: DocItem) -> bool:
     if not isinstance(text, (SectionHeaderItem, ListItem, TextItem)):
         return True
     return any([
@@ -307,6 +306,7 @@ class DoclingParser:
             output_path: str = "documents/" + self._doc.name + "_processed_texts.txt"
             with open(output_path, "w", encoding="utf-8") as f:
                 for text in texts:
+                    # noinspection PyTypeHints
                     f.write(f"{text.prov[0].page_no if text.prov else 'N/A'}: {text.label}: {text.text}\n")
 
             output_path = "documents/" + self._doc.name + "_processed_paragraphs.txt"
