@@ -7,10 +7,8 @@ from kokoro import KPipeline
 import soundfile as sf
 import numpy as np
 from docling_parser import DoclingParser
-from utils import load_valid_pages
 import torch
-import sys
-from typing import List, Optional
+from typing import Optional
 from docling.document_converter import DocumentConverter
 import argparse
 # import sounddevice as sd
@@ -25,7 +23,7 @@ import argparse
 # pip install soundfile
 
 
-def load_pdf_document(file_path: str) -> DoclingDocument:
+def load_as_document(file_path: str) -> DoclingDocument:
     """Load a PDF, caching as JSON if needed."""
     json_path = Path(file_path).with_suffix('.json')
     if json_path.exists():
@@ -35,11 +33,6 @@ def load_pdf_document(file_path: str) -> DoclingDocument:
     book = result.document
     book.save_as_json(json_path)
     return book
-
-
-def load_pdf_text(file_path: str) -> str:
-    """Load a PDF, caching as JSON if needed, and export its text."""
-    return load_pdf_document(file_path).export_to_text()
 
 
 class AudioGenerator:
@@ -80,11 +73,11 @@ class BookToAudio:
         """Generate audio from a text string and save to a WAV file."""
         self._audio_generator.generate_and_save(text, output_file)
 
-    def pdf_to_audio(self, file_path: str,
-                     start_page: Optional[int] = None,
-                     end_page: Optional[int] = None):
+    def document_to_audio(self, file_path: str,
+                          start_page: Optional[int] = None,
+                          end_page: Optional[int] = None):
         """Convert a PDF to audio using DoclingParser."""
-        document = load_pdf_document(file_path)
+        document = load_as_document(file_path)
         parser = DoclingParser(document, {},
                                min_paragraph_size=300,
                                start_page=start_page,
@@ -119,7 +112,7 @@ def main(file_path: str = None, text: str = None,
     if args.text is not None:
         converter.text_to_audio(args.text, args.output_file)
     elif args.file_path is not None:
-        converter.pdf_to_audio(args.file_path, start_page=args.start_page, end_page=args.end_page)
+        converter.document_to_audio(args.file_path, start_page=args.start_page, end_page=args.end_page)
     else:
         print("No file path or text provided.")
 
