@@ -104,16 +104,18 @@ class BookToAudio:
 
 def main(file_path: str = None, text: str = None,
          output_file: str = None,
+         voice: str = None,
          start_page: Optional[int] = None, end_page: Optional[int] = None):
     parser = argparse.ArgumentParser()
     parser.add_argument('file_path', nargs='?', default=file_path)
     parser.add_argument('--text', default=text)
     parser.add_argument('--output-file', default=output_file or 'output.wav')
+    parser.add_argument('--voice', default=voice or 'af_heart')
     parser.add_argument('--start-page', type=int, default=start_page)
     parser.add_argument('--end-page', type=int, default=end_page)
     args = parser.parse_args()
 
-    converter = BookToAudio()
+    converter = BookToAudio(AudioGenerator(voice=args.voice))
     if args.text is not None:
         converter.text_to_audio(args.text, args.output_file)
     elif args.file_path is not None:
