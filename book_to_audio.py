@@ -8,7 +8,7 @@ import soundfile as sf
 import numpy as np
 from docling_parser import DoclingParser
 import torch
-from typing import Optional, List, Tuple
+from typing import Optional, List
 from docling.document_converter import DocumentConverter
 import argparse
 # import sounddevice as sd
@@ -154,12 +154,13 @@ class BookToAudio:
 
     def document_to_audio(self, file_path: str,
                           start_page: Optional[int] = None,
-                          end_page: Optional[int] = None) -> None:
+                          end_page: Optional[int] = None,
+                          output_file: Optional[str] = None) -> None:
         """Convert a document to audio using DoclingParser.
 
         Loads the document, extracts and cleans paragraphs using DoclingParser,
         generates audio for each paragraph, and saves the combined audio as a
-        WAV file at the same path as the source file with a .wav extension.
+        WAV file.
 
         Args:
             file_path: Path to the source document file (e.g. a PDF).
@@ -167,6 +168,8 @@ class BookToAudio:
                         If None, conversion starts from the beginning.
             end_page: Optional last page to include in the conversion.
                       If None, conversion continues to the end of the document.
+            output_file: Optional path to the output WAV file. If None, the
+                         output file is derived from file_path with a .wav extension.
         """
         document: DoclingDocument = load_as_document(file_path)
         parser: DoclingParser = DoclingParser(document, {},
@@ -183,7 +186,7 @@ class BookToAudio:
         for i, paragraph in enumerate(paragraphs):
             print(f"Generating audio for paragraph {i+1}/{len(paragraphs)}")
             audio_segments.append(self._audio_generator.generate(paragraph))
-        output_file: str = str(Path(file_path).with_suffix('.wav'))
+        output_file = output_file or str(Path(file_path).with_suffix('.wav'))
         self._audio_generator.save(np.concatenate(audio_segments), output_file)
 
 
