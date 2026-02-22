@@ -6,7 +6,7 @@ from docling_core.types.doc.document import SectionHeaderItem, ListItem, TextIte
 from word_validator import word_validator
 
 
-def is_section_header(text: Union[SectionHeaderItem, ListItem, TextItem]) -> bool:
+def is_section_header(text: Union[SectionHeaderItem, ListItem, TextItem, None]) -> bool:
     if text is None:
         return False
     return text.label == "section_header"
@@ -44,46 +44,6 @@ def is_ends_with_punctuation(text: str) -> bool:
     return text.endswith(".") or text.endswith("?") or text.endswith("!")
 
 
-def is_near_bottom(doc_item: DocItem, same_page_items: [DocItem], threshold: float = 0.3) -> bool:
-    """
-    Determine if a DocItem is near the bottom of its page.
-
-    Parameters:
-    - doc_item: The DocItem object containing provenance data with 'bbox'.
-    - doc: The DoclingDocument containing all DocItems.
-    - threshold: Distance in points from the bottom to consider as 'near the bottom'.
-
-    Returns:
-    - True if the DocItem is within the threshold from the bottom, False otherwise.
-    """
-    # Check if the DocItem has provenance data with a bounding box
-    if hasattr(doc_item.prov[0], 'bbox'):
-        bbox = doc_item.prov[0].bbox
-    else:
-        return False  # No bounding box available
-
-    # Extract the coordinate origin and bounding box coordinates
-    coord_origin = bbox.coord_origin
-    x0, y0, x1, y1 = bbox.l, bbox.b, bbox.r, bbox.t
-
-    # Find the maximum y1 value on the page
-    page_top: float = max(item.prov[0].bbox.t for item in same_page_items if hasattr(item.prov[0], 'bbox'))
-    # Find the min y1 value on the page
-    page_bottom: float = min(item.prov[0].bbox.b for item in same_page_items if hasattr(item.prov[0], 'bbox'))
-    page_size: float = page_top - page_bottom
-    # Threshold is page_bottom + (size of page * threshold amount) (i.e. % of page to be considered the 'bottom')
-    bottom_threshold: float = page_bottom + (page_size * threshold)
-
-    if coord_origin == CoordOrigin.BOTTOMLEFT:
-        # In this system, y1 is the distance from the top of the paragraph to the bottom of the page
-        return y1 <= bottom_threshold
-    elif coord_origin == CoordOrigin.TOPLEFT:
-        # In this system, y1 is the distance from the top of the paragraph to the top of the page
-        return y1 >= bottom_threshold
-    else:
-        raise ValueError("Unknown coordinate origin.")
-
-
 def is_smaller_text(doc_item: DocItem, doc: DoclingDocument, threshold: float = 0.8) -> bool:
     """
     Determine if a DocItem's text is smaller than the average text size on its page.
@@ -103,21 +63,24 @@ def is_smaller_text(doc_item: DocItem, doc: DoclingDocument, threshold: float = 
         return False  # No bounding box available
 
     # Extract the bounding box coordinates
-    x0, y0, x1, y1 = bbox.l, bbox.b, bbox.r, bbox.t
+    x0: float = bbox.l
+    y0: float = bbox.b
+    x1: float = bbox.r
+    y1: float = bbox.t
 
     # Calculate the area of the DocItem's bounding box
-    doc_item_area = (x1 - x0) * (y1 - y0)
+    doc_item_area: float = (x1 - x0) * (y1 - y0)
 
     # Filter doc_items that are on the same page
-    same_page_items = [item for item in doc.texts if item.prov[0].page_no == doc_item.prov[0].page_no]
+    same_page_items: List[DocItem] = [item for item in doc.texts if item.prov[0].page_no == doc_item.prov[0].page_no]
 
     # Calculate the average area of bounding boxes on the page
-    total_area = sum(
+    total_area: float = sum(
         (item.prov[0].bbox.r - item.prov[0].bbox.l) * (item.prov[0].bbox.t - item.prov[0].bbox.b)
         for item in same_page_items if hasattr(item.prov[0], 'bbox')
     )
-    num_items = sum(1 for item in same_page_items if hasattr(item.prov[0], 'bbox'))
-    average_area = total_area / num_items if num_items > 0 else 0
+    num_items: int = sum(1 for item in same_page_items if hasattr(item.prov[0], 'bbox'))
+    average_area: float = total_area / num_items if num_items > 0 else 0
 
     # Compare the DocItem's area to the average
     return doc_item_area < average_area * threshold
@@ -125,34 +88,6 @@ def is_smaller_text(doc_item: DocItem, doc: DoclingDocument, threshold: float = 
 
 def is_too_short(doc_item: DocItem, threshold: int = 2) -> bool:
     return doc_item.label == "text" and len(doc_item.text) <= threshold
-
-
-def is_bottom_note(text: DocItem,
-                   near_bottom: bool = False) -> bool:
-    # If it is specifically digits followed by a period, followed by a space, and it is
-    # a section header or a list item, then it is NOT a bottom note
-    if bool(re.match(r"^\d+\.\s", text.text)) and (is_section_header(text) or is_list_item(text)):
-        return False
-    # If it's digits followed by a letter without a space then it's a bottom note
-    if bool(re.match(r"^\d+[A-Za-z]", text.text)):
-        return True
-
-    if text is None or not is_page_text(text):
-        return False
-    # Check for · at the beginning of the line. This is often how OCR represents footnote number.
-    if text.text.startswith("·") and not text.text.startswith("· "):
-        return True
-
-    if re.match(r"^\d", text.text):
-        # If the first digit is zero, it can't be a footnote because that should never happen.
-        if text.text.startswith("0"):
-            return False
-        if near_bottom:
-            # Check if this is three digits with the third digit being a 1 followed by a space
-            # This is usually where the last 1 was supposed to be an 'I'.
-            return re.match(r"^\d{1,2}1 ", text.text) or not is_list_item(text)
-
-    return False
 
 
 def is_sentence_end(text: str) -> bool:
@@ -188,18 +123,18 @@ def remove_extra_whitespace(text: str) -> str:
     return ' '.join(text.split())
 
 
-def combine_paragraphs(p1_str: str, p2_str: str):
+def combine_paragraphs(p1_str: str, p2_str: str) -> str:
     # If the paragraph ends without final punctuation, combine it with the next paragraph
     combined: str
     if is_sentence_end(p1_str):
         combined = p1_str + "\n" + p2_str
     else:
-        combined =  p1_str + " " + p2_str
+        combined = p1_str + " " + p2_str
     return combined.strip()
 
 
 def is_roman_numeral(s: str) -> bool:
-    roman_numeral_pattern = r'(?i)^(M{0,3})(CM|CD|D?C{0,3})(XC|XL|L?X{0,3})(IX|IV|V?I{0,3})$'
+    roman_numeral_pattern: str = r'(?i)^(M{0,3})(CM|CD|D?C{0,3})(XC|XL|L?X{0,3})(IX|IV|V?I{0,3})$'
     return bool(re.match(roman_numeral_pattern, s.strip()))
 
 
@@ -250,7 +185,7 @@ class DoclingParser:
                  min_paragraph_size: int = 300,
                  start_page: Optional[int] = None,
                  end_page: Optional[int] = None,
-                 double_notes: bool = False):
+                 double_notes: bool = False) -> None:
         self._doc: DoclingDocument = doc
         self._min_paragraph_size: int = min_paragraph_size
         self._docs_list: List[str] = []
@@ -271,10 +206,10 @@ class DoclingParser:
         page_no: Optional[int] = None
         first_note: bool = False
 
-        texts = self._get_processed_texts()
+        texts: List[DocItem] = self._get_processed_texts()
 
         for i, text in enumerate(texts):
-            next_text = get_next_text(texts, i)
+            next_text: Optional[Union[ListItem, TextItem]] = get_next_text(texts, i)
             page_no = get_current_page(text, combined_paragraph, page_no)
 
             # Check if the current page is within the valid range
@@ -298,7 +233,7 @@ class DoclingParser:
                     combined_paragraph, combined_chars = "", 0
                     page_no = None
                 # Add the section header itself as its own paragraph
-                header_str = clean_text(text.text)
+                header_str: str = clean_text(text.text)
                 if header_str:
                     para_num += 1
                     self._add_paragraph(header_str, para_num, section_name, page_no, temp_docs, temp_meta)
@@ -308,8 +243,8 @@ class DoclingParser:
             if should_skip_element(text):
                 continue
 
-            p_str = clean_text(text.text)
-            p_str_chars = len(p_str)
+            p_str: str = clean_text(text.text)
+            p_str_chars: int = len(p_str)
 
             # If the paragraph does not end with final punctuation, accumulate it
             if not is_sentence_end(p_str):
@@ -318,7 +253,7 @@ class DoclingParser:
                 continue
 
             # p_str ends with a sentence end; decide whether to process or accumulate it
-            total_chars = combined_chars + p_str_chars
+            total_chars: int = combined_chars + p_str_chars
             if is_section_header(next_text):
                 # Immediately process if the next text is a section header
                 p_str = combine_paragraphs(combined_paragraph, p_str)
@@ -348,9 +283,8 @@ class DoclingParser:
 
         if debug:
             # Print the processed text to a file in the same directory as the document with the name of the document and _processed_texts.txt at the end
-            output_path = "documents/" + self._doc.name + "_processed_texts.txt"
-
-            with open (output_path , "w", encoding="utf-8") as f:
+            output_path: str = "documents/" + self._doc.name + "_processed_texts.txt"
+            with open(output_path, "w", encoding="utf-8") as f:
                 for text in texts:
                     f.write(f"{text.prov[0].page_no if text.prov else 'N/A'}: {text.label}: {text.text}\n")
 
@@ -372,12 +306,13 @@ class DoclingParser:
         notes: List[DocItem] = []
         processed_pages: set[int] = set()  # Keep track of processed pages
 
+        text_item: DocItem
         for text_item in self._doc.texts:
-            page_number = text_item.prov[0].page_no
+            page_number: int = text_item.prov[0].page_no
 
             if page_number not in processed_pages:
                 # On new page, so get all items on the current page
-                same_page_items = [
+                same_page_items: List[DocItem] = [
                     item for item in self._doc.texts if item.prov[0].page_no == page_number
                 ]
                 processed_pages.add(page_number)  # Mark the page as processed
@@ -392,7 +327,7 @@ class DoclingParser:
         return regular_texts + notes
 
     def _add_paragraph(self, text: str, para_num: int, section: str,
-                       page: Optional[int], docs: List[str], meta: List[Dict]):
+                       page: Optional[int], docs: List[str], meta: List[Dict]) -> None:
         docs.append(text)
         meta.append({
             **self._meta_data,
