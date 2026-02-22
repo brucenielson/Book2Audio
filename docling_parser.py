@@ -1,9 +1,9 @@
 from typing import List, Dict, Tuple, Optional, Union
 import re
 from docling_core.types import DoclingDocument
-from docling_core.types.doc import CoordOrigin
 from docling_core.types.doc.document import SectionHeaderItem, ListItem, TextItem, DocItem
 from word_validator import word_validator
+from docling_core.types.doc.document import ProvenanceItem
 
 
 def is_section_header(text: Union[SectionHeaderItem, ListItem, TextItem, None]) -> bool:
@@ -57,7 +57,9 @@ def is_smaller_text(doc_item: DocItem, doc: DoclingDocument, threshold: float = 
     - True if the DocItem's text is smaller than the average text size, False otherwise.
     """
     # Check if the DocItem has provenance data with a bounding box
+    # noinspection PyTypeHints
     if hasattr(doc_item.prov[0], 'bbox'):
+        # noinspection PyTypeHints
         bbox = doc_item.prov[0].bbox
     else:
         return False  # No bounding box available
@@ -72,13 +74,16 @@ def is_smaller_text(doc_item: DocItem, doc: DoclingDocument, threshold: float = 
     doc_item_area: float = (x1 - x0) * (y1 - y0)
 
     # Filter doc_items that are on the same page
+    # noinspection PyTypeHints
     same_page_items: List[DocItem] = [item for item in doc.texts if item.prov[0].page_no == doc_item.prov[0].page_no]
 
     # Calculate the average area of bounding boxes on the page
+    # noinspection PyTypeHints
     total_area: float = sum(
         (item.prov[0].bbox.r - item.prov[0].bbox.l) * (item.prov[0].bbox.t - item.prov[0].bbox.b)
         for item in same_page_items if hasattr(item.prov[0], 'bbox')
     )
+    # noinspection PyTypeHints
     num_items: int = sum(1 for item in same_page_items if hasattr(item.prov[0], 'bbox'))
     average_area: float = total_area / num_items if num_items > 0 else 0
 
@@ -141,6 +146,7 @@ def is_roman_numeral(s: str) -> bool:
 def get_current_page(text: Union[SectionHeaderItem, ListItem, TextItem],
                      combined_paragraph: str,
                      current_page: Optional[int]) -> Optional[int]:
+    # noinspection PyTypeHints
     return text.prov[0].page_no if current_page is None or combined_paragraph == "" else current_page
 
 
