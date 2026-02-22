@@ -226,7 +226,10 @@ def main(file_path: str | None = None,
     converter: BookToAudio = BookToAudio(AudioGenerator(voice=args.voice))
     if args.text is not None:
         converter.text_to_audio(args.text, args.output_file)
-    elif args.file_path is not None:
+    elif (args.file_path is not None
+          and Path(args.file_path).exists()
+          and Path(args.file_path).is_file()
+          and Path(args.file_path).suffix.lower() in ['.pdf']):
         converter.document_to_audio(args.file_path, start_page=int(args.start_page), end_page=int(args.end_page))
     else:
         print("No file path or text provided.")
