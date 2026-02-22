@@ -8,7 +8,7 @@ import soundfile as sf
 import numpy as np
 from docling_parser import DoclingParser
 import torch
-from typing import Optional, List
+from typing import List
 from docling.document_converter import DocumentConverter
 import argparse
 # import sounddevice as sd
@@ -23,7 +23,7 @@ import argparse
 # pip install soundfile
 
 
-def load_as_document(file_path: str) -> DoclingDocument:
+def load_as_document(file_path: str | Path) -> DoclingDocument:
     """Load a document file and return it as a DoclingDocument.
 
     If a cached JSON file exists at the same path (with a .json extension),
@@ -32,7 +32,8 @@ def load_as_document(file_path: str) -> DoclingDocument:
     is saved as JSON for future use.
 
     Args:
-        file_path: Path to the source document file (e.g. a PDF).
+        file_path: Path to the source document file, as a string or Path object
+                   (e.g. a PDF).
 
     Returns:
         A DoclingDocument representing the parsed document.
@@ -60,7 +61,7 @@ class AudioGenerator:
     """
 
     def __init__(self,
-                 pipeline: Optional[KPipeline] = None,
+                 pipeline: KPipeline | None = None,
                  voice: str = 'af_heart',
                  sample_rate: int = 24000) -> None:
         """Initialise the AudioGenerator.
@@ -134,7 +135,7 @@ class BookToAudio:
         _audio_generator: The AudioGenerator instance used for TTS and saving.
     """
 
-    def __init__(self, audio_generator: Optional[AudioGenerator] = None) -> None:
+    def __init__(self, audio_generator: AudioGenerator | None = None) -> None:
         """Initialise BookToAudio.
 
         Args:
@@ -153,9 +154,9 @@ class BookToAudio:
         self._audio_generator.generate_and_save(text, output_file)
 
     def document_to_audio(self, file_path: str,
-                          start_page: Optional[int] = None,
-                          end_page: Optional[int] = None,
-                          output_file: Optional[str] = None) -> None:
+                          start_page: int | None = None,
+                          end_page: int | None = None,
+                          output_file: str | None = None) -> None:
         """Convert a document to audio using DoclingParser.
 
         Loads the document, extracts and cleans paragraphs using DoclingParser,
@@ -190,12 +191,12 @@ class BookToAudio:
         self._audio_generator.save(np.concatenate(audio_segments), output_file)
 
 
-def main(file_path: Optional[str] = None,
-         text: Optional[str] = None,
-         output_file: Optional[str] = None,
-         voice: Optional[str] = None,
-         start_page: Optional[int] = None,
-         end_page: Optional[int] = None) -> None:
+def main(file_path: str | None = None,
+         text: str | None = None,
+         output_file: str | None = None,
+         voice: str | None = None,
+         start_page: str | None = None,
+         end_page: str | None = None) -> None:
     """Entry point for the book-to-audio conversion tool.
 
     Parses command line arguments (falling back to the provided parameter
