@@ -40,102 +40,69 @@ def load_pdf_text(file_path: str) -> str:
     """Load a PDF, caching as JSON if needed, and export its text."""
     return load_pdf_document(file_path).export_to_text()
 
+
 def get_audio_file_path(pdf_file_path: str) -> str:
     return pdf_file_path.replace('.pdf', '.wav')
 
 
-def simple_generate_and_save_audio(text: str,
-                                   output_file: str,
-                                   voice: str = 'af_heart',
-                                   sample_rate: int = 24000,
-                                   play_audio: bool = False):
-    """Generate audio from text using Kokoro, play each segment, and save combined audio to a WAV file."""
-    pipeline = KPipeline(lang_code='a')
-    audio_segments = []
+class BookToAudio:
+    def __init__(self,
+                 voice: str = 'af_heart',
+                 sample_rate: int = 24000):
+        self.voice = voice
+        self.sample_rate = sample_rate
+        device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        self.pipeline = KPipeline(lang_code='a', device=device)
 
-    for i, (gs, ps, audio) in enumerate(pipeline(text, voice=voice, speed=1, split_pattern=r'\n+')):
-        print(f"Segment {i}: Graphemes: {gs} | Phonemes: {ps}")
-        # if play_audio:
-        #     sd.play(audio, sample_rate)
-        #     sd.wait()
-        audio_segments.append(audio)
-
-    combined_audio = np.concatenate(audio_segments)
-    sf.write(output_file, combined_audio, sample_rate)
-    print(f"Audio saved to {output_file}")
-
-
-def simple_example():
-    text = "Hello, world! This is a test of the Kokoro TTS system."
-    simple_generate_and_save_audio(text, "output2.wav", play_audio=True)
-
-
-def simple_pdf_to_audio(file_path: str):
-    if not file_path:
-        print("No file path provided.")
-        return
-    text = load_pdf_text(file_path)
-    print("Extracted text from PDF.")
-    output_file = get_audio_file_path(file_path)
-    simple_generate_and_save_audio(text, output_file=output_file)
-
-
-def docling_parser_pdf_to_audio(file_path: str,
-                                voice: str = 'af_heart',
-                                sample_rate: int = 24000):
-    # pipeline_options = PdfPipelineOptions(do_ocr=False, do_table_structure=False)
-    # converter = DocumentConverter(
-    #     format_options={
-    #         InputFormat.PDF: PdfFormatOption(pipeline_options=pipeline_options)
-    #     }
-    # )
-    # converter = DocumentConverter()
-    # result: ConversionResult = converter.convert(file_path)
-    # book: DoclingDocument = result.document
-    book = load_pdf_document(file_path)
-    valid_pages = load_valid_pages("documents/pdf_valid_pages.csv")
-    start_page = None
-    end_page = None
-    if book.name in valid_pages:
-        start_page, end_page = valid_pages[book.name]
-
-    parser = DoclingParser(book, {},
-                           min_paragraph_size=300,
-                           start_page=start_page,
-                           end_page=end_page,
-                           double_notes=True)
-    paragraphs, meta = parser.run(debug=False)
-
-    if not paragraphs:
-        print("No paragraphs extracted from the document.")
-        return
-
-    """Generate audio from text using Kokoro, play each segment, and save combined audio to a WAV file."""
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    pipeline = KPipeline(lang_code='a', device=device)
-    audio_segments = []
-    for i, paragraph in enumerate(paragraphs):
-        print(f"Generating audio for paragraph {i+1}/{len(paragraphs)}")
-        text = paragraph
-
-        for j, (gs, ps, audio) in enumerate(pipeline(text, voice=voice, speed=1, split_pattern=r'\n+')):
-            print(f"Segment {j}: Graphemes: {gs} | Phonemes: {ps}")
+    def _generate_audio(self, text: str) -> np.ndarray:
+        """Generate audio from text and return as numpy array."""
+        audio_segments = []
+        for i, (gs, ps, audio) in enumerate(self.pipeline(text, voice=self.voice, speed=1, split_pattern=r'\n+')):
+            print(f"Segment {i}: Graphemes: {gs} | Phonemes: {ps}")
             audio_segments.append(audio)
+        return np.concatenate(audio_segments)
 
-    combined_audio = np.concatenate(audio_segments)
-    output_file = get_audio_file_path(file_path)
-    sf.write(output_file, combined_audio, sample_rate)
-    print(f"Audio saved to {output_file}")
+    def save_audio(self, audio: np.ndarray, output_file: str):
+        """Save a numpy audio array to a WAV file."""
+        sf.write(output_file, audio, self.sample_rate)
+        print(f"Audio saved to {output_file}")
+
+    def text_to_audio(self, text: str, output_file: str):
+        """Generate audio from a text string and save to a WAV file."""
+        self.save_audio(self._generate_audio(text), output_file)
+
+    def pdf_to_audio(self, file_path: str):
+        """Convert a PDF to audio using DoclingParser."""
+        book = load_pdf_document(file_path)
+        valid_pages = load_valid_pages("documents/pdf_valid_pages.csv")
+        start_page, end_page = valid_pages.get(book.name, (None, None))
+        parser = DoclingParser(book, {},
+                               min_paragraph_size=300,
+                               start_page=start_page,
+                               end_page=end_page,
+                               double_notes=True)
+        paragraphs, _ = parser.run()
+        if not paragraphs:
+            print("No paragraphs extracted from the document.")
+            return
+        audio_segments = []
+        for i, paragraph in enumerate(paragraphs):
+            print(f"Generating audio for paragraph {i+1}/{len(paragraphs)}")
+            audio_segments.append(self._generate_audio(paragraph))
+        self.save_audio(np.concatenate(audio_segments), get_audio_file_path(file_path))
 
 
-def main(file_path: str = None, use_simple: bool = False):
+def main(file_path: str = None, text: str = None):
     if file_path is None:
         file_path = sys.argv[1] if len(sys.argv) > 1 else None
-
-    if use_simple:
-        simple_pdf_to_audio(file_path)
+    converter = BookToAudio()
+    if text is not None:
+        converter.text_to_audio(text, "output.wav")
+    elif file_path is not None:
+        converter.pdf_to_audio(file_path)
     else:
-        docling_parser_pdf_to_audio(file_path)
+        print("No file path or text provided.")
+
 
 if __name__ == "__main__":
     main(r"documents\The Myth of the Closed Mind.pdf")
