@@ -3,7 +3,6 @@ import re
 from docling_core.types import DoclingDocument
 from docling_core.types.doc.document import SectionHeaderItem, ListItem, TextItem, DocItem
 from word_validator import word_validator
-from docling_core.types.doc.document import ProvenanceItem
 
 
 def is_section_header(text: DocItem | None) -> bool:
@@ -36,7 +35,9 @@ def is_list_item(text: DocItem | None) -> bool:
     return text.label == "list_item"
 
 
-def is_text_break(text: Union[SectionHeaderItem, ListItem, TextItem]) -> bool:
+def is_text_break(text: DocItem | None) -> bool:
+    if not isinstance(text, (SectionHeaderItem, ListItem, TextItem)):
+        return False
     return is_page_header(text) or is_section_header(text) or is_footnote(text)
 
 
@@ -46,7 +47,9 @@ def is_page_not_text(text: DocItem | None) -> bool:
     return text.label not in ["text", "list_item", "formula"]
 
 
-def is_page_text(text: Union[SectionHeaderItem, ListItem, TextItem]) -> bool:
+def is_page_text(text: DocItem | None) -> bool:
+    if not isinstance(text, (SectionHeaderItem, ListItem, TextItem)):
+        return False
     return not is_page_not_text(text)
 
 
@@ -125,8 +128,7 @@ def is_text_item(item: DocItem | None) -> bool:
                 or is_page_header(item))
 
 
-def get_next_text(texts: List[Union[SectionHeaderItem, ListItem, TextItem]], i: int) \
-        -> Optional[Union[ListItem, TextItem]]:
+def get_next_text(texts: List[DocItem], i: int) -> Optional[DocItem]:
     # Seek through the list of texts to find the next text item using is_text_item
     # Should return None if no more text items are found
     for j in range(i + 1, len(texts)):
@@ -155,14 +157,16 @@ def is_roman_numeral(s: str) -> bool:
     return bool(re.match(roman_numeral_pattern, s.strip()))
 
 
-def get_current_page(text: Union[SectionHeaderItem, ListItem, TextItem],
+def get_current_page(text: DocItem,
                      combined_paragraph: str,
                      current_page: Optional[int]) -> Optional[int]:
+    if not isinstance(text, (SectionHeaderItem, ListItem, TextItem)):
+        return current_page
     # noinspection PyTypeHints
     return text.prov[0].page_no if current_page is None or combined_paragraph == "" else current_page
 
 
-def should_skip_element(text: Union[SectionHeaderItem, ListItem, TextItem]) -> bool:
+def should_skip_element(text: DocItem) -> bool:
     if not isinstance(text, (SectionHeaderItem, ListItem, TextItem)):
         return True
     return any([
@@ -329,10 +333,12 @@ class DoclingParser:
 
         text_item: DocItem
         for text_item in self._doc.texts:
+            # noinspection PyTypeHints
             page_number: int = text_item.prov[0].page_no
 
             if page_number not in processed_pages:
                 # On new page, so get all items on the current page
+                # noinspection PyTypeHints
                 same_page_items: List[DocItem] = [
                     item for item in self._doc.texts if item.prov[0].page_no == page_number
                 ]
