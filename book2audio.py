@@ -12,6 +12,7 @@ import torch
 import sys
 from typing import List, Optional
 from docling.document_converter import DocumentConverter
+import argparse
 # import sounddevice as sd
 # from docling.datamodel.pipeline_options import PdfPipelineOptions
 # from docling.datamodel.base_models import InputFormat
@@ -103,13 +104,18 @@ class BookToAudio:
 
 def main(file_path: str = None, text: str = None,
          start_page: Optional[int] = None, end_page: Optional[int] = None):
-    if file_path is None:
-        file_path = sys.argv[1] if len(sys.argv) > 1 else None
+    parser = argparse.ArgumentParser()
+    parser.add_argument('file_path', nargs='?', default=file_path)
+    parser.add_argument('--text', default=text)
+    parser.add_argument('--start-page', type=int, default=start_page)
+    parser.add_argument('--end-page', type=int, default=end_page)
+    args = parser.parse_args()
+
     converter = BookToAudio()
-    if text is not None:
-        converter.text_to_audio(text, "output.wav")
-    elif file_path is not None:
-        converter.pdf_to_audio(file_path, start_page=start_page, end_page=end_page)
+    if args.text is not None:
+        converter.text_to_audio(args.text, "output.wav")
+    elif args.file_path is not None:
+        converter.pdf_to_audio(args.file_path, start_page=args.start_page, end_page=args.end_page)
     else:
         print("No file path or text provided.")
 
