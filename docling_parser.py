@@ -20,13 +20,13 @@ class DoclingParser:
                  min_paragraph_size: int = 300,
                  start_page: int | None = None,
                  end_page: int | None = None,
-                 double_notes: bool = False) -> None:
+                 include_notes: bool = True) -> None:
         self._doc: DoclingDocument = doc
         self._min_paragraph_size: int = min_paragraph_size
         self._meta_data: dict[str, str] = meta_data
         self._start_page: int | None = start_page
         self._end_page: int | None = end_page
-        self._double_notes: bool = double_notes
+        self._include_notes: bool = include_notes
 
     def run(self, debug: bool = False) -> Tuple[List[str], List[Dict[str, str]]]:
         temp_docs: List[str] = []
@@ -37,9 +37,9 @@ class DoclingParser:
         para_num: int = 0
         section_name: str = ""
         page_no: int | None = None
-        first_note: bool = False
 
-        texts: List[DocItem] = self._get_processed_texts()
+        regular_texts, notes = self._get_processed_texts()
+        texts: List[DocItem] = regular_texts + (notes if self._include_notes else [])
 
         for i, text in enumerate(texts):
             # We only deal with SectionHeaderItem, ListItem, and TextItem; skip anything else
@@ -54,9 +54,6 @@ class DoclingParser:
                 page_no = None
                 continue
             if self._end_page is not None and page_no is not None and page_no > self._end_page:
-                if self._double_notes and not first_note:
-                    self._min_paragraph_size *= 2
-                    first_note = True
                 continue
 
             # Update section header if the element is a section header
@@ -140,10 +137,10 @@ class DoclingParser:
 
         return temp_docs, temp_meta
 
-    def _get_processed_texts(self) -> List[DocItem]:
+    def _get_processed_texts(self) -> Tuple[List[DocItem], List[DocItem]]:
         """
-        Processes the document's text items page by page, separating regular content from notes
-        (footnotes and bottom notes), and returns a list of DocItems with notes at the end.
+        Processes the document's text items, separating regular content from notes
+        (footnotes), and returns them as separate lists.
         """
         regular_texts: List[DocItem] = []
         notes: List[DocItem] = []
@@ -169,7 +166,7 @@ class DoclingParser:
             else:
                 regular_texts.append(text_item)
 
-        return regular_texts + notes
+        return regular_texts, notes
 
     def _add_paragraph(self, text: str, para_num: int, section: str,
                        page: int | None, docs: List[str], meta: List[Dict]) -> None:

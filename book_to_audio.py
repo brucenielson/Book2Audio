@@ -177,7 +177,7 @@ class BookToAudio:
                                              min_paragraph_size=300,
                                              start_page=start_page,
                                              end_page=end_page,
-                                             double_notes=True)
+                                             include_notes=False)
         paragraphs: List[str]
         paragraphs, _ = parser.run(debug=True)
         if not paragraphs:
