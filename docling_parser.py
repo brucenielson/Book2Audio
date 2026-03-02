@@ -1,6 +1,6 @@
 from typing import List, Dict, Tuple
 from docling_core.types import DoclingDocument
-from docling_core.types.doc.document import DocItem
+from docling_core.types.doc.document import DocItem, SectionHeaderItem, ListItem, TextItem
 from word_validator import word_validator
 from utils.docling_utils import (is_section_header,
                                  is_footnote,
@@ -42,6 +42,10 @@ class DoclingParser:
         texts: List[DocItem] = self._get_processed_texts()
 
         for i, text in enumerate(texts):
+            # We only deal with SectionHeaderItem, ListItem, and TextItem; skip anything else
+            if not isinstance(text, (SectionHeaderItem, ListItem, TextItem)):
+                continue
+
             next_text: DocItem | None = get_next_text(texts, i)
             page_no = get_current_page(text, combined_paragraph, page_no)
 
@@ -57,6 +61,7 @@ class DoclingParser:
 
             # Update section header if the element is a section header
             if is_section_header(text):
+
                 section_name = text.text
                 # Flush the current accumulated paragraph before the section header
                 if combined_paragraph:
@@ -74,6 +79,9 @@ class DoclingParser:
                 continue
 
             if should_skip_element(text):
+                continue
+
+            if not isinstance(text, (SectionHeaderItem, ListItem, TextItem)):
                 continue
 
             p_str: str = clean_text(text.text)
@@ -119,8 +127,9 @@ class DoclingParser:
             output_path: str = "documents/" + self._doc.name + "_processed_texts.txt"
             with open(output_path, "w", encoding="utf-8") as f:
                 for text in texts:
-                    # noinspection PyTypeHints
-                    f.write(f"{text.prov[0].page_no if text.prov else 'N/A'}: {text.label}: {text.text}\n")
+                    text_content: str = text.text if isinstance(text,
+                                                                (SectionHeaderItem, ListItem, TextItem)) else 'N/A'
+                    f.write(f"{text.prov[0].page_no if text.prov else 'N/A'}: {text.label}: {text_content}\n")
 
             output_path = "documents/" + self._doc.name + "_processed_paragraphs.txt"
             with open(output_path, "w", encoding="utf-8") as f:
@@ -167,7 +176,7 @@ class DoclingParser:
         docs.append(text)
         meta.append({
             **self._meta_data,
-            # "paragraph_#": str(para_num),
+            "paragraph_#": str(para_num),
             "section_name": section,
             "page_#": str(page)
         })
