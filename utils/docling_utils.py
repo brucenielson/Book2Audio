@@ -95,16 +95,14 @@ def remove_extra_whitespace(text: str) -> str:
     # Remove extra whitespace in the middle of the text
     return ' '.join(text.split())
 
-
 def combine_paragraphs(p1_str: str, p2_str: str) -> str:
-    # If the paragraph ends without final punctuation, combine it with the next paragraph
-    combined: str
+    p1_str = p1_str.strip()
+    p2_str = p2_str.strip()
     if is_sentence_end(p1_str):
         combined = p1_str + "\n" + p2_str
     else:
         combined = p1_str + " " + p2_str
     return combined.strip()
-
 
 def is_roman_numeral(s: str) -> bool:
     roman_numeral_pattern: str = r'(?i)^(M{0,3})(CM|CD|D?C{0,3})(XC|XL|L?X{0,3})(IX|IV|V?I{0,3})$'
@@ -150,6 +148,7 @@ def clean_text(p_str: str) -> str:
     p_str = re.sub(r'\s+!', '!', p_str)  # Remove any whitespace before an exclamation point
     # Remove white space between an ' and an s if there is a white space after the s (i.e. possessive apostrophe) or is this is a punctuation mark {., !, ?, :}
     p_str = re.sub(r"'\s+s(\s|[.,!?;:])", r"'s\1", p_str)
+    p_str = re.sub(r"\s+'s(\s|$)", r"'s\1", p_str)  # Remove space before 's (possessive)
     # Remove footnote numbers at end of a sentence. Check for a digit at the end and drop it
     # until there are no more digits or the sentence is now a valid end of a sentence.
     while p_str and p_str[-1].isdigit() and not is_sentence_end(p_str):
