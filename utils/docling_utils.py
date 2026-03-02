@@ -181,7 +181,10 @@ def _fix_apostrophes(p_str: str) -> str:
 def _strip_footnote_numbers(p_str: str) -> str:
     # Remove footnote numbers at end of a sentence. Check for a digit at the end and drop it
     # until there are no more digits or the sentence is now a valid end of a sentence.
-    while p_str and p_str[-1].isdigit() and not is_sentence_end(p_str):
+    while p_str and not is_sentence_end(p_str):
+        last_char: str = p_str[-1]
+        if not last_char.isdigit():
+            break
         p_str = p_str[:-1].strip()
     return p_str
 
