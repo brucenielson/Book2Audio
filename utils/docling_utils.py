@@ -104,6 +104,8 @@ def is_smaller_text(doc_item: DocItem, doc: DoclingDocument, threshold: float = 
 
 
 def is_too_short(doc_item: DocItem, threshold: int = 2) -> bool:
+    if not isinstance(doc_item, TextItem):
+        return False
     return doc_item.label == "text" and len(doc_item.text) <= threshold
 
 
