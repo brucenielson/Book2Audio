@@ -1,4 +1,3 @@
-from docling_core.types import DoclingDocument
 from docling_core.types.doc.document import SectionHeaderItem, ListItem, TextItem, DocItem, DocItemLabel
 from typing import List
 import re
@@ -57,57 +56,10 @@ def is_ends_with_punctuation(text: str) -> bool:
     return text.endswith(".") or text.endswith("?") or text.endswith("!")
 
 
-def is_smaller_text(doc_item: DocItem, doc: DoclingDocument, threshold: float = 0.8) -> bool:
-    """
-    Determine if a DocItem's text is smaller than the average text size on its page.
-
-    Parameters:
-    - doc_item: The DocItem object containing provenance data with 'bbox'.
-    - doc: The DoclingDocument containing all DocItems.
-    - threshold: Ratio of the average text size to consider as 'smaller text'.
-
-    Returns:
-    - True if the DocItem's text is smaller than the average text size, False otherwise.
-    """
-    # Check if the DocItem has provenance data with a bounding box
-    # noinspection PyTypeHints
-    if hasattr(doc_item.prov[0], 'bbox'):
-        # noinspection PyTypeHints
-        bbox = doc_item.prov[0].bbox
-    else:
-        return False  # No bounding box available
-
-    # Extract the bounding box coordinates
-    x0: float = bbox.l
-    y0: float = bbox.b
-    x1: float = bbox.r
-    y1: float = bbox.t
-
-    # Calculate the area of the DocItem's bounding box
-    doc_item_area: float = (x1 - x0) * (y1 - y0)
-
-    # Filter doc_items that are on the same page
-    # noinspection PyTypeHints
-    same_page_items: List[DocItem] = [item for item in doc.texts if item.prov[0].page_no == doc_item.prov[0].page_no]
-
-    # Calculate the average area of bounding boxes on the page
-    # noinspection PyTypeHints
-    total_area: float = sum(
-        (item.prov[0].bbox.r - item.prov[0].bbox.l) * (item.prov[0].bbox.t - item.prov[0].bbox.b)
-        for item in same_page_items if hasattr(item.prov[0], 'bbox')
-    )
-    # noinspection PyTypeHints
-    num_items: int = sum(1 for item in same_page_items if hasattr(item.prov[0], 'bbox'))
-    average_area: float = total_area / num_items if num_items > 0 else 0
-
-    # Compare the DocItem's area to the average
-    return doc_item_area < average_area * threshold
-
-
 def is_too_short(doc_item: DocItem, threshold: int = 2) -> bool:
     if not isinstance(doc_item, TextItem):
         return False
-    return doc_item.label == DocItemLabel.TEXT.value and len(doc_item.text) <= threshold
+    return len(doc_item.text) <= threshold
 
 
 def is_sentence_end(text: str) -> bool:
