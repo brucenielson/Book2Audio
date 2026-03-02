@@ -1,7 +1,5 @@
 # Run this script with the path to a PDF file as an argument, e.g.:
 # python book_to_audio.py "documents/BookTitle.pdf"
-
-from docling_core.types import DoclingDocument
 from pathlib import Path
 from kokoro import KPipeline
 import soundfile as sf
@@ -38,7 +36,7 @@ class AudioGenerator:
                  pipeline: KPipeline | None = None,
                  voice: str = 'af_heart',
                  sample_rate: int = 24000) -> None:
-        """Initialise the AudioGenerator.
+        """Initialize the AudioGenerator.
 
         If no pipeline is provided, one will be created automatically,
         using CUDA if available, otherwise falling back to CPU.
@@ -66,7 +64,7 @@ class AudioGenerator:
         audio array before returning.
 
         Args:
-            text: The text to synthesise into speech.
+            text: The text to synthesize into speech.
 
         Returns:
             A numpy array containing the generated audio samples.
@@ -93,7 +91,7 @@ class AudioGenerator:
         Convenience method that combines generate() and save() in one call.
 
         Args:
-            text: The text to synthesise into speech.
+            text: The text to synthesize into speech.
             output_file: The path to the output WAV file.
         """
         self.save(self.generate(text), output_file)
@@ -123,7 +121,7 @@ class BookToAudio:
         """Generate audio from a text string and save to a WAV file.
 
         Args:
-            text: The text to synthesise into speech.
+            text: The text to synthesize into speech.
             output_file: The path to the output WAV file.
         """
         self._audio_generator.generate_and_save(text, output_file)
@@ -131,7 +129,8 @@ class BookToAudio:
     def document_to_audio(self, file_path: str,
                           start_page: int | None = None,
                           end_page: int | None = None,
-                          output_file: str | None = None) -> None:
+                          output_file: str | None = None,
+                          generate_text_file: bool = False) -> None:
         """Convert a document to audio using DoclingParser.
 
         Loads the document, extracts and cleans paragraphs using DoclingParser,
@@ -146,6 +145,7 @@ class BookToAudio:
                       If None, conversion continues to the end of the document.
             output_file: Optional path to the output WAV file. If None, the
                          output file is derived from file_path with a .wav extension.
+            generate_text_file: If True, saves processed text and paragraph files
         """
         parser: DoclingParser = DoclingParser(file_path, {},
                                              min_paragraph_size=300,
@@ -153,7 +153,7 @@ class BookToAudio:
                                              end_page=end_page,
                                              include_notes=False)
         paragraphs: List[str]
-        paragraphs, _ = parser.run(generate_text_file=True)
+        paragraphs, _ = parser.run(generate_text_file=generate_text_file)
         if self._dry_run:
             print(f"Dry run: Did not generate audio.")
             return
@@ -175,7 +175,8 @@ def main(file_path: str | None = None,
          voice: str | None = None,
          start_page: str | int | None = None,
          end_page: str | int | None = None,
-         dry_run: bool = False) -> None:
+         dry_run: bool = False,
+         generate_text_file: bool = False) -> None:
     """Entry point for the book-to-audio conversion tool.
 
     Parses command line arguments (falling back to the provided parameter
@@ -193,6 +194,7 @@ def main(file_path: str | None = None,
         start_page: Optional first page to include in document conversion.
         end_page: Optional last page to include in document conversion.
         dry_run: If True, processes the document but skips audio generation.
+        generate_text_file: If True, saves processed text and paragraph files alongside the source document.
     """
     parser: argparse.ArgumentParser = argparse.ArgumentParser()
     parser.add_argument('file_path', nargs='?', default=file_path)
@@ -202,6 +204,7 @@ def main(file_path: str | None = None,
     parser.add_argument('--start-page', type=int, default=start_page)
     parser.add_argument('--end-page', type=int, default=end_page)
     parser.add_argument('--dry-run', action='store_true', default=dry_run)
+    parser.add_argument('--generate-text-file', action='store_true', default=generate_text_file)
     args: argparse.Namespace = parser.parse_args()
 
     converter: BookToAudio = BookToAudio(AudioGenerator(voice=args.voice), dry_run=args.dry_run)
@@ -221,8 +224,10 @@ def main(file_path: str | None = None,
     elif Path(args.file_path).suffix.lower() == '.txt':
         converter.text_to_audio(Path(args.file_path).read_text(encoding='utf-8'), args.output_file)
     else:
-        converter.document_to_audio(args.file_path, start_page=args.start_page, end_page=args.end_page)
+        converter.document_to_audio(args.file_path, start_page=args.start_page, end_page=args.end_page,
+                                    generate_text_file=args.generate_text_file)
 
 
 if __name__ == "__main__":
-    main(r"documents\The Myth of the Closed Mind.pdf", start_page=129, end_page=289, dry_run=True)
+    main(r"documents\The Myth of the Closed Mind.pdf",
+         start_page=129, end_page=289, dry_run=True, generate_text_file=True)

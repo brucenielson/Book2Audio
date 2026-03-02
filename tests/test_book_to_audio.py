@@ -147,7 +147,7 @@ class TestLoadAsDocument:
         json_path = tmp_path / "test.json"
         json_path.write_text("{}")  # minimal placeholder
 
-        with patch('book_to_audio.DoclingDocument.load_from_json') as mock_load:
+        with patch('utils.docling_utils.DoclingDocument.load_from_json') as mock_load:
             mock_load.return_value = MagicMock()
             load_as_document(str(tmp_path / "test.pdf"))
             mock_load.assert_called_once_with(json_path)
