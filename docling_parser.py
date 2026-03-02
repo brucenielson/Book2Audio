@@ -63,6 +63,13 @@ class DoclingParser:
         self._temp_docs = []
         self._temp_meta = []
 
+    def _is_in_page_range(self) -> bool:
+        if self._start_page is not None and self._page_no is not None and self._page_no < self._start_page:
+            return False
+        if self._end_page is not None and self._page_no is not None and self._page_no > self._end_page:
+            return False
+        return True
+
     def run(self, generate_text_file: bool = False) -> Tuple[List[str], List[Dict[str, str]]]:
         self._init_run_state()
 
@@ -77,11 +84,8 @@ class DoclingParser:
             next_text: DocItem | None = get_next_text(texts, i)
             self._page_no = get_current_page(text, self._combined_paragraph, self._page_no)
 
-            # Check if the current page is within the valid range
-            if self._start_page is not None and self._page_no is not None and self._page_no < self._start_page:
+            if not self._is_in_page_range():
                 self._page_no = None
-                continue
-            if self._end_page is not None and self._page_no is not None and self._page_no > self._end_page:
                 continue
 
             # Update section header if the element is a section header
@@ -92,17 +96,14 @@ class DoclingParser:
             if should_skip_element(text):
                 continue
 
-            if not isinstance(text, (SectionHeaderItem, ListItem, TextItem)):
-                continue
-
             self._process_text_element(text, next_text)
 
         if generate_text_file:
             self._save_text_files(texts)
 
-        result = self._temp_docs, self._temp_meta
+        result_docs, result_meta = self._temp_docs, self._temp_meta
         self._clear_run_state()
-        return result
+        return result_docs, result_meta
 
     def _save_text_files(self, texts: List[DocItem]) -> None:
         if self._file_path is None:
