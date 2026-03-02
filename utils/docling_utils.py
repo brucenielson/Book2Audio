@@ -186,8 +186,14 @@ def _strip_footnote_numbers(p_str: str) -> str:
     return p_str
 
 
+def _normalize_hyphens(p_str: str) -> str:
+    p_str = p_str.replace("\u00ad", "")  # Remove soft hyphen (SHY) - line-break hint, not a real hyphen
+    return p_str
+
+
 def clean_text(p_str: str) -> str:
     p_str = _normalize_whitespace(p_str)
+    p_str = _normalize_hyphens(p_str)
     p_str = _normalize_ligatures(p_str)
     p_str = _normalize_quotes(p_str)
     p_str = _fix_punctuation_spacing(p_str)
