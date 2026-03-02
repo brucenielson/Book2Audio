@@ -2,36 +2,48 @@ from docling_core.types import DoclingDocument
 from docling_core.types.doc.document import SectionHeaderItem, ListItem, TextItem, DocItem
 from typing import List
 import re
+from enum import Enum
+
+
+class DocItemLabel(Enum):
+    SECTION_HEADER = "section_header"
+    PAGE_FOOTER = "page_footer"
+    PAGE_HEADER = "page_header"
+    FOOTNOTE = "footnote"
+    LIST_ITEM = "list_item"
+    TEXT = "text"
+    FORMULA = "formula"
+
 
 
 def is_section_header(text: DocItem | None) -> bool:
     if not isinstance(text, (SectionHeaderItem, ListItem, TextItem)):
         return False
-    return text.label == "section_header"
+    return text.label == DocItemLabel.SECTION_HEADER.value
 
 
 def is_page_footer(text: DocItem | None) -> bool:
     if not isinstance(text, (SectionHeaderItem, ListItem, TextItem)):
         return False
-    return text.label == "page_footer"
+    return text.label == DocItemLabel.PAGE_FOOTER.value
 
 
 def is_page_header(text: DocItem | None) -> bool:
     if not isinstance(text, (SectionHeaderItem, ListItem, TextItem)):
         return False
-    return text.label == "page_header"
+    return text.label == DocItemLabel.PAGE_HEADER.value
 
 
 def is_footnote(text: DocItem | None) -> bool:
     if not isinstance(text, (SectionHeaderItem, ListItem, TextItem)):
         return False
-    return text.label == "footnote"
+    return text.label == DocItemLabel.FOOTNOTE.value
 
 
 def is_list_item(text: DocItem | None) -> bool:
     if not isinstance(text, (SectionHeaderItem, ListItem, TextItem)):
         return False
-    return text.label == "list_item"
+    return text.label == DocItemLabel.LIST_ITEM.value
 
 
 def is_text_break(text: DocItem | None) -> bool:
@@ -43,7 +55,7 @@ def is_text_break(text: DocItem | None) -> bool:
 def is_page_not_text(text: DocItem | None) -> bool:
     if not isinstance(text, (SectionHeaderItem, ListItem, TextItem)):
         return True
-    return text.label not in ["text", "list_item", "formula"]
+    return text.label not in [DocItemLabel.TEXT.value, DocItemLabel.LIST_ITEM.value, DocItemLabel.FORMULA.value]
 
 
 def is_page_text(text: DocItem | None) -> bool:
@@ -106,7 +118,7 @@ def is_smaller_text(doc_item: DocItem, doc: DoclingDocument, threshold: float = 
 def is_too_short(doc_item: DocItem, threshold: int = 2) -> bool:
     if not isinstance(doc_item, TextItem):
         return False
-    return doc_item.label == "text" and len(doc_item.text) <= threshold
+    return doc_item.label == DocItemLabel.TEXT.value and len(doc_item.text) <= threshold
 
 
 def is_sentence_end(text: str) -> bool:
