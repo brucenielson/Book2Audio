@@ -1,18 +1,7 @@
 from docling_core.types import DoclingDocument
-from docling_core.types.doc.document import SectionHeaderItem, ListItem, TextItem, DocItem
+from docling_core.types.doc.document import SectionHeaderItem, ListItem, TextItem, DocItem, DocItemLabel
 from typing import List
 import re
-from enum import Enum
-
-
-class DocItemLabel(Enum):
-    SECTION_HEADER = "section_header"
-    PAGE_FOOTER = "page_footer"
-    PAGE_HEADER = "page_header"
-    FOOTNOTE = "footnote"
-    LIST_ITEM = "list_item"
-    TEXT = "text"
-    FORMULA = "formula"
 
 
 
