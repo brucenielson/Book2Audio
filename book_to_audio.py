@@ -135,7 +135,7 @@ class BookToAudio:
         _audio_generator: The AudioGenerator instance used for TTS and saving.
     """
 
-    def __init__(self, audio_generator: AudioGenerator | None = None) -> None:
+    def __init__(self, audio_generator: AudioGenerator | None = None, dry_run: bool = False) -> None:
         """Initialise BookToAudio.
 
         Args:
@@ -143,6 +143,7 @@ class BookToAudio:
                              If None, a default AudioGenerator is created.
         """
         self._audio_generator: AudioGenerator = audio_generator or AudioGenerator()
+        self._dry_run: bool = dry_run
 
     def text_to_audio(self, text: str, output_file: str) -> None:
         """Generate audio from a text string and save to a WAV file.
@@ -179,10 +180,14 @@ class BookToAudio:
                                              end_page=end_page,
                                              include_notes=False)
         paragraphs: List[str]
-        paragraphs, _ = parser.run(debug=True)
-        if not paragraphs:
+        paragraphs, _ = parser.run()
+        if self._dry_run:
+            print(f"Dry run: Did not generate audio.")
+            return
+        elif not paragraphs:
             print("No paragraphs extracted from the document.")
             return
+
         audio_segments: List[np.ndarray] = []
         for i, paragraph in enumerate(paragraphs):
             print(f"Generating audio for paragraph {i+1}/{len(paragraphs)}")
@@ -196,7 +201,8 @@ def main(file_path: str | None = None,
          output_file: str | None = None,
          voice: str | None = None,
          start_page: str | int | None = None,
-         end_page: str | int | None = None) -> None:
+         end_page: str | int | None = None,
+         dry_run: bool = False) -> None:
     """Entry point for the book-to-audio conversion tool.
 
     Parses command line arguments (falling back to the provided parameter
@@ -213,6 +219,7 @@ def main(file_path: str | None = None,
         voice: The TTS voice identifier to use. Defaults to 'af_heart'.
         start_page: Optional first page to include in document conversion.
         end_page: Optional last page to include in document conversion.
+        dry_run: If True, processes the document but skips audio generation.
     """
     parser: argparse.ArgumentParser = argparse.ArgumentParser()
     parser.add_argument('file_path', nargs='?', default=file_path)
@@ -221,9 +228,10 @@ def main(file_path: str | None = None,
     parser.add_argument('--voice', default=voice or 'af_heart')
     parser.add_argument('--start-page', type=int, default=start_page)
     parser.add_argument('--end-page', type=int, default=end_page)
+    parser.add_argument('--dry-run', action='store_true', default=dry_run)
     args: argparse.Namespace = parser.parse_args()
 
-    converter: BookToAudio = BookToAudio(AudioGenerator(voice=args.voice))
+    converter: BookToAudio = BookToAudio(AudioGenerator(voice=args.voice), dry_run=args.dry_run)
 
     supported_file_types: List[str] = ['.pdf', '.txt']
     if args.text is not None:
@@ -242,5 +250,6 @@ def main(file_path: str | None = None,
     else:
         converter.document_to_audio(args.file_path, start_page=args.start_page, end_page=args.end_page)
 
+
 if __name__ == "__main__":
-    main(r"documents\The Myth of the Closed Mind.pdf", start_page=129, end_page=289) # 289
+    main(r"documents\The Myth of the Closed Mind.pdf", start_page=129, end_page=289, dry_run=True)

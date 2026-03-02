@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import List, Dict, Tuple
 from docling_core.types import DoclingDocument
 from docling_core.types.doc.document import DocItem, SectionHeaderItem, ListItem, TextItem
@@ -55,7 +56,7 @@ class DoclingParser:
         self._temp_docs = []
         self._temp_meta = []
 
-    def run(self, debug: bool = False) -> Tuple[List[str], List[Dict[str, str]]]:
+    def run(self, generate_text_file: bool = True) -> Tuple[List[str], List[Dict[str, str]]]:
         self._init_run_state()
 
         regular_texts, notes = self._get_processed_texts()
@@ -89,26 +90,25 @@ class DoclingParser:
 
             self._process_text_element(text, next_text)
 
-        if debug:
-            # Print the processed text to a file in the same directory as the document with the name of the document and _processed_texts.txt at the end
-            output_path: str = "documents/" + self._doc.name + "_processed_texts.txt"
-            with open(output_path, "w", encoding="utf-8") as f:
-                for text in texts:
-                    text_content: str = text.text if isinstance(text,
-                                                                (SectionHeaderItem, ListItem, TextItem)) else 'N/A'
-                    f.write(f"{text.prov[0].page_no if text.prov else 'N/A'}: {text.label}: {text_content}\n")
-
-            output_path = "documents/" + self._doc.name + "_processed_paragraphs.txt"
-            with open(output_path, "w", encoding="utf-8") as f:
-                for text in self._temp_docs:
-                    f.write(text + "\n\n")
-
-            self._clear_run_state()
-            return [], []  # Return empty lists if in debug mode after writing the processed texts to a file
+        if generate_text_file:
+            self._save_text_files(texts)
 
         result = self._temp_docs, self._temp_meta
         self._clear_run_state()
         return result
+
+    def _save_text_files(self, texts: List[DocItem], output_dir: str = "documents") -> None:
+        base_path: Path = Path(output_dir) / self._doc.name
+
+        with open(f"{base_path}_processed_texts.txt", "w", encoding="utf-8") as f:
+            for text in texts:
+                text_content: str = text.text if isinstance(text, (SectionHeaderItem, ListItem, TextItem)) else 'N/A'
+                # noinspection PyTypeHints
+                f.write(f"{text.prov[0].page_no if text.prov else 'N/A'}: {text.label}: {text_content}\n")
+
+        with open(f"{base_path}_processed_paragraphs.txt", "w", encoding="utf-8") as f:
+            for text in self._temp_docs:
+                f.write(text + "\n\n")
 
     def _handle_section_header(self, text: SectionHeaderItem | ListItem | TextItem) -> None:
         self._section_name = text.text

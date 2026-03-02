@@ -231,14 +231,6 @@ class TestRun:
         content_meta = next(m for m in meta if m["section_name"] == "Chapter One")
         assert content_meta is not None
 
-    def test_debug_returns_empty_lists(self):
-        texts = [make_text_item("Some content.")]
-        parser = make_parser(texts)
-        with patch("builtins.open", MagicMock()):
-            docs, meta = parser.run(debug=True)
-        assert docs == []
-        assert meta == []
-
     def test_empty_document_returns_empty(self):
         parser = make_parser([])
         docs, meta = parser.run()
