@@ -343,6 +343,14 @@ def should_skip_element(text: DocItem) -> bool:
     ])
 
 
+def _fix_encoding_artifacts(p_str: str) -> str:
+    p_str = p_str.replace('Ò', '"').replace('Ó', '"')  # curly double quotes
+    p_str = p_str.replace('Õ', "'")                    # curly apostrophe
+    p_str = p_str.replace('Ñ', '—')                    # em dash
+    p_str = p_str.replace('Ð', '–')                    # en dash
+    return p_str
+
+
 def _normalize_ligatures(p_str: str) -> str:
     """Replace common OCR ligature characters with their letter equivalents.
 
@@ -505,6 +513,7 @@ def clean_text(p_str: str) -> str:
     p_str = _normalize_whitespace(p_str)
     p_str = _normalize_hyphens(p_str)
     p_str = _normalize_ligatures(p_str)
+    p_str = _fix_encoding_artifacts(p_str)
     p_str = _normalize_quotes(p_str)
     p_str = _fix_punctuation_spacing(p_str)
     p_str = _fix_bracket_spacing(p_str)
