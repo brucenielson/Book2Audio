@@ -128,6 +128,22 @@ def should_skip_element(text: DocItem) -> bool:
     ])
 
 
+def _normalize_ligatures(p_str: str) -> str:
+    p_str = p_str.replace('ﬁ', 'fi')
+    p_str = p_str.replace('ﬂ', 'fl')
+    p_str = p_str.replace('ﬀ', 'ff')
+    p_str = p_str.replace('ﬃ', 'ffi')
+    p_str = p_str.replace('ﬄ', 'ffl')
+    p_str = p_str.replace('ﬅ', 'st')
+    return p_str
+
+
+def _normalize_quotes(p_str: str) -> str:
+    p_str = p_str.replace('\u201c', '"').replace('\u201d', '"')  # " "
+    p_str = p_str.replace('\u2018', "'").replace('\u2019', "'")  # ' '
+    return p_str
+
+
 def _normalize_whitespace(p_str: str) -> str:
     p_str = str(p_str).strip()  # Convert text to a string and remove leading/trailing whitespace
     p_str = p_str.encode('utf-8').decode('utf-8')
@@ -172,6 +188,8 @@ def _strip_footnote_numbers(p_str: str) -> str:
 
 def clean_text(p_str: str) -> str:
     p_str = _normalize_whitespace(p_str)
+    p_str = _normalize_ligatures(p_str)
+    p_str = _normalize_quotes(p_str)
     p_str = _fix_punctuation_spacing(p_str)
     p_str = _fix_bracket_spacing(p_str)
     p_str = _fix_apostrophes(p_str)
