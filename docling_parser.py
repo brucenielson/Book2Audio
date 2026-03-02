@@ -1,206 +1,17 @@
 from typing import List, Dict, Tuple
-import re
 from docling_core.types import DoclingDocument
-from docling_core.types.doc.document import SectionHeaderItem, ListItem, TextItem, DocItem
+from docling_core.types.doc.document import DocItem
 from word_validator import word_validator
-
-
-def is_section_header(text: DocItem | None) -> bool:
-    if not isinstance(text, (SectionHeaderItem, ListItem, TextItem)):
-        return False
-    return text.label == "section_header"
-
-
-def is_page_footer(text: DocItem | None) -> bool:
-    if not isinstance(text, (SectionHeaderItem, ListItem, TextItem)):
-        return False
-    return text.label == "page_footer"
-
-
-def is_page_header(text: DocItem | None) -> bool:
-    if not isinstance(text, (SectionHeaderItem, ListItem, TextItem)):
-        return False
-    return text.label == "page_header"
-
-
-def is_footnote(text: DocItem | None) -> bool:
-    if not isinstance(text, (SectionHeaderItem, ListItem, TextItem)):
-        return False
-    return text.label == "footnote"
-
-
-def is_list_item(text: DocItem | None) -> bool:
-    if not isinstance(text, (SectionHeaderItem, ListItem, TextItem)):
-        return False
-    return text.label == "list_item"
-
-
-def is_text_break(text: DocItem | None) -> bool:
-    if not isinstance(text, (SectionHeaderItem, ListItem, TextItem)):
-        return False
-    return is_page_header(text) or is_section_header(text) or is_footnote(text)
-
-
-def is_page_not_text(text: DocItem | None) -> bool:
-    if not isinstance(text, (SectionHeaderItem, ListItem, TextItem)):
-        return True
-    return text.label not in ["text", "list_item", "formula"]
-
-
-def is_page_text(text: DocItem | None) -> bool:
-    if not isinstance(text, (SectionHeaderItem, ListItem, TextItem)):
-        return False
-    return not is_page_not_text(text)
-
-
-def is_ends_with_punctuation(text: str) -> bool:
-    return text.endswith(".") or text.endswith("?") or text.endswith("!")
-
-
-def is_smaller_text(doc_item: DocItem, doc: DoclingDocument, threshold: float = 0.8) -> bool:
-    """
-    Determine if a DocItem's text is smaller than the average text size on its page.
-
-    Parameters:
-    - doc_item: The DocItem object containing provenance data with 'bbox'.
-    - doc: The DoclingDocument containing all DocItems.
-    - threshold: Ratio of the average text size to consider as 'smaller text'.
-
-    Returns:
-    - True if the DocItem's text is smaller than the average text size, False otherwise.
-    """
-    # Check if the DocItem has provenance data with a bounding box
-    # noinspection PyTypeHints
-    if hasattr(doc_item.prov[0], 'bbox'):
-        # noinspection PyTypeHints
-        bbox = doc_item.prov[0].bbox
-    else:
-        return False  # No bounding box available
-
-    # Extract the bounding box coordinates
-    x0: float = bbox.l
-    y0: float = bbox.b
-    x1: float = bbox.r
-    y1: float = bbox.t
-
-    # Calculate the area of the DocItem's bounding box
-    doc_item_area: float = (x1 - x0) * (y1 - y0)
-
-    # Filter doc_items that are on the same page
-    # noinspection PyTypeHints
-    same_page_items: List[DocItem] = [item for item in doc.texts if item.prov[0].page_no == doc_item.prov[0].page_no]
-
-    # Calculate the average area of bounding boxes on the page
-    # noinspection PyTypeHints
-    total_area: float = sum(
-        (item.prov[0].bbox.r - item.prov[0].bbox.l) * (item.prov[0].bbox.t - item.prov[0].bbox.b)
-        for item in same_page_items if hasattr(item.prov[0], 'bbox')
-    )
-    # noinspection PyTypeHints
-    num_items: int = sum(1 for item in same_page_items if hasattr(item.prov[0], 'bbox'))
-    average_area: float = total_area / num_items if num_items > 0 else 0
-
-    # Compare the DocItem's area to the average
-    return doc_item_area < average_area * threshold
-
-
-def is_too_short(doc_item: DocItem, threshold: int = 2) -> bool:
-    return doc_item.label == "text" and len(doc_item.text) <= threshold
-
-
-def is_sentence_end(text: str) -> bool:
-    has_end_punctuation: bool = is_ends_with_punctuation(text)
-    # Does it end with a closing bracket, quote, etc.?
-    ends_with_bracket: bool = (text.endswith(")")
-                               or text.endswith("]")
-                               or text.endswith("}")
-                               or text.endswith("\"")
-                               or text.endswith("\'"))
-    return (has_end_punctuation or
-            (ends_with_bracket and is_ends_with_punctuation(text[0:-1])))
-
-
-def is_text_item(item: DocItem | None) -> bool:
-    if not isinstance(item, (SectionHeaderItem, ListItem, TextItem)):
-        return False
-    return not (is_section_header(item)
-                or is_page_footer(item)
-                or is_page_header(item))
-
-
-def get_next_text(texts: List[DocItem], i: int) -> DocItem | None:
-    # Seek through the list of texts to find the next text item using is_text_item
-    # Should return None if no more text items are found
-    for j in range(i + 1, len(texts)):
-        if j < len(texts) and is_text_item(texts[j]):
-            return texts[j]
-    return None
-
-
-def remove_extra_whitespace(text: str) -> str:
-    # Remove extra whitespace in the middle of the text
-    return ' '.join(text.split())
-
-
-def combine_paragraphs(p1_str: str, p2_str: str) -> str:
-    # If the paragraph ends without final punctuation, combine it with the next paragraph
-    combined: str
-    if is_sentence_end(p1_str):
-        combined = p1_str + "\n" + p2_str
-    else:
-        combined = p1_str + " " + p2_str
-    return combined.strip()
-
-
-def is_roman_numeral(s: str) -> bool:
-    roman_numeral_pattern: str = r'(?i)^(M{0,3})(CM|CD|D?C{0,3})(XC|XL|L?X{0,3})(IX|IV|V?I{0,3})$'
-    return bool(re.match(roman_numeral_pattern, s.strip()))
-
-
-def get_current_page(text: DocItem,
-                     combined_paragraph: str,
-                     current_page: int | None) -> int | None:
-    if not isinstance(text, (SectionHeaderItem, ListItem, TextItem)):
-        return current_page
-    # noinspection PyTypeHints
-    return text.prov[0].page_no if current_page is None or combined_paragraph == "" else current_page
-
-
-def should_skip_element(text: DocItem) -> bool:
-    if not isinstance(text, (SectionHeaderItem, ListItem, TextItem)):
-        return True
-    return any([
-        is_page_footer(text),
-        is_page_header(text),
-        is_roman_numeral(text.text)
-    ])
-
-
-def clean_text(p_str: str) -> str:
-    p_str = str(p_str).strip()  # Convert text to a string and remove leading/trailing whitespace
-    p_str = p_str.encode('utf-8').decode('utf-8')
-    p_str = re.sub(r'\s+', ' ', p_str).strip()  # Replace multiple whitespace with single space
-    p_str = re.sub(r"([.!?]) '", r"\1'", p_str)  # Remove the space between punctuation (.!?) and '
-    p_str = re.sub(r'([.!?]) "', r'\1"', p_str)  # Remove the space between punctuation (.!?) and "
-    p_str = re.sub(r'\s+\)', ')', p_str)  # Remove whitespace before a closing parenthesis
-    p_str = re.sub(r'\s+]', ']', p_str)  # Remove whitespace before a closing square bracket
-    p_str = re.sub(r'\s+}', '}', p_str)  # Remove whitespace before a closing curly brace
-    p_str = re.sub(r'\s+,', ',', p_str)  # Remove whitespace before a comma
-    p_str = re.sub(r'\(\s+', '(', p_str)  # Remove whitespace after an opening parenthesis
-    p_str = re.sub(r'\[\s+', '[', p_str)  # Remove whitespace after an opening square bracket
-    p_str = re.sub(r'\{\s+', '{', p_str)  # Remove whitespace after an opening curly brace
-    p_str = re.sub(r'(?<=\s)\.([a-zA-Z])', r'\1',
-                   p_str)  # Remove a period that follows a whitespace and comes before a letter
-    p_str = re.sub(r'\s+\.', '.', p_str)  # Remove any whitespace before a period
-    p_str = re.sub(r'\s+\?', '?', p_str)  # Remove any whitespace before a question mark
-    p_str = re.sub(r'\s+!', '!', p_str)  # Remove any whitespace before an exclamation point
-    # Remove white space between an ' and an s if there is a white space after the s (i.e. possessive apostrophe) or is this is a punctuation mark {., !, ?, :}
-    p_str = re.sub(r"'\s+s(\s|[.,!?;:])", r"'s\1", p_str)
-    # Remove footnote numbers at end of a sentence. Check for a digit at the end and drop it
-    # until there are no more digits or the sentence is now a valid end of a sentence.
-    while p_str and p_str[-1].isdigit() and not is_sentence_end(p_str):
-        p_str = p_str[:-1].strip()
-    return p_str.strip()
+from utils.docling_utils import (is_section_header,
+                                 is_footnote,
+                                 is_page_text,
+                                 is_sentence_end,
+                                 should_skip_element,
+                                 is_too_short,
+                                 combine_paragraphs,
+                                 get_next_text,
+                                 get_current_page,
+                                 clean_text)
 
 
 class DoclingParser:
@@ -212,8 +23,6 @@ class DoclingParser:
                  double_notes: bool = False) -> None:
         self._doc: DoclingDocument = doc
         self._min_paragraph_size: int = min_paragraph_size
-        self._docs_list: List[str] = []
-        self._meta_list: List[Dict[str, str]] = []
         self._meta_data: dict[str, str] = meta_data
         self._start_page: int | None = start_page
         self._end_page: int | None = end_page

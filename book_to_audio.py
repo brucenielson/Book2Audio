@@ -179,7 +179,7 @@ class BookToAudio:
                                              end_page=end_page,
                                              double_notes=True)
         paragraphs: List[str]
-        paragraphs, _ = parser.run()
+        paragraphs, _ = parser.run(debug=True)
         if not paragraphs:
             print("No paragraphs extracted from the document.")
             return
@@ -243,4 +243,4 @@ def main(file_path: str | None = None,
         converter.document_to_audio(args.file_path, start_page=args.start_page, end_page=args.end_page)
 
 if __name__ == "__main__":
-    main(r"documents\The Myth of the Closed Mind.pdf", start_page=129, end_page=129) # 289
+    main(r"documents\The Myth of the Closed Mind.pdf", start_page=129, end_page=289) # 289
