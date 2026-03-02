@@ -9,7 +9,6 @@ import numpy as np
 from docling_parser import DoclingParser
 import torch
 from typing import List
-from docling.document_converter import DocumentConverter
 import argparse
 # import sounddevice as sd
 # from docling.datamodel.pipeline_options import PdfPipelineOptions
@@ -21,31 +20,6 @@ import argparse
 # https://huggingface.co/hexgrad/Kokoro-82M/discussions/120
 # pip install kokoro
 # pip install soundfile
-
-
-def load_as_document(file_path: str | Path) -> DoclingDocument:
-    """Load a document file and return it as a DoclingDocument.
-
-    If a cached JSON file exists at the same path (with a .json extension),
-    it will be loaded directly instead of re-converting the source file.
-    Otherwise, the file is converted using DocumentConverter and the result
-    is saved as JSON for future use.
-
-    Args:
-        file_path: Path to the source document file, as a string or Path object
-                   (e.g. a PDF).
-
-    Returns:
-        A DoclingDocument representing the parsed document.
-    """
-    json_path: Path = Path(file_path).with_suffix('.json')
-    if json_path.exists():
-        return DoclingDocument.load_from_json(json_path)
-    converter: DocumentConverter = DocumentConverter()
-    result = converter.convert(file_path)
-    book: DoclingDocument = result.document
-    book.save_as_json(json_path)
-    return book
 
 
 class AudioGenerator:
@@ -173,14 +147,13 @@ class BookToAudio:
             output_file: Optional path to the output WAV file. If None, the
                          output file is derived from file_path with a .wav extension.
         """
-        document: DoclingDocument = load_as_document(file_path)
-        parser: DoclingParser = DoclingParser(document, {},
+        parser: DoclingParser = DoclingParser(file_path, {},
                                              min_paragraph_size=300,
                                              start_page=start_page,
                                              end_page=end_page,
                                              include_notes=False)
         paragraphs: List[str]
-        paragraphs, _ = parser.run()
+        paragraphs, _ = parser.run(generate_text_file=True)
         if self._dry_run:
             print(f"Dry run: Did not generate audio.")
             return

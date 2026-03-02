@@ -47,7 +47,7 @@ def make_parser(texts: list,
     doc.name = "test_doc"
     doc.texts = texts
     return DoclingParser(
-        doc=doc,
+        source=doc,
         meta_data=meta_data or {},
         min_paragraph_size=min_paragraph_size,
         start_page=start_page,

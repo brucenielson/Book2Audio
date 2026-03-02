@@ -12,17 +12,24 @@ from utils.docling_utils import (is_section_header,
                                  combine_paragraphs,
                                  get_next_text,
                                  get_current_page,
-                                 clean_text)
+                                 clean_text,
+                                 load_as_document)
 
 
 class DoclingParser:
-    def __init__(self, doc: DoclingDocument,
+    def __init__(self, source: str | Path | DoclingDocument,
                  meta_data: dict[str, str],
                  min_paragraph_size: int = 300,
                  start_page: int | None = None,
                  end_page: int | None = None,
                  include_notes: bool = True) -> None:
-        self._doc: DoclingDocument = doc
+        if isinstance(source, DoclingDocument):
+            self._doc: DoclingDocument = source
+            self._file_path: Path | None = None
+        else:
+            self._file_path = Path(source)
+            self._doc = load_as_document(self._file_path)
+
         self._min_paragraph_size: int = min_paragraph_size
         self._meta_data: dict[str, str] = meta_data
         self._start_page: int | None = start_page
@@ -56,7 +63,7 @@ class DoclingParser:
         self._temp_docs = []
         self._temp_meta = []
 
-    def run(self, generate_text_file: bool = True) -> Tuple[List[str], List[Dict[str, str]]]:
+    def run(self, generate_text_file: bool = False) -> Tuple[List[str], List[Dict[str, str]]]:
         self._init_run_state()
 
         regular_texts, notes = self._get_processed_texts()
@@ -97,8 +104,11 @@ class DoclingParser:
         self._clear_run_state()
         return result
 
-    def _save_text_files(self, texts: List[DocItem], output_dir: str = "documents") -> None:
-        base_path: Path = Path(output_dir) / self._doc.name
+    def _save_text_files(self, texts: List[DocItem]) -> None:
+        if self._file_path is None:
+            raise ValueError(
+                "Cannot save text files when DoclingDocument was passed directly — no file path available.")
+        base_path: Path = self._file_path.parent / self._doc.name
 
         with open(f"{base_path}_processed_texts.txt", "w", encoding="utf-8") as f:
             for text in texts:

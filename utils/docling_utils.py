@@ -1,6 +1,38 @@
-from docling_core.types.doc.document import SectionHeaderItem, ListItem, TextItem, DocItem, DocItemLabel
+from pathlib import Path
+from docling_core.types.doc.document import (SectionHeaderItem,
+                                             ListItem,
+                                             TextItem,
+                                             DocItem,
+                                             DocItemLabel,
+                                             DoclingDocument)
+from docling.document_converter import DocumentConverter
 from typing import List
 import re
+
+
+def load_as_document(file_path: str | Path) -> DoclingDocument:
+    """Load a document file and return it as a DoclingDocument.
+
+    If a cached JSON file exists at the same path (with a .json extension),
+    it will be loaded directly instead of re-converting the source file.
+    Otherwise, the file is converted using DocumentConverter and the result
+    is saved as JSON for future use.
+
+    Args:
+        file_path: Path to the source document file, as a string or Path object
+                   (e.g. a PDF).
+
+    Returns:
+        A DoclingDocument representing the parsed document.
+    """
+    json_path: Path = Path(file_path).with_suffix('.json')
+    if json_path.exists():
+        return DoclingDocument.load_from_json(json_path)
+    converter: DocumentConverter = DocumentConverter()
+    result = converter.convert(file_path)
+    book: DoclingDocument = result.document
+    book.save_as_json(json_path)
+    return book
 
 
 def is_section_header(text: DocItem | None) -> bool:
