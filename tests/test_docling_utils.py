@@ -395,3 +395,21 @@ class TestCleanText:
 
     def test_empty_string(self):
         assert clean_text("") == ""
+
+    def test_normalizes_fi_ligature(self):
+        assert clean_text("ﬁle") == "file"
+
+    def test_normalizes_fl_ligature(self):
+        assert clean_text("ﬂoor") == "floor"
+
+    def test_normalizes_ff_ligature(self):
+        assert clean_text("ﬀect") == "ffect"
+
+    def test_normalizes_left_double_quote(self):
+        assert clean_text("\u201chello\u201d") == '"hello"'
+
+    def test_normalizes_smart_single_quotes(self):
+        assert clean_text("\u2018hello\u2019") == "'hello'"
+
+    def test_normalizes_right_single_quote_possessive(self):
+        assert clean_text("dog\u2019s") == "dog's"
