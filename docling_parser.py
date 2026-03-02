@@ -28,15 +28,35 @@ class DoclingParser:
         self._end_page: int | None = end_page
         self._include_notes: bool = include_notes
 
+        # Run state — initialised in _init_run_state, cleared in _clear_run_state
+        self._combined_paragraph: str = ""
+        self._combined_chars: int = 0
+        self._para_num: int = 0
+        self._section_name: str = ""
+        self._page_no: int | None = None
+        self._temp_docs: List[str] = []
+        self._temp_meta: List[Dict[str, str]] = []
+
+    def _init_run_state(self) -> None:
+        self._combined_paragraph = ""
+        self._combined_chars = 0
+        self._para_num = 0
+        self._section_name = ""
+        self._page_no = None
+        self._temp_docs = []
+        self._temp_meta = []
+
+    def _clear_run_state(self) -> None:
+        self._combined_paragraph = ""
+        self._combined_chars = 0
+        self._para_num = 0
+        self._section_name = ""
+        self._page_no = None
+        self._temp_docs = []
+        self._temp_meta = []
+
     def run(self, debug: bool = False) -> Tuple[List[str], List[Dict[str, str]]]:
-        temp_docs: List[str] = []
-        temp_meta: List[Dict[str, str]] = []
-        combined_paragraph: str = ""
-        i: int
-        combined_chars: int = 0
-        para_num: int = 0
-        section_name: str = ""
-        page_no: int | None = None
+        self._init_run_state()
 
         regular_texts, notes = self._get_processed_texts()
         texts: List[DocItem] = regular_texts + (notes if self._include_notes else [])
@@ -47,32 +67,18 @@ class DoclingParser:
                 continue
 
             next_text: DocItem | None = get_next_text(texts, i)
-            page_no = get_current_page(text, combined_paragraph, page_no)
+            self._page_no = get_current_page(text, self._combined_paragraph, self._page_no)
 
             # Check if the current page is within the valid range
-            if self._start_page is not None and page_no is not None and page_no < self._start_page:
-                page_no = None
+            if self._start_page is not None and self._page_no is not None and self._page_no < self._start_page:
+                self._page_no = None
                 continue
-            if self._end_page is not None and page_no is not None and page_no > self._end_page:
+            if self._end_page is not None and self._page_no is not None and self._page_no > self._end_page:
                 continue
 
             # Update section header if the element is a section header
             if is_section_header(text):
-
-                section_name = text.text
-                # Flush the current accumulated paragraph before the section header
-                if combined_paragraph:
-                    combined_paragraph = word_validator.combine_hyphenated_words(combined_paragraph)
-                    para_num += 1
-                    self._add_paragraph(combined_paragraph, para_num, section_name, page_no, temp_docs, temp_meta)
-                    combined_paragraph, combined_chars = "", 0
-                    page_no = None
-                # Add the section header itself as its own paragraph
-                header_str: str = clean_text(text.text)
-                if header_str:
-                    para_num += 1
-                    self._add_paragraph(header_str, para_num, section_name, page_no, temp_docs, temp_meta)
-                    page_no = None
+                self._handle_section_header(text)
                 continue
 
             if should_skip_element(text):
@@ -81,43 +87,7 @@ class DoclingParser:
             if not isinstance(text, (SectionHeaderItem, ListItem, TextItem)):
                 continue
 
-            p_str: str = clean_text(text.text)
-            p_str_chars: int = len(p_str)
-
-            # If the paragraph does not end with final punctuation, accumulate it
-            if not is_sentence_end(p_str):
-                combined_paragraph = combine_paragraphs(combined_paragraph, p_str)
-                combined_chars += p_str_chars
-                continue
-
-            # p_str ends with a sentence end; decide whether to process or accumulate it
-            total_chars: int = combined_chars + p_str_chars
-            if is_section_header(next_text):
-                # Immediately process if the next text is a section header
-                p_str = combine_paragraphs(combined_paragraph, p_str)
-                combined_paragraph, combined_chars = "", 0
-            elif total_chars < self._min_paragraph_size:
-                # Not enough characters accumulated yet; decide based on next_text
-                if next_text is None or (not is_page_text(next_text) and is_sentence_end(p_str)):
-                    # End of document or next text item is not a text item and current paragraph ends with punctuation
-                    # Process the paragraph and reset the accumulator even though this is a short paragraph
-                    p_str = combine_paragraphs(combined_paragraph, p_str)
-                    combined_paragraph, combined_chars = "", 0
-                else:
-                    # Combine with next paragraph
-                    combined_paragraph = combine_paragraphs(combined_paragraph, p_str)
-                    combined_chars = total_chars
-                    continue
-            else:
-                # Sufficient characters: process the paragraph and reset the accumulator
-                p_str = combine_paragraphs(combined_paragraph, p_str)
-                combined_paragraph, combined_chars = "", 0
-
-            p_str = word_validator.combine_hyphenated_words(p_str)
-            if p_str:  # Only add non-empty content
-                para_num += 1
-                self._add_paragraph(p_str, para_num, section_name, page_no, temp_docs, temp_meta)
-                page_no = None
+            self._process_text_element(text, next_text)
 
         if debug:
             # Print the processed text to a file in the same directory as the document with the name of the document and _processed_texts.txt at the end
@@ -130,12 +100,77 @@ class DoclingParser:
 
             output_path = "documents/" + self._doc.name + "_processed_paragraphs.txt"
             with open(output_path, "w", encoding="utf-8") as f:
-                for text in temp_docs:
+                for text in self._temp_docs:
                     f.write(text + "\n\n")
 
+            self._clear_run_state()
             return [], []  # Return empty lists if in debug mode after writing the processed texts to a file
 
-        return temp_docs, temp_meta
+        result = self._temp_docs, self._temp_meta
+        self._clear_run_state()
+        return result
+
+    def _handle_section_header(self, text: SectionHeaderItem | ListItem | TextItem) -> None:
+        self._section_name = text.text
+        # Flush the current accumulated paragraph before the section header
+        if self._combined_paragraph:
+            self._flush_paragraph()
+        # Add the section header itself as its own paragraph
+        header_str: str = clean_text(text.text)
+        if header_str:
+            self._para_num += 1
+            self._add_paragraph(header_str, self._para_num, self._section_name, self._page_no,
+                                 self._temp_docs, self._temp_meta)
+            self._page_no = None
+
+    def _flush_paragraph(self) -> None:
+        self._combined_paragraph = word_validator.combine_hyphenated_words(self._combined_paragraph)
+        self._para_num += 1
+        self._add_paragraph(self._combined_paragraph, self._para_num, self._section_name, self._page_no,
+                             self._temp_docs, self._temp_meta)
+        self._combined_paragraph, self._combined_chars = "", 0
+        self._page_no = None
+
+    def _process_text_element(self, text: SectionHeaderItem | ListItem | TextItem,
+                               next_text: DocItem | None) -> None:
+        p_str: str = clean_text(text.text)
+        p_str_chars: int = len(p_str)
+
+        # If the paragraph does not end with final punctuation, accumulate it
+        if not is_sentence_end(p_str):
+            self._combined_paragraph = combine_paragraphs(self._combined_paragraph, p_str)
+            self._combined_chars += p_str_chars
+            return
+
+        # p_str ends with a sentence end; decide whether to process or accumulate it
+        total_chars: int = self._combined_chars + p_str_chars
+        if is_section_header(next_text):
+            # Immediately process if the next text is a section header
+            p_str = combine_paragraphs(self._combined_paragraph, p_str)
+            self._combined_paragraph, self._combined_chars = "", 0
+        elif total_chars < self._min_paragraph_size:
+            # Not enough characters accumulated yet; decide based on next_text
+            if next_text is None or (not is_page_text(next_text) and is_sentence_end(p_str)):
+                # End of document or next text item is not a text item and current paragraph ends with punctuation
+                # Process the paragraph and reset the accumulator even though this is a short paragraph
+                p_str = combine_paragraphs(self._combined_paragraph, p_str)
+                self._combined_paragraph, self._combined_chars = "", 0
+            else:
+                # Combine with next paragraph
+                self._combined_paragraph = combine_paragraphs(self._combined_paragraph, p_str)
+                self._combined_chars = total_chars
+                return
+        else:
+            # Sufficient characters: process the paragraph and reset the accumulator
+            p_str = combine_paragraphs(self._combined_paragraph, p_str)
+            self._combined_paragraph, self._combined_chars = "", 0
+
+        p_str = word_validator.combine_hyphenated_words(p_str)
+        if p_str:  # Only add non-empty content
+            self._para_num += 1
+            self._add_paragraph(p_str, self._para_num, self._section_name, self._page_no,
+                                 self._temp_docs, self._temp_meta)
+            self._page_no = None
 
     def _get_processed_texts(self) -> Tuple[List[DocItem], List[DocItem]]:
         """
