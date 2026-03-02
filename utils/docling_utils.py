@@ -34,6 +34,7 @@ def is_list_item(text: DocItem | None) -> bool:
     return text.label == DocItemLabel.LIST_ITEM.value
 
 
+# TODO: Check if is_text_break is still needed or can be removed
 def is_text_break(text: DocItem | None) -> bool:
     if not isinstance(text, (SectionHeaderItem, ListItem, TextItem)):
         return False
@@ -86,7 +87,7 @@ def get_next_text(texts: List[DocItem], i: int) -> DocItem | None:
     # Seek through the list of texts to find the next text item using is_text_item
     # Should return None if no more text items are found
     for j in range(i + 1, len(texts)):
-        if j < len(texts) and is_text_item(texts[j]):
+        if is_text_item(texts[j]):
             return texts[j]
     return None
 
