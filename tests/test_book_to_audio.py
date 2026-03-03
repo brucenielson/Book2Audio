@@ -2,7 +2,8 @@ import pytest
 import numpy as np
 from unittest.mock import MagicMock, patch, call
 from pathlib import Path
-from book_to_audio import AudioGenerator, BookToAudio, load_as_document
+from book_to_audio import AudioGenerator, BookToAudio
+from utils.docling_utils import load_as_document
 
 
 # --- Fixtures ---
@@ -106,29 +107,27 @@ class TestBookToAudio:
         fake_doc.name = "test_doc"
         paragraphs = ["First paragraph.", "Second paragraph."]
 
-        with patch('book_to_audio.load_as_document', return_value=fake_doc):
-            with patch('book_to_audio.DoclingParser') as mock_parser_cls:
-                mock_parser = MagicMock()
-                mock_parser.run.return_value = (paragraphs, [])
-                mock_parser_cls.return_value = mock_parser
+        with patch('book_to_audio.DoclingParser') as mock_parser_cls:
+            mock_parser = MagicMock()
+            mock_parser.run.return_value = (paragraphs, [])
+            mock_parser_cls.return_value = mock_parser
 
-                pdf_path = str(tmp_path / "test_doc.pdf")
-                book_to_audio.document_to_audio(pdf_path)
+            pdf_path = str(tmp_path / "test_doc.pdf")
+            book_to_audio.document_to_audio(pdf_path)
 
-                assert mock_audio_generator.generate.call_count == 2
-                mock_audio_generator.save.assert_called_once()
+            assert mock_audio_generator.generate.call_count == 2
+            mock_audio_generator.save.assert_called_once()
 
     def test_document_to_audio_prints_when_no_paragraphs(self, book_to_audio, capsys):
         """document_to_audio() should print a message if no paragraphs are extracted."""
         fake_doc = MagicMock()
 
-        with patch('book_to_audio.load_as_document', return_value=fake_doc):
-            with patch('book_to_audio.DoclingParser') as mock_parser_cls:
-                mock_parser = MagicMock()
-                mock_parser.run.return_value = ([], [])
-                mock_parser_cls.return_value = mock_parser
+        with patch('book_to_audio.DoclingParser') as mock_parser_cls:
+            mock_parser = MagicMock()
+            mock_parser.run.return_value = ([], [])
+            mock_parser_cls.return_value = mock_parser
 
-                book_to_audio.document_to_audio("test.pdf")
+            book_to_audio.document_to_audio("test.pdf")
 
         captured = capsys.readouterr()
         assert "No paragraphs extracted" in captured.out
@@ -148,7 +147,7 @@ class TestLoadAsDocument:
         json_path = tmp_path / "test.json"
         json_path.write_text("{}")  # minimal placeholder
 
-        with patch('book_to_audio.DoclingDocument.load_from_json') as mock_load:
+        with patch('utils.docling_utils.DoclingDocument.load_from_json') as mock_load:
             mock_load.return_value = MagicMock()
             load_as_document(str(tmp_path / "test.pdf"))
             mock_load.assert_called_once_with(json_path)
@@ -157,7 +156,7 @@ class TestLoadAsDocument:
         """load_as_document() should convert the file and save JSON if no cache exists."""
         pdf_path = str(tmp_path / "test.pdf")
 
-        with patch('book_to_audio.DocumentConverter') as mock_converter_cls:
+        with patch('utils.docling_utils.DocumentConverter') as mock_converter_cls:
             mock_converter = MagicMock()
             mock_converter_cls.return_value = mock_converter
             mock_book = MagicMock()
