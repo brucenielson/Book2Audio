@@ -38,7 +38,7 @@ class DoclingParser:
 
         # Run state — initialised in _init_run_state, cleared in _clear_run_state
         self._combined_paragraph: str = ""
-        self._combined_chars: int = 0
+        self._combined_count: int = 0
         self._para_num: int = 0
         self._section_name: str = ""
         self._page_no: int | None = None
@@ -47,7 +47,7 @@ class DoclingParser:
 
     def _init_run_state(self) -> None:
         self._combined_paragraph = ""
-        self._combined_chars = 0
+        self._combined_count = 0
         self._para_num = 0
         self._section_name = ""
         self._page_no = None
@@ -56,7 +56,7 @@ class DoclingParser:
 
     def _clear_run_state(self) -> None:
         self._combined_paragraph = ""
-        self._combined_chars = 0
+        self._combined_count = 0
         self._para_num = 0
         self._section_name = ""
         self._page_no = None
@@ -139,48 +139,53 @@ class DoclingParser:
         self._para_num += 1
         self._add_paragraph(self._combined_paragraph, self._para_num, self._section_name, self._page_no,
                              self._temp_docs, self._temp_meta)
-        self._combined_paragraph, self._combined_chars = "", 0
+        self._combined_paragraph, self._combined_count = "", 0
         self._page_no = None
 
+    def _should_accumulate(self, total_char_count: int, next_text: DocItem | None) -> bool:
+        """Return True if the current paragraph should be accumulated rather than emitted."""
+        if is_section_header(next_text):
+            # Immediately process if the next text is a section header
+            return False
+        if total_char_count >= self._min_paragraph_size:
+            # Too many characters accumulated, so accumulate no more
+            return False
+        if next_text is None:
+            # End of document, so don't accumulate further
+            return False
+        if not is_page_text(next_text):
+            # Next text is not page text, so don't accumulate
+            return False
+        return True
+
     def _process_text_element(self, text: SectionHeaderItem | ListItem | TextItem,
-                               next_text: DocItem | None) -> None:
+                              next_text: DocItem | None) -> None:
         p_str: str = clean_text(text.text)
-        p_str_chars: int = len(p_str)
+        p_str_count: int = len(p_str)
 
         # If the paragraph does not end with final punctuation, accumulate it
         if not is_sentence_end(p_str):
             self._combined_paragraph = combine_paragraphs(self._combined_paragraph, p_str)
-            self._combined_chars += p_str_chars
+            self._combined_count += p_str_count
             return
 
-        # p_str ends with a sentence end; decide whether to process or accumulate it
-        total_chars: int = self._combined_chars + p_str_chars
-        if is_section_header(next_text):
-            # Immediately process if the next text is a section header
-            p_str = combine_paragraphs(self._combined_paragraph, p_str)
-            self._combined_paragraph, self._combined_chars = "", 0
-        elif total_chars < self._min_paragraph_size:
-            # Not enough characters accumulated yet; decide based on next_text
-            if next_text is None or (not is_page_text(next_text) and is_sentence_end(p_str)):
-                # End of document or next text item is not a text item and current paragraph ends with punctuation
-                # Process the paragraph and reset the accumulator even though this is a short paragraph
-                p_str = combine_paragraphs(self._combined_paragraph, p_str)
-                self._combined_paragraph, self._combined_chars = "", 0
-            else:
-                # Combine with next paragraph
-                self._combined_paragraph = combine_paragraphs(self._combined_paragraph, p_str)
-                self._combined_chars = total_chars
-                return
-        else:
-            # Sufficient characters: process the paragraph and reset the accumulator
-            p_str = combine_paragraphs(self._combined_paragraph, p_str)
-            self._combined_paragraph, self._combined_chars = "", 0
+        total_char_count: int = self._combined_count + p_str_count
+
+        if self._should_accumulate(total_char_count, next_text):
+            # Combine with next paragraph
+            self._combined_paragraph = combine_paragraphs(self._combined_paragraph, p_str)
+            self._combined_count = total_char_count
+            return
+
+        # Ready to emit — combine with any accumulated text and output
+        p_str = combine_paragraphs(self._combined_paragraph, p_str)
+        self._combined_paragraph, self._combined_count = "", 0
 
         p_str = word_validator.combine_hyphenated_words(p_str)
         if p_str:  # Only add non-empty content
             self._para_num += 1
             self._add_paragraph(p_str, self._para_num, self._section_name, self._page_no,
-                                 self._temp_docs, self._temp_meta)
+                                self._temp_docs, self._temp_meta)
             self._page_no = None
 
     def _get_processed_texts(self) -> Tuple[List[DocItem], List[DocItem]]:
