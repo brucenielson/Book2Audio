@@ -3,7 +3,7 @@ from typing import Union
 
 
 class WordValidator:
-    """Validates and normalises words using NLTK stemming and lemmatization.
+    """Validates and normalizes words using NLTK stemming and lemmatization.
 
     Lazily loads NLTK resources on first use and caches them for the
     lifetime of the instance. Provides methods to check whether a word
@@ -131,6 +131,7 @@ class WordValidator:
 
         # Replace any soft hyphen characters with a regular dash.
         p_str = p_str.replace("­", "-")
+        # p_str = p_str.replace("\u00ad", "-")
         # Look for hyphens between word parts (with or without an extra space)
         p_str = re.sub(r'(\w+)-(\s?\w+)', replace_dash, p_str)
 

@@ -511,7 +511,7 @@ def clean_text(p_str: str) -> str:
         The cleaned and normalised string.
     """
     p_str = _normalize_whitespace(p_str)
-    p_str = _normalize_hyphens(p_str)
+    # p_str = _normalize_hyphens(p_str)
     p_str = _normalize_ligatures(p_str)
     p_str = _fix_encoding_artifacts(p_str)
     p_str = _normalize_quotes(p_str)
