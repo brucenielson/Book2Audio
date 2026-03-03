@@ -264,7 +264,7 @@ def combine_paragraphs(p1_str: str, p2_str: str) -> str:
     """Combine two paragraph strings into one.
 
     If the first paragraph ends with sentence-ending punctuation, the two are
-    joined with a newline. Otherwise they are joined with a space, treating
+    joined with a newline. Otherwise, they are joined with a space, treating
     them as a continuation of the same sentence.
 
     Args:

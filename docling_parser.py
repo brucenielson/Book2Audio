@@ -142,39 +142,45 @@ class DoclingParser:
         self._combined_paragraph, self._combined_count = "", 0
         self._page_no = None
 
-    def _should_accumulate(self, total_char_count: int, next_text: DocItem | None) -> bool:
-        """Return True if the current paragraph should be accumulated rather than emitted."""
+    def _should_accumulate(self, p_str: str, next_text: DocItem | None) -> bool:
+        """Return True if p_str should be accumulated rather than emitted.
+
+        There are two reasons to accumulate:
+        1. The paragraph is incomplete — it doesn't end with sentence-ending punctuation,
+           so we must wait for more text before emitting.
+        2. The paragraph is complete but too short — we haven't reached min_paragraph_size
+           yet and there is more text coming, so we combine with the next paragraph.
+        """
+        # Incomplete paragraph — must accumulate regardless of size
+        if not is_sentence_end(p_str):
+            return True
+
+        # Complete paragraph — check if we should still accumulate due to size
+        total_char_count: int = self._combined_count + len(p_str)
+
         if is_section_header(next_text):
-            # Immediately process if the next text is a section header
-            return False
-        if total_char_count >= self._min_paragraph_size:
-            # Too many characters accumulated, so accumulate no more
+            # Next element is a section header — emit now to avoid crossing a section boundary
             return False
         if next_text is None:
-            # End of document, so don't accumulate further
+            # End of document — emit whatever we have
             return False
         if not is_page_text(next_text):
-            # Next text is not page text, so don't accumulate
+            # Next element is not body text — emit now
             return False
+        if total_char_count >= self._min_paragraph_size:
+            # Reached minimum size — emit now
+            return False
+
+        # Paragraph is complete but short and more text is coming — accumulate
         return True
 
     def _process_text_element(self, text: SectionHeaderItem | ListItem | TextItem,
                               next_text: DocItem | None) -> None:
         p_str: str = clean_text(text.text)
-        p_str_count: int = len(p_str)
 
-        # If the paragraph does not end with final punctuation, accumulate it
-        if not is_sentence_end(p_str):
+        if self._should_accumulate(p_str, next_text):
             self._combined_paragraph = combine_paragraphs(self._combined_paragraph, p_str)
-            self._combined_count += p_str_count
-            return
-
-        total_char_count: int = self._combined_count + p_str_count
-
-        if self._should_accumulate(total_char_count, next_text):
-            # Combine with next paragraph
-            self._combined_paragraph = combine_paragraphs(self._combined_paragraph, p_str)
-            self._combined_count = total_char_count
+            self._combined_count += len(p_str)
             return
 
         # Ready to emit — combine with any accumulated text and output
