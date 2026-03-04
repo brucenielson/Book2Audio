@@ -11,7 +11,7 @@ QWEN_MODEL_SIZES = {
 }
 
 # Default speakers available in CustomVoice models.
-QWEN_SPEAKERS = ['aiden', 'dylan', 'eric', 'one_anna', 'ryan', 'serena', 'sohee', 'uncle_fu', 'vivian']
+QWEN_SPEAKERS = ['aiden', 'dylan', 'eric', 'ono_anna', 'ryan', 'serena', 'sohee', 'uncle_fu', 'vivian']
 
 
 class QwenCustomVoiceEngine(TTSEngine):
@@ -60,10 +60,11 @@ class QwenCustomVoiceEngine(TTSEngine):
                 attn_impl = 'flash_attention_2'
             except ImportError:
                 pass
-            print(f"Loading Qwen3-TTS model: {model_id} (attention: {attn_impl})")
+            device: str = 'cuda:0' if torch.cuda.is_available() else 'cpu'
+            print(f"Loading Qwen3-TTS model: {model_id} (device: {device}, attention: {attn_impl})")
             model = Qwen3TTSModel.from_pretrained(
                 model_id,
-                device_map='cuda:0',
+                device_map=device,
                 dtype=torch.bfloat16,
                 attn_implementation=attn_impl,
             )

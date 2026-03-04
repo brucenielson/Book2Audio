@@ -38,7 +38,12 @@ def main(file_path: str | None = None,
          start_page: str | int | None = None,
          end_page: str | int | None = None,
          dry_run: bool = False,
-         generate_text_file: bool = False) -> None:
+         generate_text_file: bool = False,
+         engine: str | None = None,
+         speaker: str | None = None,
+         language: str | None = None,
+         instruct: str | None = None,
+         model_size: str | None = None) -> None:
     """Entry point for the book-to-audio conversion tool.
 
     Parses command line arguments (falling back to the provided parameter
@@ -54,6 +59,11 @@ def main(file_path: str | None = None,
         end_page: Optional last page for document conversion.
         dry_run: If True, processes the document but skips audio generation.
         generate_text_file: If True, saves processed text files alongside the source.
+        engine: TTS engine to use: 'kokoro' or 'qwen'. Defaults to 'kokoro'.
+        speaker: Qwen speaker name (e.g. 'vivian'). Defaults to 'vivian'.
+        language: Qwen language (e.g. 'English', 'Auto'). Defaults to 'Auto'.
+        instruct: Qwen style instruction (e.g. 'speak calmly'). Defaults to None.
+        model_size: Qwen model size: '0.6b' or '1.7b'. Defaults to '0.6b'.
     """
     parser: argparse.ArgumentParser = argparse.ArgumentParser(
         description='Convert text or documents to audio using Kokoro or Qwen3-TTS.')
@@ -68,7 +78,7 @@ def main(file_path: str | None = None,
     parser.add_argument('--generate-text-file', action='store_true', default=generate_text_file)
 
     # Engine selection
-    parser.add_argument('--engine', choices=['kokoro', 'qwen'], default='kokoro',
+    parser.add_argument('--engine', choices=['kokoro', 'qwen'], default=engine or 'kokoro',
                         help='TTS engine to use (default: kokoro)')
 
     # Kokoro-specific arguments
@@ -76,13 +86,13 @@ def main(file_path: str | None = None,
                         help='Kokoro voice identifier (default: af_heart)')
 
     # Qwen-specific arguments
-    parser.add_argument('--speaker', default='vivian', choices=QWEN_SPEAKERS,
+    parser.add_argument('--speaker', default=speaker or 'vivian', choices=QWEN_SPEAKERS,
                         help='Qwen speaker name (default: vivian)')
-    parser.add_argument('--language', default='Auto',
+    parser.add_argument('--language', default=language or 'Auto',
                         help='Qwen language: Auto, English, Chinese, Japanese, etc. (default: Auto)')
-    parser.add_argument('--instruct', default=None,
+    parser.add_argument('--instruct', default=instruct,
                         help='Qwen style instruction, e.g. "speak calmly" (default: none)')
-    parser.add_argument('--model-size', default='0.6b', choices=['0.6b', '1.7b'],
+    parser.add_argument('--model-size', default=model_size or '0.6b', choices=['0.6b', '1.7b'],
                         help='Qwen model size (default: 0.6b)')
 
     args: argparse.Namespace = parser.parse_args()
@@ -112,6 +122,10 @@ def main(file_path: str | None = None,
 
 if __name__ == "__main__":
     # main(r"documents\The Myth of the Closed Mind.pdf",
-    #      start_page=129, end_page=289, dry_run=False, generate_text_file=True)
-    main(r"documents\Realism and the Aim of Science -- Karl Popper -- 2017.pdf",
-         start_page=None, end_page=None, dry_run=True, generate_text_file=True)
+    #      start_page=129, end_page=129, dry_run=False, generate_text_file=True)
+    # main(r"documents\Realism and the Aim of Science -- Karl Popper -- 2017.pdf",
+    #      start_page=None, end_page=None, dry_run=True, generate_text_file=True)
+    main(r"documents\The Myth of the Closed Mind.pdf",
+         engine='qwen', speaker='ryan', language='English',
+         instruct='Read in an audiobook narration style with a American English accent. Use a calm and engaging tone, with natural pacing and emphasis.',
+         start_page=129, end_page=129, generate_text_file=True)
