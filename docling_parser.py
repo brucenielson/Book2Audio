@@ -3,17 +3,17 @@ from typing import List, Dict, Tuple
 from docling_core.types import DoclingDocument
 from docling_core.types.doc.document import DocItem, SectionHeaderItem, ListItem, TextItem
 from word_validator import word_validator
-from utils.docling_utils import (is_section_header,
-                                 is_footnote,
-                                 is_page_text,
-                                 is_sentence_end,
-                                 should_skip_element,
-                                 is_too_short,
-                                 combine_paragraphs,
-                                 get_next_text,
-                                 get_current_page,
-                                 clean_text,
-                                 load_as_document)
+from utils import (is_section_header,
+                   is_footnote,
+                   is_page_text,
+                   is_sentence_end,
+                   should_skip_element,
+                   is_too_short,
+                   combine_paragraphs,
+                   get_next_text,
+                   get_current_page,
+                   clean_text,
+                   load_as_document)
 
 
 class DoclingParser:
