@@ -127,5 +127,5 @@ if __name__ == "__main__":
     #      start_page=None, end_page=None, dry_run=True, generate_text_file=True)
     main(r"documents\The Myth of the Closed Mind.pdf",
          engine='qwen', speaker='ryan', language='English',
-         instruct='Read in an audiobook narration style with a American English accent. Use a calm and engaging tone, with natural pacing and emphasis.',
+         instruct='Read very very rapidly.',
          start_page=129, end_page=129, generate_text_file=True)
