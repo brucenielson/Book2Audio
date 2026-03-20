@@ -267,21 +267,27 @@ class EpubParser:
             all_meta.extend(section_meta_list)
 
         if generate_text_file:
-            self._save_text_files(all_docs)
+            self._save_text_files(all_docs, all_meta)
 
         return all_docs, all_meta
 
-
-    def _save_text_files(self, docs: List[str]) -> None:
-        """Save processed paragraphs to a text file alongside the source EPUB.
+    def _save_text_files(self, docs: List[str], meta: List[Dict[str, str]]) -> None:
+        """Save processed paragraphs and metadata to text files alongside the source EPUB.
 
         Args:
             docs: The list of paragraph strings to save.
+            meta: The list of metadata dicts, one per paragraph.
         """
         base_path: Path = self._file_path.parent / self._file_path.stem
 
         with open(f"{base_path}_processed_paragraphs.txt", "w", encoding="utf-8") as f:
             for text in docs:
+                f.write(text + "\n\n")
+
+        with open(f"{base_path}_processed_meta.txt", "w", encoding="utf-8") as f:
+            for text, m in zip(docs, meta):
+                meta_str: str = " | ".join(f"{k}: {v}" for k, v in m.items())
+                f.write(f"[{meta_str}]\n")
                 f.write(text + "\n\n")
 
     def _parse_section(self, html: str,
