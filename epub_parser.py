@@ -134,19 +134,6 @@ def get_chapter_info(tags: List[Tag],
                      h1_tags: List[Tag],
                      h2_tags: List[Tag],
                      h3_tags: List[Tag]) -> Tuple[str, int, str]:
-    """Extract chapter title, chapter number, and first page number from a list of tags.
-
-    Modifies the tags list in place by removing tags that are consumed as title information.
-
-    Args:
-        tags: The list of tags to search. Modified in place.
-        h1_tags: All h1 tags in the section.
-        h2_tags: All h2 tags in the section.
-        h3_tags: All h3 tags in the section.
-
-    Returns:
-        A tuple of (chapter_title, chapter_number, first_page_num).
-    """
     if not tags:
         return "", 0, ""
 
@@ -169,18 +156,14 @@ def get_chapter_info(tags: List[Tag],
             else:
                 chapter_title = title_text
         elif is_chapter_number(tag):
-            tags_to_delete.append(i)
             chapter_number = int(tag.text.strip())
         elif chapter_title == "" and tag.name != 'p':
             if h1_tag_count == 1 and get_header_level(tag) == 1:
-                tags_to_delete.append(i)
                 chapter_title = enhance_title(tag.text)
             elif h1_tag_count == 0:
                 if h2_tag_count == 1 and get_header_level(tag) == 2:
-                    tags_to_delete.append(i)
                     chapter_title = enhance_title(tag.text)
                 elif h3_tag_count == 1 and get_header_level(tag) == 3:
-                    tags_to_delete.append(i)
                     chapter_title = enhance_title(tag.text)
         elif tag.name == 'p' and not is_chapter_number(tag):
             if chapter_title or i > 2:
@@ -190,6 +173,7 @@ def get_chapter_info(tags: List[Tag],
         del tags[i]
 
     return chapter_title, chapter_number, first_page_num
+
 
 
 class EpubParser:
@@ -316,6 +300,12 @@ class EpubParser:
         para_num: int = 0
         headers: Dict[int, str] = {}
         combine_headers: bool = False
+
+        # Emit chapter title as its own paragraph
+        if chapter_title:
+            para_num += 1
+            temp_docs.append(chapter_title)
+            temp_meta.append({**section_meta, "paragraph_#": str(para_num), "chapter_title": chapter_title})
 
         for j, tag in enumerate(tags):
             next_tag: Optional[Tag] = tags[j + 1] if j < len(tags) - 1 else None
