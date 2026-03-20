@@ -75,7 +75,7 @@ class BookToAudio:
         elif suffix == '.epub':
             epub_parser: EpubParser = EpubParser(source, {},
                                                  min_paragraph_size=300)
-            paragraphs, _ = epub_parser.run()
+            paragraphs, _ = epub_parser.run(generate_text_file=generate_text_file)
         else:
             raise ValueError(f"Unsupported file type: '{suffix}'. Supported types: .pdf, .epub, .txt")
 

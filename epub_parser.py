@@ -229,8 +229,13 @@ class EpubParser:
         csv_path: Path = self._file_path.parent / skip_file
         self._sections_to_skip: Dict[str, Set[str]] = load_sections_to_skip(csv_path)
 
-    def run(self) -> Tuple[List[str], List[Dict[str, str]]]:
+
+    def run(self, generate_text_file: bool = False) -> Tuple[List[str], List[Dict[str, str]]]:
         """Parse the EPUB and return paragraphs and metadata.
+
+        Args:
+            generate_text_file: If True, saves processed paragraph file
+                                alongside the source EPUB.
 
         Returns:
             A tuple of (docs, meta) where docs is a list of paragraph strings
@@ -261,7 +266,23 @@ class EpubParser:
             all_docs.extend(section_docs)
             all_meta.extend(section_meta_list)
 
+        if generate_text_file:
+            self._save_text_files(all_docs)
+
         return all_docs, all_meta
+
+
+    def _save_text_files(self, docs: List[str]) -> None:
+        """Save processed paragraphs to a text file alongside the source EPUB.
+
+        Args:
+            docs: The list of paragraph strings to save.
+        """
+        base_path: Path = self._file_path.parent / self._file_path.stem
+
+        with open(f"{base_path}_processed_paragraphs.txt", "w", encoding="utf-8") as f:
+            for text in docs:
+                f.write(text + "\n\n")
 
     def _parse_section(self, html: str,
                        section_meta: Dict[str, str]) -> Tuple[List[str], List[Dict[str, str]]]:
