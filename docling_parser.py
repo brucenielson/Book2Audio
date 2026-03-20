@@ -12,7 +12,7 @@ from utils import (is_section_header,
                    combine_paragraphs,
                    get_next_text,
                    get_current_page,
-                   clean_text,
+                   clean_text_pdf,
                    load_as_document)
 
 
@@ -127,7 +127,7 @@ class DoclingParser:
         if self._combined_paragraph:
             self._flush_paragraph()
         # Add the section header itself as its own paragraph
-        header_str: str = clean_text(text.text)
+        header_str: str = clean_text_pdf(text.text)
         if header_str:
             self._para_num += 1
             self._add_paragraph(header_str, self._para_num, self._section_name, self._page_no,
@@ -176,7 +176,7 @@ class DoclingParser:
 
     def _process_text_element(self, text: SectionHeaderItem | ListItem | TextItem,
                               next_text: DocItem | None) -> None:
-        p_str: str = clean_text(text.text)
+        p_str: str = clean_text_pdf(text.text)
 
         if self._should_accumulate(p_str, next_text):
             self._combined_paragraph = combine_paragraphs(self._combined_paragraph, p_str)
