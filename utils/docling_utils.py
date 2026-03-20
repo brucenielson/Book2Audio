@@ -7,16 +7,15 @@ from docling_core.types.doc.document import (SectionHeaderItem,
                                              DoclingDocument)
 from docling.document_converter import DocumentConverter
 from typing import List
-import re
-from utils.general_utils import (is_sentence_end,
-                           normalize_quotes,
-                           normalize_whitespace,
-                           fix_apostrophes,
-                           normalize_ligatures,
-                           fix_encoding_artifacts,
-                           fix_bracket_spacing,
-                           fix_punctuation_spacing,
-                           strip_footnote_numbers)
+from utils.general_utils import (normalize_quotes,
+                                 normalize_whitespace,
+                                 fix_apostrophes,
+                                 normalize_ligatures,
+                                 fix_encoding_artifacts,
+                                 fix_bracket_spacing,
+                                 fix_punctuation_spacing,
+                                 is_roman_numeral,
+                                 strip_footnote_numbers)
 
 
 def load_as_document(file_path: str | Path) -> DoclingDocument:
@@ -217,45 +216,6 @@ def get_next_text(texts: List[DocItem], i: int) -> DocItem | None:
         if is_text_item(texts[j]):
             return texts[j]
     return None
-
-
-def combine_paragraphs(p1_str: str, p2_str: str) -> str:
-    """Combine two paragraph strings into one.
-
-    If the first paragraph ends with sentence-ending punctuation, the two are
-    joined with a newline. Otherwise, they are joined with a space, treating
-    them as a continuation of the same sentence.
-
-    Args:
-        p1_str: The first paragraph string.
-        p2_str: The second paragraph string.
-
-    Returns:
-        The combined paragraph string, stripped of leading and trailing whitespace.
-    """
-    p1_str = p1_str.strip()
-    p2_str = p2_str.strip()
-    if is_sentence_end(p1_str):
-        combined = p1_str + "\n" + p2_str
-    else:
-        combined = p1_str + " " + p2_str
-    return combined.strip()
-
-
-def is_roman_numeral(s: str) -> bool:
-    """Check if a string is a Roman numeral.
-
-    The check is case-insensitive and matches standard Roman numerals
-    from I to MMMCMXCIX.
-
-    Args:
-        s: The string to check.
-
-    Returns:
-        True if the string is a valid Roman numeral, False otherwise.
-    """
-    roman_numeral_pattern: str = r'(?i)^(M{0,3})(CM|CD|D?C{0,3})(XC|XL|L?X{0,3})(IX|IV|V?I{0,3})$'
-    return bool(re.match(roman_numeral_pattern, s.strip()))
 
 
 def get_current_page(text: DocItem,

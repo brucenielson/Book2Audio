@@ -1,12 +1,11 @@
 import pytest
 from unittest.mock import MagicMock
 from docling_core.types.doc.document import SectionHeaderItem, ListItem, TextItem, DocItem, DocItemLabel
-from utils.general_utils import is_ends_with_punctuation, remove_extra_whitespace
 from utils.docling_utils import (
     is_section_header, is_page_footer, is_page_header, is_footnote,
     is_list_item, is_text_break, is_page_not_text, is_page_text,
-    is_too_short, is_sentence_end, is_text_item, get_next_text, combine_paragraphs,
-    is_roman_numeral, get_current_page, should_skip_element, clean_text_pdf
+    is_too_short, is_text_item, get_next_text,
+    get_current_page, should_skip_element, clean_text_pdf
 )
 
 
@@ -154,25 +153,6 @@ class TestIsPageText:
         assert is_page_text(None) is False
 
 
-# --- is_ends_with_punctuation ---
-
-class TestIsEndsWithPunctuation:
-    def test_period(self):
-        assert is_ends_with_punctuation("Hello.") is True
-
-    def test_question_mark(self):
-        assert is_ends_with_punctuation("Really?") is True
-
-    def test_exclamation(self):
-        assert is_ends_with_punctuation("Wow!") is True
-
-    def test_no_punctuation(self):
-        assert is_ends_with_punctuation("Hello") is False
-
-    def test_comma(self):
-        assert is_ends_with_punctuation("Hello,") is False
-
-
 # --- is_too_short ---
 
 class TestIsTooShort:
@@ -194,28 +174,6 @@ class TestIsTooShort:
         item = MagicMock(spec=TextItem)
         item.text = "Hello"
         assert is_too_short(item, threshold=10) is True
-
-
-# --- is_sentence_end ---
-
-class TestIsSentenceEnd:
-    def test_ends_with_period(self):
-        assert is_sentence_end("Hello world.") is True
-
-    def test_ends_with_question_mark(self):
-        assert is_sentence_end("Really?") is True
-
-    def test_ends_with_exclamation(self):
-        assert is_sentence_end("Wow!") is True
-
-    def test_ends_with_bracket_after_period(self):
-        assert is_sentence_end("Hello world.)") is True
-
-    def test_no_sentence_end(self):
-        assert is_sentence_end("Hello world") is False
-
-    def test_ends_with_bracket_no_punctuation(self):
-        assert is_sentence_end("Hello world)") is False
 
 
 # --- is_text_item ---
@@ -266,60 +224,6 @@ class TestGetNextText:
 
     def test_returns_none_for_empty_list(self):
         assert get_next_text([], 0) is None
-
-
-# --- remove_extra_whitespace ---
-
-class TestRemoveExtraWhitespace:
-    def test_collapses_multiple_spaces(self):
-        assert remove_extra_whitespace("hello   world") == "hello world"
-
-    def test_strips_leading_trailing(self):
-        assert remove_extra_whitespace("  hello  ") == "hello"
-
-    def test_handles_tabs_and_newlines(self):
-        assert remove_extra_whitespace("hello\t\nworld") == "hello world"
-
-    def test_no_change_needed(self):
-        assert remove_extra_whitespace("hello world") == "hello world"
-
-
-# --- combine_paragraphs ---
-
-class TestCombineParagraphs:
-    def test_joins_with_newline_if_sentence_end(self):
-        result = combine_paragraphs("First sentence.", "Second sentence.")
-        assert result == "First sentence.\nSecond sentence."
-
-    def test_joins_with_space_if_no_sentence_end(self):
-        result = combine_paragraphs("First part", "second part.")
-        assert result == "First part second part."
-
-    def test_strips_result(self):
-        result = combine_paragraphs("  Hello.  ", "  World.  ")
-        assert result == "Hello.\nWorld."
-
-    def test_empty_first_paragraph(self):
-        result = combine_paragraphs("", "Second.")
-        assert result == "Second."
-
-
-# --- is_roman_numeral ---
-
-class TestIsRomanNumeral:
-    def test_valid_roman_numerals(self):
-        for numeral in ["I", "IV", "IX", "X", "XL", "L", "XC", "C", "CD", "D", "CM", "M"]:
-            assert is_roman_numeral(numeral) is True
-
-    def test_invalid_roman_numeral(self):
-        assert is_roman_numeral("Hello") is False
-
-    def test_case_insensitive(self):
-        assert is_roman_numeral("iv") is True
-
-    def test_empty_string(self):
-        # Empty string matches the pattern (zero of everything)
-        assert isinstance(is_roman_numeral(""), bool)
 
 
 # --- get_current_page ---

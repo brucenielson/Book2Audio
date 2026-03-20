@@ -282,6 +282,29 @@ def is_ends_with_punctuation(text: str) -> bool:
     return text.endswith(".") or text.endswith("?") or text.endswith("!")
 
 
+def combine_paragraphs(p1_str: str, p2_str: str) -> str:
+    """Combine two paragraph strings into one.
+
+    If the first paragraph ends with sentence-ending punctuation, the two are
+    joined with a newline. Otherwise, they are joined with a space, treating
+    them as a continuation of the same sentence.
+
+    Args:
+        p1_str: The first paragraph string.
+        p2_str: The second paragraph string.
+
+    Returns:
+        The combined paragraph string, stripped of leading and trailing whitespace.
+    """
+    p1_str = p1_str.strip()
+    p2_str = p2_str.strip()
+    if is_sentence_end(p1_str):
+        combined = p1_str + "\n" + p2_str
+    else:
+        combined = p1_str + " " + p2_str
+    return combined.strip()
+
+
 def is_sentence_end(text: str) -> bool:
     """Check if a string ends with a complete sentence.
 
