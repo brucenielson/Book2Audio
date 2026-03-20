@@ -81,7 +81,7 @@ python book_to_audio.py documents/my_book.pdf --generate-text-file
 from book_to_audio import BookToAudio, AudioGenerator
 
 converter = BookToAudio(AudioGenerator(voice='af_heart'))
-converter.document_to_audio('documents/my_book.pdf', start_page=10, end_page=50)
+converter.convert_to_audio('documents/my_book.pdf', start_page=10, end_page=50)
 ```
 
 ### Convert text
@@ -94,7 +94,7 @@ converter.text_to_audio("Some text to convert.", output_file='output.wav')
 
 ```python
 converter = BookToAudio(AudioGenerator(), dry_run=True)
-converter.document_to_audio('documents/my_book.pdf', generate_text_file=True)
+converter.convert_to_audio('documents/my_book.pdf', generate_text_file=True)
 ```
 
 ---

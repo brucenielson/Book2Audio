@@ -116,8 +116,8 @@ def main(file_path: str | None = None,
     elif Path(args.file_path).suffix.lower() == '.txt':
         converter.text_to_audio(Path(args.file_path).read_text(encoding='utf-8'), args.output_file)
     else:
-        converter.document_to_audio(args.file_path, start_page=args.start_page, end_page=args.end_page,
-                                    generate_text_file=args.generate_text_file)
+        converter.convert_to_audio(args.file_path, start_page=args.start_page, end_page=args.end_page,
+                                   generate_text_file=args.generate_text_file)
 
 
 if __name__ == "__main__":

@@ -36,11 +36,11 @@ class BookToAudio:
         """
         self._audio_generator.generate_and_save(text, output_file)
 
-    def document_to_audio(self, file_path: str,
-                          start_page: int | None = None,
-                          end_page: int | None = None,
-                          output_file: str | None = None,
-                          generate_text_file: bool = False) -> None:
+    def convert_to_audio(self, file_path: str,
+                         start_page: int | None = None,
+                         end_page: int | None = None,
+                         output_file: str | None = None,
+                         generate_text_file: bool = False) -> None:
         """Convert a document to audio using DoclingParser.
 
         Loads the document, extracts and cleans paragraphs using DoclingParser,
