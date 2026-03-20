@@ -344,6 +344,19 @@ class EpubParser:
                         else:
                             headers[header_level] = headers[header_level] + ": " + header_text
                             combine_headers = True
+
+                        # Flush any accumulated paragraph before emitting the header
+                        if combined_paragraph:
+                            para_num += 1
+                            temp_docs.append(combined_paragraph)
+                            temp_meta.append({**section_meta, "paragraph_#": str(para_num)})
+                            combined_paragraph, combined_count = "", 0
+
+                        # Emit the header as its own paragraph
+                        para_num += 1
+                        temp_docs.append(header_text)
+                        temp_meta.append({**section_meta, "paragraph_#": str(para_num), "section_name": header_text})
+
                     continue
 
             combine_headers = False
