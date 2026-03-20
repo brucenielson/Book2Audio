@@ -85,9 +85,8 @@ converter.convert_to_audio('documents/my_book.pdf', start_page=10, end_page=50)
 ```
 
 ### Convert text
-
 ```python
-converter.text_to_audio("Some text to convert.", output_file='output.wav')
+converter.convert_to_audio("Some text to convert.", output_file='output.wav')
 ```
 
 ### Dry run with debug files

@@ -4,6 +4,7 @@ import numpy as np
 
 from audio_generator import AudioGenerator
 from docling_parser import DoclingParser
+from epub_parser import EpubParser
 
 
 class BookToAudio:
@@ -27,43 +28,57 @@ class BookToAudio:
         self._audio_generator: AudioGenerator = audio_generator
         self._dry_run: bool = dry_run
 
-    def text_to_audio(self, text: str, output_file: str) -> None:
-        """Generate audio from a text string and save to a WAV file.
-
-        Args:
-            text: The text to synthesize into speech.
-            output_file: The path to the output WAV file.
-        """
-        self._audio_generator.generate_and_save(text, output_file)
-
-    def convert_to_audio(self, file_path: str,
+    def convert_to_audio(self, source: str | Path,
+                         output_file: str | None = None,
                          start_page: int | None = None,
                          end_page: int | None = None,
-                         output_file: str | None = None,
                          generate_text_file: bool = False) -> None:
-        """Convert a document to audio using DoclingParser.
+        """Convert text, a PDF, an EPUB, or a TXT file to audio.
 
-        Loads the document, extracts and cleans paragraphs using DoclingParser,
-        generates audio for each paragraph, and saves the combined audio as a
-        WAV file.
+        Dispatches to the appropriate parser based on the type and extension
+        of the source. A plain string is converted directly. A Path is
+        inspected for its extension and routed to the correct parser.
 
         Args:
-            file_path: Path to the source document file (e.g. a PDF).
-            start_page: Optional first page to include in the conversion.
-                        If None, conversion starts from the beginning.
-            end_page: Optional last page to include in the conversion.
-                      If None, conversion continues to the end of the document.
+            source: Either a raw text string to convert, or a Path to a
+                    .pdf, .epub, or .txt file.
             output_file: Optional path to the output WAV file. If None, the
-                         output file is derived from file_path with a .wav extension.
-            generate_text_file: If True, saves processed text and paragraph files
+                         output file is derived from the source path with a
+                         .wav extension. Ignored for raw text conversion.
+            start_page: Optional first page to include. PDF only.
+            end_page: Optional last page to include. PDF only.
+            generate_text_file: If True, saves processed text and paragraph
+                                files alongside the source document.
         """
-        parser: DoclingParser = DoclingParser(file_path, {},
-                                             min_paragraph_size=300,
-                                             start_page=start_page,
-                                             end_page=end_page,
-                                             include_notes=False)
         paragraphs: List[str]
-        paragraphs, _ = parser.run(generate_text_file=generate_text_file)
+
+        if isinstance(source, str):
+            # Raw text string — convert directly
+            if not self._dry_run:
+                audio: np.ndarray = self._audio_generator.generate(source)
+                self._audio_generator.save(audio, output_file or 'output.wav')
+            else:
+                print("Dry run: Did not generate audio.")
+            return
+
+        # File path — dispatch by extension
+        suffix: str = source.suffix.lower()
+        if suffix == '.txt':
+            paragraphs = [source.read_text(encoding='utf-8')]
+        elif suffix == '.pdf':
+            parser: DoclingParser = DoclingParser(source, {},
+                                                  min_paragraph_size=300,
+                                                  start_page=start_page,
+                                                  end_page=end_page,
+                                                  include_notes=False)
+            paragraphs, _ = parser.run(generate_text_file=generate_text_file)
+        elif suffix == '.epub':
+            epub_parser: EpubParser = EpubParser(source, {},
+                                                 min_paragraph_size=300)
+            paragraphs, _ = epub_parser.run()
+        else:
+            raise ValueError(f"Unsupported file type: '{suffix}'. Supported types: .pdf, .epub, .txt")
+
         if self._dry_run:
             print("Dry run: Did not generate audio.")
             return
@@ -73,7 +88,7 @@ class BookToAudio:
 
         audio_segments: List[np.ndarray] = []
         for i, paragraph in enumerate(paragraphs):
-            print(f"Generating audio for paragraph {i+1}/{len(paragraphs)}")
+            print(f"Generating audio for paragraph {i + 1}/{len(paragraphs)}")
             audio_segments.append(self._audio_generator.generate(paragraph))
-        output_file = output_file or str(Path(file_path).with_suffix('.wav'))
+        output_file = output_file or str(source.with_suffix('.wav'))
         self._audio_generator.save(np.concatenate(audio_segments), output_file)

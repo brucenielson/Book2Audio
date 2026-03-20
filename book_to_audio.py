@@ -101,9 +101,9 @@ def main(file_path: str | None = None,
     audio_gen: AudioGenerator = AudioGenerator(engine)
     converter: BookToAudio = BookToAudio(audio_gen, dry_run=args.dry_run)
 
-    supported_file_types: List[str] = ['.pdf', '.txt']
+    supported_file_types: List[str] = ['.pdf', '.epub', '.txt']
     if args.text is not None:
-        converter.text_to_audio(args.text, args.output_file)
+        converter.convert_to_audio(args.text, args.output_file)
     elif args.file_path is None:
         raise ValueError("No file path or text provided.")
     elif not Path(args.file_path).exists():
@@ -113,10 +113,8 @@ def main(file_path: str | None = None,
     elif Path(args.file_path).suffix.lower() not in supported_file_types:
         raise ValueError(
             f"Unsupported file type: '{Path(args.file_path).suffix}'. Supported types: {supported_file_types}")
-    elif Path(args.file_path).suffix.lower() == '.txt':
-        converter.text_to_audio(Path(args.file_path).read_text(encoding='utf-8'), args.output_file)
     else:
-        converter.convert_to_audio(args.file_path, start_page=args.start_page, end_page=args.end_page,
+        converter.convert_to_audio(Path(args.file_path), start_page=args.start_page, end_page=args.end_page,
                                    generate_text_file=args.generate_text_file)
 
 
