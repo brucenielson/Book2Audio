@@ -190,6 +190,36 @@ class TestRun:
         assert all("Skipped content." not in d for d in docs)
         assert any("Included content." in d for d in docs)
 
+    def test_skips_sections_passed_as_parameter(self, tmp_path):
+        epub_path = tmp_path / "test_book.epub"
+        epub_path.touch()
+        parser = EpubParser(source=epub_path, meta_data={})
+        book = make_epub_book("My Book", [
+            make_epub_item("chapter1", "<p>Skipped content.</p>"),
+            make_epub_item("chapter2", "<p>Included content.</p>"),
+        ])
+        with patch('epub_parser.epub.read_epub', return_value=book):
+            docs, meta = parser.run(sections_to_skip=["chapter1"])
+        assert all("Skipped content." not in d for d in docs)
+        assert any("Included content." in d for d in docs)
+
+    def test_sections_to_skip_additive_with_csv(self, tmp_path):
+        csv_path = tmp_path / "sections_to_skip.csv"
+        csv_path.write_text("Book Title,Section Title\nMy Book,chapter1\n", encoding="utf-8")
+        epub_path = tmp_path / "test_book.epub"
+        epub_path.touch()
+        parser = EpubParser(source=epub_path, meta_data={}, skip_file="sections_to_skip.csv")
+        book = make_epub_book("My Book", [
+            make_epub_item("chapter1", "<p>Skipped via CSV.</p>"),
+            make_epub_item("chapter2", "<p>Skipped via parameter.</p>"),
+            make_epub_item("chapter3", "<p>Included content.</p>"),
+        ])
+        with patch('epub_parser.epub.read_epub', return_value=book):
+            docs, meta = parser.run(sections_to_skip=["chapter2"])
+        assert all("Skipped via CSV." not in d for d in docs)
+        assert all("Skipped via parameter." not in d for d in docs)
+        assert any("Included content." in d for d in docs)
+
     def test_generate_text_file_creates_files(self, tmp_path):
         parser = make_parser(tmp_path)
         book = make_epub_book("My Book", [

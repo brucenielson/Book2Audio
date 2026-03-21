@@ -32,7 +32,8 @@ class BookToAudio:
                          output_file: str | None = None,
                          start_page: int | None = None,
                          end_page: int | None = None,
-                         generate_text_file: bool = False) -> None:
+                         generate_text_file: bool = False,
+                         sections_to_skip: List[str] | None = None) -> None:
         """Convert text, a PDF, an EPUB, or a TXT file to audio.
 
         Dispatches to the appropriate parser based on the type and extension
@@ -49,6 +50,9 @@ class BookToAudio:
             end_page: Optional last page to include. PDF only.
             generate_text_file: If True, saves processed text and paragraph
                                 files alongside the source document.
+            sections_to_skip: Optional list of EPUB section IDs to skip in
+                              addition to any sections listed in the CSV file.
+                              EPUB only.
         """
         paragraphs: List[str]
 
@@ -75,7 +79,8 @@ class BookToAudio:
         elif suffix == '.epub':
             epub_parser: EpubParser = EpubParser(source, {},
                                                  min_paragraph_size=300)
-            paragraphs, _ = epub_parser.run(generate_text_file=generate_text_file)
+            paragraphs, _ = epub_parser.run(generate_text_file=generate_text_file,
+                                            sections_to_skip=sections_to_skip)
         else:
             raise ValueError(f"Unsupported file type: '{suffix}'. Supported types: .pdf, .epub, .txt")
 

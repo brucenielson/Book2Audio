@@ -43,7 +43,8 @@ def main(file_path: str | None = None,
          speaker: str | None = None,
          language: str | None = None,
          instruct: str | None = None,
-         model_size: str | None = None) -> None:
+         model_size: str | None = None,
+         sections_to_skip: List[str] | None = None) -> None:
     """Entry point for the book-to-audio conversion tool.
 
     Parses command line arguments (falling back to the provided parameter
@@ -64,6 +65,8 @@ def main(file_path: str | None = None,
         language: Qwen language (e.g. 'English', 'Auto'). Defaults to 'Auto'.
         instruct: Qwen style instruction (e.g. 'speak calmly'). Defaults to None.
         model_size: Qwen model size: '0.6b' or '1.7b'. Defaults to '0.6b'.
+        sections_to_skip: Optional list of EPUB section IDs to skip in addition
+                          to any sections listed in the CSV file.
     """
     parser: argparse.ArgumentParser = argparse.ArgumentParser(
         description='Convert text or documents to audio using Kokoro or Qwen3-TTS.')
@@ -76,6 +79,7 @@ def main(file_path: str | None = None,
     parser.add_argument('--end-page', type=int, default=end_page)
     parser.add_argument('--dry-run', action='store_true', default=dry_run)
     parser.add_argument('--generate-text-file', action='store_true', default=generate_text_file)
+    parser.add_argument('--sections-to-skip', nargs='*', default=sections_to_skip)
 
     # Engine selection
     parser.add_argument('--engine', choices=['kokoro', 'qwen'], default=engine or 'kokoro',
@@ -115,7 +119,8 @@ def main(file_path: str | None = None,
             f"Unsupported file type: '{Path(args.file_path).suffix}'. Supported types: {supported_file_types}")
     else:
         converter.convert_to_audio(Path(args.file_path), start_page=args.start_page, end_page=args.end_page,
-                                   generate_text_file=args.generate_text_file)
+                                   generate_text_file=args.generate_text_file,
+                                   sections_to_skip=args.sections_to_skip)
 
 
 if __name__ == "__main__":
@@ -123,4 +128,7 @@ if __name__ == "__main__":
     #      start_page=129, end_page=129, dry_run=False, generate_text_file=True)
     # main(r"documents\Realism and the Aim of Science -- Karl Popper -- 2017.pdf",
     #      start_page=None, end_page=None, dry_run=True, generate_text_file=True)
-    main(r"documents\The Federalist Papers.epub", dry_run=True, generate_text_file=True)
+    main(r"documents\The Declaration of Independence.epub",
+         dry_run=True,
+         generate_text_file=True,
+         sections_to_skip=["pg-footer", "ncx"])
