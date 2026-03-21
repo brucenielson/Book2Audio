@@ -1,6 +1,5 @@
-import pytest
-from unittest.mock import MagicMock, patch
-from docling_core.types.doc.document import DocItem, SectionHeaderItem, ListItem, TextItem, DocItemLabel
+from unittest.mock import MagicMock
+from docling_core.types.doc.document import SectionHeaderItem, TextItem, DocItemLabel
 from docling_core.types import DoclingDocument
 from docling_parser import DoclingParser
 

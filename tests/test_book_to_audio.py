@@ -135,9 +135,11 @@ class TestKokoroEngine:
 
 class TestBookToAudio:
     def test_text_to_audio_calls_generate_and_save(self, book_to_audio, mock_audio_generator):
-        """text_to_audio() should delegate to generate_and_save on the AudioGenerator."""
-        book_to_audio.text_to_audio("Hello world.", "output.wav")
-        mock_audio_generator.generate_and_save.assert_called_once_with("Hello world.", "output.wav")
+        """convert_to_audio() with a string should generate and save audio."""
+        mock_audio_generator.generate.return_value = np.ones(24000, dtype=np.float32)
+        book_to_audio.convert_to_audio("Hello world.", "output.wav")
+        mock_audio_generator.generate.assert_called_once_with("Hello world.")
+        mock_audio_generator.save.assert_called_once_with(mock_audio_generator.generate.return_value, "output.wav")
 
     def test_document_to_audio_saves_file(self, book_to_audio, mock_audio_generator, tmp_path):
         """document_to_audio() should generate and save audio for each paragraph."""
@@ -151,8 +153,8 @@ class TestBookToAudio:
             mock_parser.run.return_value = (paragraphs, [])
             mock_parser_cls.return_value = mock_parser
 
-            pdf_path = str(tmp_path / "test_doc.pdf")
-            book_to_audio.document_to_audio(pdf_path)
+            pdf_path = Path(str(tmp_path / "test_doc.pdf"))
+            book_to_audio.convert_to_audio(pdf_path)
 
             assert mock_audio_generator.generate.call_count == 2
             mock_audio_generator.save.assert_called_once()
@@ -164,7 +166,7 @@ class TestBookToAudio:
             mock_parser.run.return_value = ([], [])
             mock_parser_cls.return_value = mock_parser
 
-            book_to_audio.document_to_audio("test.pdf")
+            book_to_audio.convert_to_audio(Path("test.pdf"))
 
         captured = capsys.readouterr()
         assert "No paragraphs extracted" in captured.out
@@ -178,7 +180,7 @@ class TestBookToAudio:
             mock_parser.run.return_value = (["A paragraph."], [])
             mock_parser_cls.return_value = mock_parser
 
-            converter.document_to_audio("test.pdf")
+            converter.convert_to_audio(Path("test.pdf"))
 
         mock_audio_generator.generate.assert_not_called()
         mock_audio_generator.save.assert_not_called()
