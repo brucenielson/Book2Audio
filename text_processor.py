@@ -116,10 +116,6 @@ class TextProcessor:
             # Reached minimum size — emit now
             return False
 
-        if not is_sentence_end(p_str):
-            print(f"Accumulating (no sentence end): {p_str[:50]}")
-            return True
-
         # Paragraph is complete but short and more text is coming — accumulate
         return True
 
@@ -146,7 +142,7 @@ class TextProcessor:
         """
         self._section_name = chunk.text
         if self._combined_paragraph:
-            self._flush_paragraph(chunk.meta, label=chunk.label)
+            self._flush_paragraph(chunk.meta)
         if chunk.text:
             self._para_num += 1
             self._result.append(ParsedChunk(
