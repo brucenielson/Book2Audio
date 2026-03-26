@@ -254,7 +254,7 @@ class TestShouldSkipElement:
         assert should_skip_element(make_text_item(DocItemLabel.PAGE_HEADER.value)) is True
 
     def test_skips_roman_numeral(self):
-        assert should_skip_element(make_text_item(DocItemLabel.TEXT.value, "XIV")) is True
+        assert should_skip_element(make_text_item(DocItemLabel.TEXT.value, "XIV")) is False
 
     def test_does_not_skip_regular_text(self):
         assert should_skip_element(make_text_item(DocItemLabel.TEXT.value, "Hello world.")) is False

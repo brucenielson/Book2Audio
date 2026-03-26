@@ -9,7 +9,8 @@ from utils import (is_footnote,
                    is_too_short,
                    get_current_page,
                    clean_text_pdf,
-                   load_as_document)
+                   load_as_document,
+                   is_text_bearing)
 
 
 class DoclingParser:
@@ -87,7 +88,7 @@ class DoclingParser:
         texts: List[DocItem] = regular_texts + (notes if self._include_notes else [])
 
         for i, text in enumerate(texts):
-            if not isinstance(text, (SectionHeaderItem, ListItem, TextItem)):
+            if not is_text_bearing(text):
                 continue
 
             page_no = get_current_page(text, "", page_no)
@@ -130,7 +131,7 @@ class DoclingParser:
 
         with open(f"{base_path}_processed_texts.txt", "w", encoding="utf-8") as f:
             for text in texts:
-                text_content: str = text.text if isinstance(text, (SectionHeaderItem, ListItem, TextItem)) else 'N/A' # TODO: should_skip_element(text)
+                text_content: str = text.text if is_text_bearing(text) else 'N/A' # noqa
                 # noinspection PyTypeHints
                 f.write(f"{text.prov[0].page_no if text.prov else 'N/A'}: {text.label}: {text_content}\n")
 
@@ -149,11 +150,11 @@ class DoclingParser:
             page_number: int = text_item.prov[0].page_no
 
             if page_number not in processed_pages:
-                # On new page, so get all items on the current page
-                # noinspection PyTypeHints
-                same_page_items: List[DocItem] = [
-                    item for item in self._doc.texts if item.prov[0].page_no == page_number
-                ]
+                # # On new page, so get all items on the current page
+                # # noinspection PyTypeHints
+                # same_page_items: List[DocItem] = [
+                #     item for item in self._doc.texts if item.prov[0].page_no == page_number
+                # ]
                 processed_pages.add(page_number)  # Mark the page as processed
 
             if is_too_short(text_item):

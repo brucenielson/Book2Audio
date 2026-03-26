@@ -74,7 +74,7 @@ class TestDoclingParserOutput:
             try:
                 compare_files(txt_file, canonical_path)
             except pytest.fail.Exception as e:
-                failures.append(str(e))
+                failures.append(f"{txt_file.name}:\n{e}")
 
         if failures:
             pytest.fail("\n\n".join(failures))
