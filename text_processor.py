@@ -146,7 +146,7 @@ class TextProcessor:
         """
         self._section_name = chunk.text
         if self._combined_paragraph:
-            self._flush_paragraph(chunk.meta)
+            self._flush_paragraph(chunk.meta, label=chunk.label)
         if chunk.text:
             self._para_num += 1
             self._result.append(ParsedChunk(
@@ -155,11 +155,12 @@ class TextProcessor:
                 label=chunk.label
             ))
 
-    def _flush_paragraph(self, meta: Dict[str, str]) -> None:
+    def _flush_paragraph(self, meta: Dict[str, str], label: str = 'text') -> None:
         """Flush the accumulated paragraph as a ParsedChunk.
 
         Args:
             meta: Metadata to attach to the flushed paragraph.
+            label: The label for the emitted ParsedChunk.
         """
         p_str: str = word_validator.combine_hyphenated_words(self._combined_paragraph)
         if p_str:
@@ -167,7 +168,7 @@ class TextProcessor:
             self._result.append(ParsedChunk(
                 text=p_str,
                 meta=self._build_meta(meta),
-                label='text'
+                label=label
             ))
         self._combined_paragraph, self._combined_count = "", 0
 
@@ -185,18 +186,10 @@ class TextProcessor:
             self._combined_count += len(p_str)
             return
 
-        # Ready to emit — combine with any accumulated text and output
-        p_str = combine_paragraphs(self._combined_paragraph, p_str)
-        self._combined_paragraph, self._combined_count = "", 0 # TODO: why do we do this instead of calling flush?
-
-        p_str = word_validator.combine_hyphenated_words(p_str)
-        if p_str:
-            self._para_num += 1
-            self._result.append(ParsedChunk(
-                text=p_str,
-                meta=self._build_meta(chunk.meta),
-                label=chunk.label
-            ))
+        # Ready to emit — accumulate and flush
+        self._combined_paragraph = combine_paragraphs(self._combined_paragraph, p_str)
+        self._combined_count += len(p_str)
+        self._flush_paragraph(chunk.meta, label=chunk.label)
 
     def _save_paragraphs_file(self, output_path: Path) -> None:
         """Write processed paragraphs to a text file.
