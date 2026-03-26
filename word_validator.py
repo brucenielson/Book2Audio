@@ -129,8 +129,11 @@ class WordValidator:
             # Default: assume the hyphen is meant to connect two words.
             return word1.strip() + '-' + word2.strip()
 
+        # Quick exit if no hyphens or soft hyphens present
+        if '-' not in p_str and '\u00ad' not in p_str:
+            return p_str
         # Replace any soft hyphen characters with a regular dash.
-        p_str = p_str.replace("­", "-") # TODO: Speed this up by doing a check for hyphens first
+        p_str = p_str.replace("­", "-")
         # p_str = p_str.replace("\u00ad", "-")
         # Look for hyphens between word parts (with or without an extra space)
         p_str = re.sub(r'(\w+)-(\s?\w+)', replace_dash, p_str)

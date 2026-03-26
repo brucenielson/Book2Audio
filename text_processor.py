@@ -95,7 +95,9 @@ class TextProcessor:
         2. The paragraph is complete but too short — we haven't reached min_paragraph_size
            yet and there is more text coming, so we combine with the next chunk.
         """
-        print(f"_should_accumulate: next={next_chunk is not None}, ends={is_sentence_end(p_str)}, text={p_str[-20:]}") # TODO: Remove
+        if next_chunk is None:
+            # End of document — emit whatever we have
+            return False
 
         # Incomplete paragraph — must accumulate regardless of size
         if not is_sentence_end(p_str):
@@ -104,9 +106,6 @@ class TextProcessor:
         # Complete paragraph — check if we should still accumulate due to size
         total_char_count: int = self._combined_count + len(p_str)
 
-        if next_chunk is None: # TODO: Move before is_sentence_end check
-            # End of document — emit whatever we have
-            return False
         if next_chunk.is_section_header:
             # Next element is a section header — emit now to avoid crossing a section boundary
             return False
