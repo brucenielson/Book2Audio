@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import List, Dict, Optional
+from typing import List, Dict
 from text_chunk import RawChunk, ParsedChunk
 from word_validator import word_validator
 from utils.general_utils import is_sentence_end, combine_paragraphs
@@ -13,30 +13,36 @@ class TextProcessor:
 
     Attributes:
         _min_paragraph_size: Minimum character count before a paragraph is emitted.
+        _include_footnotes: If True, footnote chunks are included in the output.
     """
 
-    def __init__(self, min_paragraph_size: int = 300) -> None:
+    def __init__(self, min_paragraph_size: int = 300, include_footnotes: bool = False) -> None:
         """Initialise TextProcessor.
 
         Args:
             min_paragraph_size: Minimum character count before a paragraph is emitted.
+            include_footnotes: If True, footnote chunks are included in the output.
         """
         self._min_paragraph_size: int = min_paragraph_size
+        self._include_footnotes: bool = include_footnotes
         self._combined_paragraph: str = ""
         self._combined_count: int = 0
         self._section_name: str = ""
+        self._para_num: int = 0
         self._result: List[ParsedChunk] = []
 
     def _init_state(self) -> None:
         self._combined_paragraph = ""
         self._combined_count = 0
         self._section_name = ""
+        self._para_num = 0
         self._result = []
 
     def _clear_state(self) -> None:
         self._combined_paragraph = ""
         self._combined_count = 0
         self._section_name = ""
+        self._para_num = 0
         self._result = []
 
     def process(self, chunks: List[RawChunk],
@@ -61,7 +67,10 @@ class TextProcessor:
                 self._handle_section_header(chunk)
                 continue
 
-            if chunk.is_page_header or chunk.is_page_footer or chunk.is_footnote:
+            if chunk.is_page_header or chunk.is_page_footer:
+                continue
+
+            if chunk.is_footnote and not self._include_footnotes:
                 continue
 
             self._process_chunk(chunk, next_chunk)
@@ -86,6 +95,8 @@ class TextProcessor:
         2. The paragraph is complete but too short — we haven't reached min_paragraph_size
            yet and there is more text coming, so we combine with the next chunk.
         """
+        print(f"_should_accumulate: next={next_chunk is not None}, ends={is_sentence_end(p_str)}, text={p_str[-20:]}") # TODO: Remove
+
         # Incomplete paragraph — must accumulate regardless of size
         if not is_sentence_end(p_str):
             return True
@@ -93,7 +104,7 @@ class TextProcessor:
         # Complete paragraph — check if we should still accumulate due to size
         total_char_count: int = self._combined_count + len(p_str)
 
-        if next_chunk is None:
+        if next_chunk is None: # TODO: Move before is_sentence_end check
             # End of document — emit whatever we have
             return False
         if next_chunk.is_section_header:
@@ -106,8 +117,27 @@ class TextProcessor:
             # Reached minimum size — emit now
             return False
 
+        if not is_sentence_end(p_str):
+            print(f"Accumulating (no sentence end): {p_str[:50]}")
+            return True
+
         # Paragraph is complete but short and more text is coming — accumulate
         return True
+
+    def _build_meta(self, meta: Dict[str, str]) -> Dict[str, str]:
+        """Build the final metadata dict for a parsed chunk.
+
+        Args:
+            meta: The base metadata from the raw chunk.
+
+        Returns:
+            The metadata dict with paragraph_# and section_name added.
+        """
+        return {
+            **meta,
+            "paragraph_#": str(self._para_num),
+            "section_name": self._section_name,
+        }
 
     def _handle_section_header(self, chunk: RawChunk) -> None:
         """Flush any accumulated paragraph and emit the section header.
@@ -119,9 +149,10 @@ class TextProcessor:
         if self._combined_paragraph:
             self._flush_paragraph(chunk.meta)
         if chunk.text:
+            self._para_num += 1
             self._result.append(ParsedChunk(
                 text=chunk.text,
-                meta=chunk.meta,
+                meta=self._build_meta(chunk.meta),
                 label=chunk.label
             ))
 
@@ -133,7 +164,12 @@ class TextProcessor:
         """
         p_str: str = word_validator.combine_hyphenated_words(self._combined_paragraph)
         if p_str:
-            self._result.append(ParsedChunk(text=p_str, meta=meta, label='text'))
+            self._para_num += 1
+            self._result.append(ParsedChunk(
+                text=p_str,
+                meta=self._build_meta(meta),
+                label='text'
+            ))
         self._combined_paragraph, self._combined_count = "", 0
 
     def _process_chunk(self, chunk: RawChunk, next_chunk: RawChunk | None) -> None:
@@ -152,11 +188,16 @@ class TextProcessor:
 
         # Ready to emit — combine with any accumulated text and output
         p_str = combine_paragraphs(self._combined_paragraph, p_str)
-        self._combined_paragraph, self._combined_count = "", 0
+        self._combined_paragraph, self._combined_count = "", 0 # TODO: why do we do this instead of calling flush?
 
         p_str = word_validator.combine_hyphenated_words(p_str)
         if p_str:
-            self._result.append(ParsedChunk(text=p_str, meta=chunk.meta, label=chunk.label))
+            self._para_num += 1
+            self._result.append(ParsedChunk(
+                text=p_str,
+                meta=self._build_meta(chunk.meta),
+                label=chunk.label
+            ))
 
     def _save_paragraphs_file(self, output_path: Path) -> None:
         """Write processed paragraphs to a text file.

@@ -130,7 +130,7 @@ class WordValidator:
             return word1.strip() + '-' + word2.strip()
 
         # Replace any soft hyphen characters with a regular dash.
-        p_str = p_str.replace("­", "-")
+        p_str = p_str.replace("­", "-") # TODO: Speed this up by doing a check for hyphens first
         # p_str = p_str.replace("\u00ad", "-")
         # Look for hyphens between word parts (with or without an extra space)
         p_str = re.sub(r'(\w+)-(\s?\w+)', replace_dash, p_str)

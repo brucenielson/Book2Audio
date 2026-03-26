@@ -124,11 +124,11 @@ def main(file_path: str | None = None,
 
 
 if __name__ == "__main__":
-    # main(r"documents\The Myth of the Closed Mind.pdf",
-    #      start_page=129, end_page=129, dry_run=False, generate_text_file=True)
+    main(r"documents\The Myth of the Closed Mind.pdf",
+         start_page=129, end_page=129, dry_run=False, generate_text_file=True)
     # main(r"documents\Realism and the Aim of Science -- Karl Popper -- 2017.pdf",
     #      start_page=None, end_page=None, dry_run=True, generate_text_file=True)
-    main(r"documents\The Declaration of Independence.epub",
-         dry_run=True,
-         generate_text_file=True,
-         sections_to_skip=["pg-footer", "ncx"])
+    # main(r"documents\The Declaration of Independence.epub",
+    #      dry_run=True,
+    #      generate_text_file=True,
+    #      sections_to_skip=["pg-footer", "ncx"])

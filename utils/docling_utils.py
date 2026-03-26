@@ -224,7 +224,7 @@ def get_current_page(text: DocItem,
     """Determine the current page number based on the given DocItem.
 
     Returns the item's page number only if no page has been recorded yet
-    or if no paragraph is currently being accumulated. Otherwise returns
+    or if no paragraph is currently being accumulated. Otherwise, returns
     the existing page number unchanged.
 
     Args:
