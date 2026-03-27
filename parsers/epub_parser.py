@@ -186,7 +186,7 @@ class EpubParser:
         _sections_to_skip: Dict mapping book titles to sets of section IDs to skip.
     """
 
-    def __init__(self, source: str | Path,
+    def __init__(self, source: str | Path | epub.EpubBook,
                  meta_data: dict[str, str],
                  min_paragraph_size: int = 300,
                  remove_footnotes: bool = True,
@@ -194,18 +194,25 @@ class EpubParser:
         """Initialise EpubParser.
 
         Args:
-            source: Path to the EPUB file.
+            source: Path to the EPUB file, or a pre-loaded EpubBook instance.
             meta_data: Base metadata dict to include with every paragraph.
             min_paragraph_size: Minimum character count before a paragraph is emitted.
             remove_footnotes: If True, removes footnote superscripts from text.
             skip_file: Filename of the CSV file listing sections to skip.
                        Looked up in the same directory as the EPUB file.
         """
-        self._file_path: Path = Path(source)
+        if isinstance(source, epub.EpubBook):
+            self._book: epub.EpubBook | None = source
+            self._file_path: Path | None = None
+        else:
+            self._book = None
+            self._file_path = Path(source)
+
         self._meta_data: dict[str, str] = meta_data
         self._min_paragraph_size: int = min_paragraph_size
         self._remove_footnotes: bool = remove_footnotes
-        if skip_file is not None:
+
+        if skip_file is not None and self._file_path is not None:
             csv_path: Path = self._file_path.parent / skip_file
             self._sections_to_skip: Dict[str, Set[str]] = load_sections_to_skip(csv_path)
         else:
