@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import List, Dict
 from text_chunk import RawChunk, ParsedChunk
 from word_validator import word_validator
-from utils.general_utils import is_sentence_end, combine_paragraphs
+from utils.general_utils import is_sentence_end, combine_paragraphs, clean_text
 
 
 class TextProcessor:
@@ -62,6 +62,8 @@ class TextProcessor:
 
         for i, chunk in enumerate(chunks):
             next_chunk: RawChunk | None = chunks[i + 1] if i < len(chunks) - 1 else None
+
+            chunk.text = clean_text(chunk.text)
 
             if chunk.is_section_header:
                 self._handle_section_header(chunk)

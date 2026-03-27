@@ -1,2 +1,2 @@
-from .docling_utils import *
-from .general_utils import *
+from . import docling_utils
+from . import general_utils
