@@ -232,7 +232,7 @@ class EpubParser:
             A tuple of (docs, meta) where docs is a list of paragraph strings
             and meta is a list of metadata dicts, one per paragraph.
         """
-        book: epub.EpubBook = epub.read_epub(self._file_path)
+        book: epub.EpubBook = self._book if self._book is not None else epub.read_epub(self._file_path)
         print(f"Loaded Book: {book.title}")
 
         if sections_to_skip:
