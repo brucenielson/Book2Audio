@@ -1,7 +1,7 @@
 from unittest.mock import MagicMock
 from docling_core.types.doc.document import SectionHeaderItem, TextItem, DocItemLabel
 from docling_core.types import DoclingDocument
-from docling_parser import DoclingParser
+from parsers.docling_parser import DoclingParser
 
 
 # --- Fixtures ---

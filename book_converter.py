@@ -3,8 +3,8 @@ from typing import List
 import numpy as np
 
 from audio_generator import AudioGenerator
-from docling_parser import DoclingParser
-from epub_parser import EpubParser
+from parsers.docling_parser import DoclingParser
+from parsers.epub_parser import EpubParser
 
 
 class BookToAudio:

@@ -1,7 +1,7 @@
 import pytest
 from pathlib import Path
-from docling_parser import DoclingParser
-from epub_parser import EpubParser
+from parsers.docling_parser import DoclingParser
+from parsers.epub_parser import EpubParser
 
 TEST_DOCUMENTS = Path(__file__).parent / "test_documents"
 TEST_CANONICAL = Path(__file__).parent / "test_canonical"

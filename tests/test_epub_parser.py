@@ -1,8 +1,8 @@
-import pytest
 from pathlib import Path
-from unittest.mock import MagicMock, patch, mock_open
-from epub_parser import EpubParser
+from unittest.mock import MagicMock, patch
+from parsers import EpubParser
 
+patch_read_epub: str = 'parsers.epub_parser.epub.read_epub'
 
 # --- Fixtures ---
 
@@ -123,7 +123,7 @@ class TestRun:
         book = make_epub_book("Test Book", [
             make_epub_item("chapter1", "<p>First chapter content.</p>")
         ])
-        with patch('epub_parser.epub.read_epub', return_value=book):
+        with patch(patch_read_epub, return_value=book):
             docs, meta = parser.run()
         assert len(docs) == 1
         assert "First chapter content." in docs[0]
@@ -131,7 +131,7 @@ class TestRun:
     def test_empty_book(self, tmp_path):
         parser = make_parser(tmp_path)
         book = make_epub_book("Empty Book", [])
-        with patch('epub_parser.epub.read_epub', return_value=book):
+        with patch(patch_read_epub, return_value=book):
             docs, meta = parser.run()
         assert docs == []
         assert meta == []
@@ -142,7 +142,7 @@ class TestRun:
             make_epub_item("chapter1", "<p>Chapter one content.</p>"),
             make_epub_item("chapter2", "<p>Chapter two content.</p>"),
         ])
-        with patch('epub_parser.epub.read_epub', return_value=book):
+        with patch(patch_read_epub, return_value=book):
             docs, meta = parser.run()
         assert any("Chapter one content." in d for d in docs)
         assert any("Chapter two content." in d for d in docs)
@@ -152,7 +152,7 @@ class TestRun:
         book = make_epub_book("My Book", [
             make_epub_item("chapter1", "<p>Some content.</p>")
         ])
-        with patch('epub_parser.epub.read_epub', return_value=book):
+        with patch(patch_read_epub, return_value=book):
             docs, meta = parser.run()
         assert meta[0]["book_title"] == "My Book"
 
@@ -161,7 +161,7 @@ class TestRun:
         book = make_epub_book("My Book", [
             make_epub_item("chapter1", "<p>Some content.</p>")
         ])
-        with patch('epub_parser.epub.read_epub', return_value=book):
+        with patch(patch_read_epub, return_value=book):
             docs, meta = parser.run()
         assert meta[0]["item_id"] == "chapter1"
 
@@ -171,7 +171,7 @@ class TestRun:
             make_epub_item("chapter1", "<p>Some content.</p>"),
             make_epub_item("chapter2", "<p>More content.</p>"),
         ])
-        with patch('epub_parser.epub.read_epub', return_value=book):
+        with patch(patch_read_epub, return_value=book):
             docs, meta = parser.run()
         assert meta[0]["item_#"] == "1"
 
@@ -185,7 +185,7 @@ class TestRun:
             make_epub_item("chapter1", "<p>Skipped content.</p>"),
             make_epub_item("chapter2", "<p>Included content.</p>"),
         ])
-        with patch('epub_parser.epub.read_epub', return_value=book):
+        with patch(patch_read_epub, return_value=book):
             docs, meta = parser.run()
         assert all("Skipped content." not in d for d in docs)
         assert any("Included content." in d for d in docs)
@@ -198,7 +198,7 @@ class TestRun:
             make_epub_item("chapter1", "<p>Skipped content.</p>"),
             make_epub_item("chapter2", "<p>Included content.</p>"),
         ])
-        with patch('epub_parser.epub.read_epub', return_value=book):
+        with patch(patch_read_epub, return_value=book):
             docs, meta = parser.run(sections_to_skip=["chapter1"])
         assert all("Skipped content." not in d for d in docs)
         assert any("Included content." in d for d in docs)
@@ -214,7 +214,7 @@ class TestRun:
             make_epub_item("chapter2", "<p>Skipped via parameter.</p>"),
             make_epub_item("chapter3", "<p>Included content.</p>"),
         ])
-        with patch('epub_parser.epub.read_epub', return_value=book):
+        with patch(patch_read_epub, return_value=book):
             docs, meta = parser.run(sections_to_skip=["chapter2"])
         assert all("Skipped via CSV." not in d for d in docs)
         assert all("Skipped via parameter." not in d for d in docs)
@@ -225,7 +225,7 @@ class TestRun:
         book = make_epub_book("My Book", [
             make_epub_item("chapter1", "<p>Some content.</p>")
         ])
-        with patch('epub_parser.epub.read_epub', return_value=book):
+        with patch(patch_read_epub, return_value=book):
             parser.run(generate_text_file=True)
         assert (tmp_path / "test_book_processed_paragraphs.txt").exists()
         assert (tmp_path / "test_book_processed_meta.txt").exists()
@@ -235,7 +235,7 @@ class TestRun:
         book = make_epub_book("My Book", [
             make_epub_item("chapter1", "<p>Some content.</p>")
         ])
-        with patch('epub_parser.epub.read_epub', return_value=book):
+        with patch(patch_read_epub, return_value=book):
             parser.run(generate_text_file=True)
         paragraphs = (tmp_path / "test_book_processed_paragraphs.txt").read_text(encoding="utf-8")
         assert "Some content." in paragraphs
@@ -245,7 +245,7 @@ class TestRun:
         book = make_epub_book("My Book", [
             make_epub_item("chapter1", "<p>First sentence.</p><p>Second sentence.</p>")
         ])
-        with patch('epub_parser.epub.read_epub', return_value=book):
+        with patch(patch_read_epub, return_value=book):
             docs, meta = parser.run()
         assert len(docs) == 1
         assert "First sentence." in docs[0]
