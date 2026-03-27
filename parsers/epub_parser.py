@@ -190,7 +190,7 @@ class EpubParser:
                  meta_data: dict[str, str],
                  min_paragraph_size: int = 300,
                  remove_footnotes: bool = True,
-                 skip_file: str = None) -> None:
+                 sections_to_skip: List[str] | None = None) -> None:
         """Initialise EpubParser.
 
         Args:
@@ -198,48 +198,35 @@ class EpubParser:
             meta_data: Base metadata dict to include with every paragraph.
             min_paragraph_size: Minimum character count before a paragraph is emitted.
             remove_footnotes: If True, removes footnote superscripts from text.
-            skip_file: Filename of the CSV file listing sections to skip.
-                       Looked up in the same directory as the EPUB file.
+            sections_to_skip: Optional list of section IDs to skip.
         """
         if isinstance(source, epub.EpubBook):
-            self._book: epub.EpubBook | None = source
+            self._book: epub.EpubBook = source
             self._file_path: Path | None = None
         else:
-            self._book = None
             self._file_path = Path(source)
+            self._book = epub.read_epub(self._file_path)
 
         self._meta_data: dict[str, str] = meta_data
         self._min_paragraph_size: int = min_paragraph_size
         self._remove_footnotes: bool = remove_footnotes
+        self._sections_to_skip: Dict[str, Set[str]] = {}
+        if sections_to_skip:
+            self._sections_to_skip[self._book.title] = set(sections_to_skip)
 
-        if skip_file is not None and self._file_path is not None:
-            csv_path: Path = self._file_path.parent / skip_file
-            self._sections_to_skip: Dict[str, Set[str]] = load_sections_to_skip(csv_path)
-        else:
-            self._sections_to_skip: Dict[str, Set[str]] = {}
-
-    def run(self, generate_text_file: bool = False,
-            sections_to_skip: List[str] | None = None) -> Tuple[List[str], List[Dict[str, str]]]:
+    def run(self, generate_text_file: bool = False) -> Tuple[List[str], List[Dict[str, str]]]:
         """Parse the EPUB and return paragraphs and metadata.
 
         Args:
             generate_text_file: If True, saves processed paragraph file
                                 alongside the source EPUB.
-            sections_to_skip: Optional list of section IDs to skip in addition
-                              to any sections listed in the CSV file.
 
         Returns:
             A tuple of (docs, meta) where docs is a list of paragraph strings
             and meta is a list of metadata dicts, one per paragraph.
         """
-        book: epub.EpubBook = self._book if self._book is not None else epub.read_epub(self._file_path)
+        book: epub.EpubBook = self._book
         print(f"Loaded Book: {book.title}")
-
-        if sections_to_skip:
-            if book.title not in self._sections_to_skip:
-                self._sections_to_skip[book.title] = set()
-            for section_id in sections_to_skip:
-                self._sections_to_skip[book.title].add(section_id)
 
         all_docs: List[str] = []
         all_meta: List[Dict[str, str]] = []

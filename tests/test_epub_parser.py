@@ -12,6 +12,7 @@ def make_epub_item(item_id: str, html: str) -> MagicMock:
     item.get_body_content.return_value = html.encode('utf-8')
     return item
 
+
 def make_epub_book(title: str, items: list) -> MagicMock:
     """Create a mock EpubBook with the given title and items."""
     book = MagicMock(spec=epub.EpubBook)
@@ -19,10 +20,12 @@ def make_epub_book(title: str, items: list) -> MagicMock:
     book.get_items_of_type.return_value = items
     return book
 
+
 def make_parser(book: MagicMock | None = None,
                 meta_data: dict | None = None,
                 min_paragraph_size: int = 0,
-                remove_footnotes: bool = True) -> EpubParser:
+                remove_footnotes: bool = True,
+                sections_to_skip: list | None = None) -> EpubParser:
     """Create an EpubParser with a mock EpubBook."""
     if book is None:
         book = make_epub_book("Test Book", [])
@@ -30,7 +33,8 @@ def make_parser(book: MagicMock | None = None,
         source=book,
         meta_data=meta_data or {},
         min_paragraph_size=min_paragraph_size,
-        remove_footnotes=remove_footnotes
+        remove_footnotes=remove_footnotes,
+        sections_to_skip=sections_to_skip
     )
 
 
@@ -166,46 +170,26 @@ class TestRun:
         docs, meta = parser.run()
         assert meta[0]["item_#"] == "1"
 
-    def test_skips_sections_in_csv(self, tmp_path):
-        csv_path = tmp_path / "sections_to_skip.csv"
-        csv_path.write_text("Book Title,Section Title\nMy Book,chapter1\n", encoding="utf-8")
+    def test_skips_sections(self):
         book = make_epub_book("My Book", [
             make_epub_item("chapter1", "<p>Skipped content.</p>"),
             make_epub_item("chapter2", "<p>Included content.</p>"),
         ])
-        epub_path = tmp_path / "test_book.epub"
-        epub_path.touch()
-        parser = EpubParser(source=epub_path, meta_data={}, skip_file="sections_to_skip.csv")
-        parser._book = book
+        parser = make_parser(book=book, sections_to_skip=["chapter1"])
         docs, meta = parser.run()
         assert all("Skipped content." not in d for d in docs)
         assert any("Included content." in d for d in docs)
 
-    def test_skips_sections_passed_as_parameter(self):
+    def test_sections_to_skip_multiple(self):
         book = make_epub_book("My Book", [
-            make_epub_item("chapter1", "<p>Skipped content.</p>"),
-            make_epub_item("chapter2", "<p>Included content.</p>"),
-        ])
-        parser = make_parser(book=book)
-        docs, meta = parser.run(sections_to_skip=["chapter1"])
-        assert all("Skipped content." not in d for d in docs)
-        assert any("Included content." in d for d in docs)
-
-    def test_sections_to_skip_additive_with_csv(self, tmp_path):
-        csv_path = tmp_path / "sections_to_skip.csv"
-        csv_path.write_text("Book Title,Section Title\nMy Book,chapter1\n", encoding="utf-8")
-        book = make_epub_book("My Book", [
-            make_epub_item("chapter1", "<p>Skipped via CSV.</p>"),
-            make_epub_item("chapter2", "<p>Skipped via parameter.</p>"),
+            make_epub_item("chapter1", "<p>Skipped one.</p>"),
+            make_epub_item("chapter2", "<p>Skipped two.</p>"),
             make_epub_item("chapter3", "<p>Included content.</p>"),
         ])
-        epub_path = tmp_path / "test_book.epub"
-        epub_path.touch()
-        parser = EpubParser(source=epub_path, meta_data={}, skip_file="sections_to_skip.csv")
-        parser._book = book
-        docs, meta = parser.run(sections_to_skip=["chapter2"])
-        assert all("Skipped via CSV." not in d for d in docs)
-        assert all("Skipped via parameter." not in d for d in docs)
+        parser = make_parser(book=book, sections_to_skip=["chapter1", "chapter2"])
+        docs, meta = parser.run()
+        assert all("Skipped one." not in d for d in docs)
+        assert all("Skipped two." not in d for d in docs)
         assert any("Included content." in d for d in docs)
 
     def test_generate_text_file_creates_files(self, tmp_path):
@@ -213,9 +197,8 @@ class TestRun:
             make_epub_item("chapter1", "<p>Some content.</p>")
         ])
         epub_path = tmp_path / "test_book.epub"
-        epub_path.touch()
-        parser = EpubParser(source=epub_path, meta_data={})
-        parser._book = book
+        parser = EpubParser(source=book, meta_data={})
+        parser._file_path = epub_path
         parser.run(generate_text_file=True)
         assert (tmp_path / "test_book_processed_paragraphs.txt").exists()
         assert (tmp_path / "test_book_processed_meta.txt").exists()
@@ -225,9 +208,8 @@ class TestRun:
             make_epub_item("chapter1", "<p>Some content.</p>")
         ])
         epub_path = tmp_path / "test_book.epub"
-        epub_path.touch()
-        parser = EpubParser(source=epub_path, meta_data={})
-        parser._book = book
+        parser = EpubParser(source=book, meta_data={})
+        parser._file_path = epub_path
         parser.run(generate_text_file=True)
         paragraphs = (tmp_path / "test_book_processed_paragraphs.txt").read_text(encoding="utf-8")
         assert "Some content." in paragraphs
