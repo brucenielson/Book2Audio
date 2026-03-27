@@ -63,6 +63,7 @@ class TextProcessor:
         for i, chunk in enumerate(chunks):
             next_chunk: RawChunk | None = chunks[i + 1] if i < len(chunks) - 1 else None
 
+            # Do initial cleaning
             chunk.text = clean_text(chunk.text)
 
             if chunk.is_section_header:
