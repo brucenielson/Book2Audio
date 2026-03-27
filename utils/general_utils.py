@@ -353,13 +353,16 @@ def strip_footnote_numbers(p_str: str) -> str:
 def clean_text(p_str: str, remove_footnotes: bool = False) -> str:
     """Clean and normalize a text string.
 
-    Applies a pipeline of universal normalization steps:
-    whitespace, hyphens, ligatures, encoding artifacts, quotes,
-    punctuation spacing, bracket spacing, apostrophes, and footnote
-    number stripping.
+    Applies a pipeline of normalization steps in order: ligature normalization,
+    encoding artifact correction, punctuation spacing, bracket spacing,
+    apostrophe normalization, hyphen normalization, quote normalization,
+    and whitespace normalization. Optionally strips trailing footnote numbers
+    before the main pipeline runs.
 
     Args:
         p_str: The raw string to clean.
+        remove_footnotes: If True, strips trailing footnote numbers before
+                          other cleaning steps. Defaults to False.
 
     Returns:
         The cleaned and normalized string.
