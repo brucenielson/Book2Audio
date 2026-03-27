@@ -4,6 +4,7 @@ from docling_core.types import DoclingDocument
 from docling_core.types.doc.document import DocItem, SectionHeaderItem, ListItem, TextItem
 from text_chunk import RawChunk, ParsedChunk
 from text_processor import TextProcessor
+from parsers.base_parser import BaseParser
 from utils.docling_utils import (is_footnote,
                                  should_skip_element,
                                  is_too_short,
@@ -12,7 +13,7 @@ from utils.docling_utils import (is_footnote,
                                  is_text_bearing)
 
 
-class DoclingParser:
+class DoclingParser(BaseParser):
     def __init__(self, source: str | Path | DoclingDocument,
                  meta_data: dict[str, str],
                  min_paragraph_size: int = 300,
