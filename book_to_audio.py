@@ -65,8 +65,7 @@ def main(file_path: str | None = None,
         language: Qwen language (e.g. 'English', 'Auto'). Defaults to 'Auto'.
         instruct: Qwen style instruction (e.g. 'speak calmly'). Defaults to None.
         model_size: Qwen model size: '0.6b' or '1.7b'. Defaults to '0.6b'.
-        sections_to_skip: Optional list of EPUB section IDs to skip in addition
-                          to any sections listed in the CSV file.
+        sections_to_skip: Optional list of EPUB section IDs to skip. EPUB only.
     """
     parser: argparse.ArgumentParser = argparse.ArgumentParser(
         description='Convert text or documents to audio using Kokoro or Qwen3-TTS.')

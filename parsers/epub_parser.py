@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import List, Dict, Tuple, Iterator, Optional, Set
 from bs4 import BeautifulSoup, Tag
 from ebooklib import ITEM_DOCUMENT, epub
-from utils.general_utils import enhance_title, load_sections_to_skip, clean_text
+from utils.general_utils import enhance_title, clean_text
 from text_chunk import RawChunk
 from text_processor import TextProcessor
 
@@ -262,6 +262,8 @@ class EpubParser:
             docs: The list of paragraph strings to save.
             meta: The list of metadata dicts, one per paragraph.
         """
+        if self._file_path is None:
+            raise ValueError("Cannot save text files when EpubBook was passed directly — no file path available.")
         base_path: Path = self._file_path.parent / self._file_path.stem
 
         with open(f"{base_path}_processed_paragraphs.txt", "w", encoding="utf-8") as f:
