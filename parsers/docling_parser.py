@@ -4,16 +4,16 @@ from docling_core.types import DoclingDocument
 from docling_core.types.doc.document import DocItem, SectionHeaderItem, ListItem, TextItem
 from text_chunk import RawChunk, ParsedChunk
 from text_processor import TextProcessor
-from utils import (is_footnote,
-                   should_skip_element,
-                   is_too_short,
-                   get_current_page,
-                   clean_text_pdf,
-                   load_as_document,
-                   is_text_bearing)
+from parsers.base_parser import BaseParser
+from utils.docling_utils import (is_footnote,
+                                 should_skip_element,
+                                 is_too_short,
+                                 get_current_page,
+                                 load_as_document,
+                                 is_text_bearing)
 
 
-class DoclingParser:
+class DoclingParser(BaseParser):
     def __init__(self, source: str | Path | DoclingDocument,
                  meta_data: dict[str, str],
                  min_paragraph_size: int = 300,
@@ -106,7 +106,8 @@ class DoclingParser:
                 "page_#": str(page_no)
             }
 
-            p_str: str = clean_text_pdf(text.text)
+            assert isinstance(text, TextItem)
+            p_str: str = text.text
             if not p_str:
                 continue
 

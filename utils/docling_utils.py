@@ -5,16 +5,6 @@ from docling_core.types.doc.document import (TextItem,
                                              DoclingDocument)
 from docling.document_converter import DocumentConverter
 from typing import List
-from utils.general_utils import (normalize_quotes,
-                                 normalize_whitespace,
-                                 fix_apostrophes,
-                                 normalize_ligatures,
-                                 fix_encoding_artifacts,
-                                 fix_bracket_spacing,
-                                 fix_punctuation_spacing,
-                                 is_roman_numeral,
-                                 strip_footnote_numbers)
-
 
 def load_as_document(file_path: str | Path) -> DoclingDocument:
     """Load a document file and return it as a DoclingDocument.
@@ -266,28 +256,3 @@ def should_skip_element(text: DocItem) -> bool:
         is_page_footer(text),
         is_page_header(text)
     ])
-
-
-def clean_text_pdf(p_str: str) -> str:
-    """Clean and normalise a paragraph string extracted from a PDF.
-
-    Applies a pipeline of normalisation steps in order:
-    whitespace, hyphens, ligatures, quotes, punctuation spacing,
-    bracket spacing, apostrophes, and footnote number stripping.
-
-    Args:
-        p_str: The raw paragraph string to clean.
-
-    Returns:
-        The cleaned and normalised string.
-    """
-    p_str = normalize_whitespace(p_str)
-    # p_str = _normalize_hyphens(p_str)
-    p_str = normalize_ligatures(p_str)
-    p_str = fix_encoding_artifacts(p_str)
-    p_str = normalize_quotes(p_str)
-    p_str = fix_punctuation_spacing(p_str)
-    p_str = fix_bracket_spacing(p_str)
-    p_str = fix_apostrophes(p_str)
-    p_str = strip_footnote_numbers(p_str)
-    return p_str.strip()

@@ -1,12 +1,12 @@
-import pytest
 from unittest.mock import MagicMock
 from docling_core.types.doc.document import SectionHeaderItem, ListItem, TextItem, DocItem, DocItemLabel
 from utils.docling_utils import (
     is_section_header, is_page_footer, is_page_header, is_footnote,
     is_list_item, is_text_break, is_page_not_text, is_page_text,
     is_too_short, is_text_item, get_next_text,
-    get_current_page, should_skip_element, clean_text_pdf
+    get_current_page, should_skip_element
 )
+from utils.general_utils import clean_text
 
 
 # --- Fixtures ---
@@ -267,55 +267,55 @@ class TestShouldSkipElement:
 
 class TestCleanText:
     def test_strips_whitespace(self):
-        assert clean_text_pdf("  hello  ") == "hello"
+        assert clean_text("  hello  ") == "hello"
 
     def test_collapses_internal_whitespace(self):
-        assert clean_text_pdf("hello   world") == "hello world"
+        assert clean_text("hello   world") == "hello world"
 
     def test_removes_space_before_period(self):
-        assert clean_text_pdf("hello .") == "hello."
+        assert clean_text("hello .") == "hello."
 
     def test_removes_space_before_comma(self):
-        assert clean_text_pdf("hello , world") == "hello, world"
+        assert clean_text("hello , world") == "hello, world"
 
     def test_removes_space_before_question_mark(self):
-        assert clean_text_pdf("really ?") == "really?"
+        assert clean_text("really ?") == "really?"
 
     def test_removes_space_before_exclamation(self):
-        assert clean_text_pdf("wow !") == "wow!"
+        assert clean_text("wow !") == "wow!"
 
     def test_removes_space_inside_parentheses(self):
-        assert clean_text_pdf("( hello )") == "(hello)"
+        assert clean_text("( hello )") == "(hello)"
 
     def test_fixes_possessive_apostrophe(self):
-        assert clean_text_pdf("the dog 's bone") == "the dog's bone"
+        assert clean_text("the dog 's bone") == "the dog's bone"
 
     def test_strips_trailing_footnote_numbers(self):
-        assert clean_text_pdf("Hello world.1") == "Hello world."
+        assert clean_text("Hello world.1", remove_footnotes=True) == "Hello world."
 
     def test_strips_multiple_trailing_footnote_numbers(self):
-        assert clean_text_pdf("Hello world.123") == "Hello world."
+        assert clean_text("Hello world.123", remove_footnotes=True) == "Hello world."
 
     def test_empty_string(self):
-        assert clean_text_pdf("") == ""
+        assert clean_text("") == ""
 
     def test_normalizes_fi_ligature(self):
-        assert clean_text_pdf("ﬁle") == "file"
+        assert clean_text("ﬁle") == "file"
 
     def test_normalizes_fl_ligature(self):
-        assert clean_text_pdf("ﬂoor") == "floor"
+        assert clean_text("ﬂoor") == "floor"
 
     def test_normalizes_ff_ligature(self):
-        assert clean_text_pdf("ﬀect") == "ffect"
+        assert clean_text("ﬀect") == "ffect"
 
     def test_normalizes_left_double_quote(self):
-        assert clean_text_pdf("\u201chello\u201d") == '"hello"'
+        assert clean_text("\u201chello\u201d") == '"hello"'
 
     def test_normalizes_smart_single_quotes(self):
-        assert clean_text_pdf("\u2018hello\u2019") == "'hello'"
+        assert clean_text("\u2018hello\u2019") == "'hello'"
 
     def test_normalizes_right_single_quote_possessive(self):
-        assert clean_text_pdf("dog\u2019s") == "dog's"
+        assert clean_text("dog\u2019s") == "dog's"
 
     # def test_removes_soft_hyphen(self):
     #     assert clean_text("explo\u00adration") == "exploration"
@@ -324,4 +324,4 @@ class TestCleanText:
     #     assert clean_text("some\u00ad thing") == "some thing"
 
     def test_preserves_regular_hyphen(self):
-        assert clean_text_pdf("well-known") == "well-known"
+        assert clean_text("well-known") == "well-known"

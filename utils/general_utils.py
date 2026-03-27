@@ -323,6 +323,8 @@ def is_sentence_end(text: str) -> bool:
                                or text.endswith("]")
                                or text.endswith("}")
                                or text.endswith("\"")
+                               or text.endswith("\u201d")
+                               or text.endswith("\u2019")
                                or text.endswith("\'"))
     return (has_end_punctuation or
             (ends_with_bracket and is_ends_with_punctuation(text[0:-1])))
@@ -348,23 +350,31 @@ def strip_footnote_numbers(p_str: str) -> str:
     return p_str
 
 
-def clean_text(p_str: str) -> str:
+def clean_text(p_str: str, remove_footnotes: bool = False) -> str:
     """Clean and normalize a text string.
 
-    Applies a pipeline of universal normalization steps:
-    whitespace, hyphens, quotes, punctuation spacing,
-    bracket spacing, and apostrophes.
+    Applies a pipeline of normalization steps in order: ligature normalization,
+    encoding artifact correction, punctuation spacing, bracket spacing,
+    apostrophe normalization, hyphen normalization, quote normalization,
+    and whitespace normalization. Optionally strips trailing footnote numbers
+    before the main pipeline runs.
 
     Args:
         p_str: The raw string to clean.
+        remove_footnotes: If True, strips trailing footnote numbers before
+                          other cleaning steps. Defaults to False.
 
     Returns:
         The cleaned and normalized string.
     """
-    p_str = normalize_whitespace(p_str)
-    p_str = normalize_hyphens(p_str)
-    p_str = normalize_quotes(p_str)
+    if remove_footnotes:
+        p_str = strip_footnote_numbers(p_str)
+    p_str = normalize_ligatures(p_str)
+    p_str = fix_encoding_artifacts(p_str)
     p_str = fix_punctuation_spacing(p_str)
     p_str = fix_bracket_spacing(p_str)
     p_str = fix_apostrophes(p_str)
+    p_str = normalize_hyphens(p_str)
+    p_str = normalize_quotes(p_str)
+    p_str = normalize_whitespace(p_str)
     return p_str.strip()

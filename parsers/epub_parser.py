@@ -6,6 +6,7 @@ from ebooklib import ITEM_DOCUMENT, epub
 from utils.general_utils import enhance_title, clean_text
 from text_chunk import RawChunk
 from text_processor import TextProcessor
+from parsers.base_parser import BaseParser
 
 
 def get_header_level(paragraph: Tag) -> Optional[int]:
@@ -171,7 +172,7 @@ def get_chapter_info(tags: List[Tag],
     return chapter_title, chapter_number, first_page_num
 
 
-class EpubParser:
+class EpubParser(BaseParser):
     """Parses an EPUB file into cleaned paragraphs suitable for text-to-speech.
 
     Reads each HTML section of the EPUB, extracts text using BeautifulSoup,

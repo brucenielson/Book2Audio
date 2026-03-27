@@ -1,6 +1,6 @@
 import pytest
 import numpy as np
-from unittest.mock import MagicMock, patch, call
+from unittest.mock import MagicMock, patch
 from pathlib import Path
 from engines import TTSEngine, KokoroEngine
 from audio_generator import AudioGenerator

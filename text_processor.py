@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import List, Dict
 from text_chunk import RawChunk, ParsedChunk
 from word_validator import word_validator
-from utils.general_utils import is_sentence_end, combine_paragraphs
+from utils.general_utils import is_sentence_end, combine_paragraphs, clean_text
 
 
 class TextProcessor:
@@ -59,6 +59,10 @@ class TextProcessor:
             A list of ParsedChunks ready for audio output.
         """
         self._init_state()
+
+        # Clean all chunks upfront
+        for chunk in chunks:
+            chunk.text = clean_text(chunk.text)
 
         for i, chunk in enumerate(chunks):
             next_chunk: RawChunk | None = chunks[i + 1] if i < len(chunks) - 1 else None
