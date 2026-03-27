@@ -1,0 +1,167 @@
+from pathlib import Path
+from typing import List, Dict, Tuple
+from docling_core.types import DoclingDocument
+from docling_core.types.doc.document import DocItem, SectionHeaderItem, ListItem, TextItem
+from text_chunk import RawChunk, ParsedChunk
+from text_processor import TextProcessor
+from utils import (is_footnote,
+                   should_skip_element,
+                   is_too_short,
+                   get_current_page,
+                   clean_text_pdf,
+                   load_as_document,
+                   is_text_bearing)
+
+
+class DoclingParser:
+    def __init__(self, source: str | Path | DoclingDocument,
+                 meta_data: dict[str, str],
+                 min_paragraph_size: int = 300,
+                 start_page: int | None = None,
+                 end_page: int | None = None,
+                 include_notes: bool = True) -> None:
+        if isinstance(source, DoclingDocument):
+            self._doc: DoclingDocument = source
+            self._file_path: Path | None = None
+        else:
+            self._file_path = Path(source)
+            self._doc = load_as_document(self._file_path)
+
+        self._min_paragraph_size: int = min_paragraph_size
+        self._meta_data: dict[str, str] = meta_data
+        self._start_page: int | None = start_page
+        self._end_page: int | None = end_page
+        self._include_notes: bool = include_notes
+
+    def _is_in_page_range(self, page_no: int | None) -> bool:
+        if self._start_page is not None and page_no is not None and page_no < self._start_page:
+            return False
+        if self._end_page is not None and page_no is not None and page_no > self._end_page:
+            return False
+        return True
+
+    def run(self, generate_text_file: bool = False) -> Tuple[List[str], List[Dict[str, str]]]:
+        """Parse the document and return paragraphs and metadata.
+
+        Args:
+            generate_text_file: If True, saves processed text and paragraph files
+                                 alongside the source document.
+
+        Returns:
+            A tuple of (docs, meta) where docs is a list of paragraph strings
+            and meta is a list of metadata dicts, one per paragraph.
+        """
+        raw_chunks: List[RawChunk] = self._extract_chunks()
+
+        output_path: Path | None = None
+        if generate_text_file and self._file_path is not None:
+            output_path = self._file_path.parent / self._doc.name
+
+        processor: TextProcessor = TextProcessor(
+            min_paragraph_size=self._min_paragraph_size,
+            include_footnotes=self._include_notes
+        )
+
+        parsed_chunks: List[ParsedChunk] = processor.process(
+            chunks=raw_chunks,
+            output_path=output_path,
+            generate_text_file=generate_text_file
+        )
+
+        if generate_text_file and self._file_path is not None:
+            self._save_text_files(self._extract_all_texts())
+
+        docs: List[str] = [chunk.text for chunk in parsed_chunks]
+        meta: List[Dict[str, str]] = [chunk.meta for chunk in parsed_chunks]
+        return docs, meta
+
+    def _extract_chunks(self) -> List[RawChunk]:
+        """Extract raw chunks from the document.
+
+        Returns:
+            A list of RawChunks extracted from the document.
+        """
+        chunks: List[RawChunk] = []
+        page_no: int | None = None
+
+        regular_texts, notes = self._get_processed_texts()
+        texts: List[DocItem] = regular_texts + (notes if self._include_notes else [])
+
+        for i, text in enumerate(texts):
+            if not is_text_bearing(text):
+                continue
+
+            page_no = get_current_page(text, "", page_no)
+
+            if not self._is_in_page_range(page_no):
+                page_no = None
+                continue
+
+            if should_skip_element(text):
+                continue
+
+            meta: Dict[str, str] = {
+                **self._meta_data,
+                "section_name": "",
+                "page_#": str(page_no)
+            }
+
+            p_str: str = clean_text_pdf(text.text)
+            if not p_str:
+                continue
+
+            chunks.append(RawChunk(
+                text=p_str,
+                meta=meta,
+                label=text.label
+            ))
+
+        return chunks
+
+    def _extract_all_texts(self) -> List[DocItem]:
+        """Return all DocItems for debug file writing."""
+        regular_texts, notes = self._get_processed_texts()
+        return regular_texts + (notes if self._include_notes else [])
+
+    def _save_text_files(self, texts: List[DocItem]) -> None:
+        if self._file_path is None:
+            raise ValueError(
+                "Cannot save text files when DoclingDocument was passed directly — no file path available.")
+        base_path: Path = self._file_path.parent / self._doc.name
+
+        with open(f"{base_path}_processed_texts.txt", "w", encoding="utf-8") as f:
+            for text in texts:
+                text_content: str = text.text if is_text_bearing(text) else 'N/A' # noqa
+                # noinspection PyTypeHints
+                f.write(f"{text.prov[0].page_no if text.prov else 'N/A'}: {text.label}: {text_content}\n")
+
+    def _get_processed_texts(self) -> Tuple[List[DocItem], List[DocItem]]:
+        """
+        Processes the document's text items, separating regular content from notes
+        (footnotes), and returns them as separate lists.
+        """
+        regular_texts: List[DocItem] = []
+        notes: List[DocItem] = []
+        processed_pages: set[int] = set()  # Keep track of processed pages
+
+        text_item: DocItem
+        for text_item in self._doc.texts:
+            # noinspection PyTypeHints
+            page_number: int = text_item.prov[0].page_no
+
+            if page_number not in processed_pages:
+                # # On new page, so get all items on the current page
+                # # noinspection PyTypeHints
+                # same_page_items: List[DocItem] = [
+                #     item for item in self._doc.texts if item.prov[0].page_no == page_number
+                # ]
+                processed_pages.add(page_number)  # Mark the page as processed
+
+            if is_too_short(text_item):
+                continue
+            elif is_footnote(text_item):
+                notes.append(text_item)
+            else:
+                regular_texts.append(text_item)
+
+        return regular_texts, notes

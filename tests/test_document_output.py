@@ -1,7 +1,7 @@
 import pytest
 from pathlib import Path
-from docling_parser import DoclingParser
-from epub_parser import EpubParser
+from parsers.docling_parser import DoclingParser
+from parsers.epub_parser import EpubParser
 
 TEST_DOCUMENTS = Path(__file__).parent / "test_documents"
 TEST_CANONICAL = Path(__file__).parent / "test_canonical"
@@ -12,9 +12,9 @@ def compare_files(output_path: Path, canonical_path: Path) -> None:
     canonical_lines = canonical_path.read_text(encoding="utf-8").splitlines()
 
     differences = [
-        f"Line {i + 1}:\n  expected: {canonical}\n  actual:   {actual}"
-        for i, (actual, canonical) in enumerate(zip(output_lines, canonical_lines))
-        if actual != canonical
+        f"Line {i + 1}:\n  expected: {canonical_lines[i] if i < len(canonical_lines) else '<missing>'}\n  actual:   {output_lines[i] if i < len(output_lines) else '<missing>'}"
+        for i in range(max(len(output_lines), len(canonical_lines)))
+        if (i >= len(output_lines) or i >= len(canonical_lines) or output_lines[i] != canonical_lines[i])
     ]
 
     if len(output_lines) != len(canonical_lines):
@@ -74,7 +74,7 @@ class TestDoclingParserOutput:
             try:
                 compare_files(txt_file, canonical_path)
             except pytest.fail.Exception as e:
-                failures.append(str(e))
+                failures.append(f"{txt_file.name}:\n{e}")
 
         if failures:
             pytest.fail("\n\n".join(failures))

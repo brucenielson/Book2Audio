@@ -1,7 +1,5 @@
 from pathlib import Path
-from docling_core.types.doc.document import (SectionHeaderItem,
-                                             ListItem,
-                                             TextItem,
+from docling_core.types.doc.document import (TextItem,
                                              DocItem,
                                              DocItemLabel,
                                              DoclingDocument)
@@ -43,6 +41,13 @@ def load_as_document(file_path: str | Path) -> DoclingDocument:
     return book
 
 
+def is_text_bearing(item: DocItem | None) -> bool:
+    """Check if a DocItem is a text-bearing subclass (i.e. TextItem).
+    Note that SectionHeaderItem and ListItem are inherited from TextItem
+    """
+    return isinstance(item, TextItem)
+
+
 def is_section_header(text: DocItem | None) -> bool:
     """Check if a DocItem is a section header.
 
@@ -52,7 +57,7 @@ def is_section_header(text: DocItem | None) -> bool:
     Returns:
         True if the item is a section header, False otherwise.
     """
-    if not isinstance(text, (SectionHeaderItem, ListItem, TextItem)):
+    if not is_text_bearing(text):
         return False
     return text.label == DocItemLabel.SECTION_HEADER.value
 
@@ -66,7 +71,7 @@ def is_page_footer(text: DocItem | None) -> bool:
     Returns:
         True if the item is a page footer, False otherwise.
     """
-    if not isinstance(text, (SectionHeaderItem, ListItem, TextItem)):
+    if not is_text_bearing(text):
         return False
     return text.label == DocItemLabel.PAGE_FOOTER.value
 
@@ -80,7 +85,7 @@ def is_page_header(text: DocItem | None) -> bool:
     Returns:
         True if the item is a page header, False otherwise.
     """
-    if not isinstance(text, (SectionHeaderItem, ListItem, TextItem)):
+    if not is_text_bearing(text):
         return False
     return text.label == DocItemLabel.PAGE_HEADER.value
 
@@ -94,7 +99,7 @@ def is_footnote(text: DocItem | None) -> bool:
     Returns:
         True if the item is a footnote, False otherwise.
     """
-    if not isinstance(text, (SectionHeaderItem, ListItem, TextItem)):
+    if not is_text_bearing(text):
         return False
     return text.label == DocItemLabel.FOOTNOTE.value
 
@@ -108,7 +113,7 @@ def is_list_item(text: DocItem | None) -> bool:
     Returns:
         True if the item is a list item, False otherwise.
     """
-    if not isinstance(text, (SectionHeaderItem, ListItem, TextItem)):
+    if not is_text_bearing(text):
         return False
     return text.label == DocItemLabel.LIST_ITEM.value
 
@@ -126,7 +131,7 @@ def is_text_break(text: DocItem | None) -> bool:
     Returns:
         True if the item is a text break, False otherwise.
     """
-    if not isinstance(text, (SectionHeaderItem, ListItem, TextItem)):
+    if not is_text_bearing(text):
         return False
     return is_page_header(text) or is_section_header(text) or is_footnote(text)
 
@@ -143,7 +148,7 @@ def is_page_not_text(text: DocItem | None) -> bool:
     Returns:
         True if the item is not a body text element, False otherwise.
     """
-    if not isinstance(text, (SectionHeaderItem, ListItem, TextItem)):
+    if not is_text_bearing(text):
         return True
     return text.label not in [DocItemLabel.TEXT.value, DocItemLabel.LIST_ITEM.value, DocItemLabel.FORMULA.value]
 
@@ -159,7 +164,7 @@ def is_page_text(text: DocItem | None) -> bool:
     Returns:
         True if the item is a body text element, False otherwise.
     """
-    if not isinstance(text, (SectionHeaderItem, ListItem, TextItem)):
+    if not is_text_bearing(text):
         return False
     return not is_page_not_text(text)
 
@@ -176,8 +181,9 @@ def is_too_short(doc_item: DocItem, threshold: int = 2) -> bool:
     Returns:
         True if the item is a TextItem whose text length is at or below the threshold.
     """
-    if not isinstance(doc_item, TextItem):
+    if not is_text_bearing(doc_item):
         return False
+    assert isinstance(doc_item, TextItem)
     return len(doc_item.text) <= threshold
 
 
@@ -193,7 +199,7 @@ def is_text_item(item: DocItem | None) -> bool:
     Returns:
         True if the item is a processable body text item.
     """
-    if not isinstance(item, (SectionHeaderItem, ListItem, TextItem)):
+    if not is_text_bearing(item):
         return False
     return not (is_section_header(item)
                 or is_page_footer(item)
@@ -224,7 +230,7 @@ def get_current_page(text: DocItem,
     """Determine the current page number based on the given DocItem.
 
     Returns the item's page number only if no page has been recorded yet
-    or if no paragraph is currently being accumulated. Otherwise returns
+    or if no paragraph is currently being accumulated. Otherwise, returns
     the existing page number unchanged.
 
     Args:
@@ -235,7 +241,7 @@ def get_current_page(text: DocItem,
     Returns:
         The updated page number, or the existing one if unchanged.
     """
-    if not isinstance(text, (SectionHeaderItem, ListItem, TextItem)):
+    if not is_text_bearing(text):
         return current_page
     # noinspection PyTypeHints
     return text.prov[0].page_no if current_page is None or combined_paragraph == "" else current_page
@@ -253,12 +259,12 @@ def should_skip_element(text: DocItem) -> bool:
     Returns:
         True if the element should be skipped, False otherwise.
     """
-    if not isinstance(text, (SectionHeaderItem, ListItem, TextItem)):
+    if not is_text_bearing(text):
         return True
+    assert isinstance(text, TextItem)
     return any([
         is_page_footer(text),
-        is_page_header(text),
-        is_roman_numeral(text.text)
+        is_page_header(text)
     ])
 
 

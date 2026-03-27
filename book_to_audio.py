@@ -65,8 +65,7 @@ def main(file_path: str | None = None,
         language: Qwen language (e.g. 'English', 'Auto'). Defaults to 'Auto'.
         instruct: Qwen style instruction (e.g. 'speak calmly'). Defaults to None.
         model_size: Qwen model size: '0.6b' or '1.7b'. Defaults to '0.6b'.
-        sections_to_skip: Optional list of EPUB section IDs to skip in addition
-                          to any sections listed in the CSV file.
+        sections_to_skip: Optional list of EPUB section IDs to skip. EPUB only.
     """
     parser: argparse.ArgumentParser = argparse.ArgumentParser(
         description='Convert text or documents to audio using Kokoro or Qwen3-TTS.')
@@ -124,11 +123,11 @@ def main(file_path: str | None = None,
 
 
 if __name__ == "__main__":
-    # main(r"documents\The Myth of the Closed Mind.pdf",
-    #      start_page=129, end_page=129, dry_run=False, generate_text_file=True)
+    main(r"documents\The Myth of the Closed Mind.pdf",
+         start_page=129, end_page=129, dry_run=False, generate_text_file=True)
     # main(r"documents\Realism and the Aim of Science -- Karl Popper -- 2017.pdf",
     #      start_page=None, end_page=None, dry_run=True, generate_text_file=True)
-    main(r"documents\The Declaration of Independence.epub",
-         dry_run=True,
-         generate_text_file=True,
-         sections_to_skip=["pg-footer", "ncx"])
+    # main(r"documents\The Declaration of Independence.epub",
+    #      dry_run=True,
+    #      generate_text_file=True,
+    #      sections_to_skip=["pg-footer", "ncx"])
