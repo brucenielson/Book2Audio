@@ -4,22 +4,21 @@ from typing import List, Dict, Tuple, Iterator, Optional, Set
 from bs4 import BeautifulSoup, Tag
 from ebooklib import ITEM_DOCUMENT, epub
 from utils.general_utils import enhance_title, load_sections_to_skip, clean_text
+from text_chunk import RawChunk
+from text_processor import TextProcessor
 
 
 def get_header_level(paragraph: Tag) -> Optional[int]:
     """Return the level of the header (1 for h1, 2 for h2, etc.), or None if not a header."""
-    # Check for direct header tag
     if paragraph.name.startswith('h') and paragraph.name[1:].isdigit():
         return int(paragraph.name[1:])
-
-    # Check for class name equivalent to header tags
     if hasattr(paragraph, 'attrs') and 'class' in paragraph.attrs:
         section_headers: List[str] = ['pre-title1', 'h']
         for cls in paragraph.attrs['class']:
             if cls.lower() in section_headers:
-                return 0  # Equivalent to h0 effectively
+                return 0
             elif cls.lower().startswith('h') and cls[1:].isdigit():
-                return int(cls[1:])  # Extract level from class name 'hX' or 'hXY'
+                return int(cls[1:])
     return None
 
 
@@ -77,15 +76,12 @@ def get_page_num(paragraph: Tag) -> Optional[str]:
                 page_num = page_id.split('_')[-1]
             elif page_id.startswith('p') and page_id[1:].isdigit():
                 page_num = page_id[1:]
-
     if not page_num:
-        # Check for a page number embedded in the paragraph's id in
-        # format 'pXXXX-' where XXXX is the page number with leading zeros
         page_id: str = paragraph.get('id')
         if page_id and page_id.startswith('p'):
             page_num = page_id[1:].split('-')[0]
             try:
-                page_num = str(int(page_num))  # Remove leading zeros
+                page_num = str(int(page_num))
             except ValueError:
                 page_num = None
     return page_num
@@ -175,7 +171,6 @@ def get_chapter_info(tags: List[Tag],
     return chapter_title, chapter_number, first_page_num
 
 
-
 class EpubParser:
     """Parses an EPUB file into cleaned paragraphs suitable for text-to-speech.
 
@@ -195,7 +190,7 @@ class EpubParser:
                  meta_data: dict[str, str],
                  min_paragraph_size: int = 300,
                  remove_footnotes: bool = True,
-                 skip_file: str = None) -> None: # "sections_to_skip.csv"
+                 skip_file: str = None) -> None:
         """Initialise EpubParser.
 
         Args:
@@ -233,7 +228,6 @@ class EpubParser:
         book: epub.EpubBook = epub.read_epub(self._file_path)
         print(f"Loaded Book: {book.title}")
 
-        # Merge extra sections to skip with CSV-loaded ones
         if sections_to_skip:
             if book.title not in self._sections_to_skip:
                 self._sections_to_skip[book.title] = set()
@@ -282,13 +276,13 @@ class EpubParser:
 
         with open(f"{base_path}_processed_meta.txt", "w", encoding="utf-8") as f:
             for text, m in zip(docs, meta):
-                meta_str: str = " | ".join(f"{k}: {v}" for k, v in m.items())
+                meta_str: str = " | ".join(f"{k}: {v}" for k, v in sorted(m.items()))
                 f.write(f"[{meta_str}]\n")
                 f.write(text + "\n\n")
 
     def _parse_section(self, html: str,
                        section_meta: Dict[str, str]) -> Tuple[List[str], List[Dict[str, str]]]:
-        """Parse a single HTML section into paragraphs.
+        """Parse a single HTML section into paragraphs using TextProcessor.
 
         Args:
             html: The raw HTML content of the section.
@@ -305,23 +299,19 @@ class EpubParser:
 
         chapter_title, chapter_number, page_num = get_chapter_info(tags, h1_tags, h2_tags, h3_tags)
 
-        temp_docs: List[str] = []
-        temp_meta: List[Dict[str, str]] = []
-        combined_paragraph: str = ""
-        combined_count: int = 0
-        para_num: int = 0
         headers: Dict[int, str] = {}
         combine_headers: bool = False
+        chunks: List[RawChunk] = []
 
-        # Emit chapter title as its own paragraph
+        # Emit chapter title as its own chunk
         if chapter_title:
-            para_num += 1
-            temp_docs.append(chapter_title)
-            temp_meta.append({**section_meta, "paragraph_#": str(para_num), "chapter_title": chapter_title})
+            chunks.append(RawChunk(
+                text=chapter_title,
+                meta={**section_meta, "chapter_title": chapter_title},
+                label='section_header'
+            ))
 
         for j, tag in enumerate(tags):
-            next_tag: Optional[Tag] = tags[j + 1] if j < len(tags) - 1 else None
-
             # Update page number if this tag has one
             page_num = get_page_num(tag) or page_num
 
@@ -334,10 +324,8 @@ class EpubParser:
                 header_level: int = get_header_level(tag)
                 header_text: str = enhance_title(tag.text)
                 if header_level >= 6:
-                    # Treat high-level headers as paragraphs but still start a new section
                     tag.name = 'p'
                 else:
-                    # Remove headers lower than the current level (change of section)
                     headers = {level: text for level, text in headers.items() if level <= header_level}
                     if header_text:
                         if not combine_headers or header_level not in headers:
@@ -347,18 +335,11 @@ class EpubParser:
                             headers[header_level] = headers[header_level] + ": " + header_text
                             combine_headers = True
 
-                        # Flush any accumulated paragraph before emitting the header
-                        if combined_paragraph:
-                            para_num += 1
-                            temp_docs.append(combined_paragraph)
-                            temp_meta.append({**section_meta, "paragraph_#": str(para_num)})
-                            combined_paragraph, combined_count = "", 0
-
-                        # Emit the header as its own paragraph
-                        para_num += 1
-                        temp_docs.append(header_text)
-                        temp_meta.append({**section_meta, "paragraph_#": str(para_num), "section_name": header_text})
-
+                        chunks.append(RawChunk(
+                            text=header_text,
+                            meta={**section_meta, "section_name": header_text},
+                            label='section_header'
+                        ))
                     continue
 
             combine_headers = False
@@ -368,69 +349,33 @@ class EpubParser:
                 chapter_title = headers[0]
 
             p_str: str = clean_text(tag.get_text())
-            p_str_count: int = len(p_str)
-
             if not p_str:
                 continue
 
-            total_count: int = combined_count + p_str_count
-
-            if self._should_accumulate(total_count, next_tag):
-                combined_paragraph = combined_paragraph + "\n" + p_str if combined_paragraph else p_str
-                combined_count = total_count
-                continue
-
-            # Ready to emit
-            p_str = combined_paragraph + "\n" + p_str if combined_paragraph else p_str
-            combined_paragraph, combined_count = "", 0
-
-            para_num += 1
-            paragraph_meta: Dict[str, str] = {
-                **section_meta,
-                "paragraph_#": str(para_num),
-            }
+            # Build metadata for this chunk
+            chunk_meta: Dict[str, str] = {**section_meta}
             if page_num:
-                paragraph_meta["page_#"] = page_num
+                chunk_meta["page_#"] = page_num
             if chapter_title:
-                paragraph_meta["chapter_title"] = chapter_title
+                chunk_meta["chapter_title"] = chapter_title
             if chapter_number:
-                paragraph_meta["chapter_#"] = str(chapter_number)
-
-            # Add header metadata
+                chunk_meta["chapter_#"] = str(chapter_number)
             if headers:
                 top_header_level: int = min(headers.keys())
                 for level, text in headers.items():
                     if level == top_header_level:
-                        paragraph_meta["section_name"] = text
+                        chunk_meta["section_name"] = text
                     else:
-                        paragraph_meta["subsection_name"] = (
-                            paragraph_meta.get("subsection_name", "") +
-                            (": " + text if "subsection_name" in paragraph_meta else text)
+                        chunk_meta["subsection_name"] = (
+                            chunk_meta.get("subsection_name", "") +
+                            (": " + text if "subsection_name" in chunk_meta else text)
                         )
 
-            temp_docs.append(p_str)
-            temp_meta.append(paragraph_meta)
+            chunks.append(RawChunk(text=p_str, meta=chunk_meta, label='text'))
 
-        return temp_docs, temp_meta
+        processor: TextProcessor = TextProcessor(min_paragraph_size=self._min_paragraph_size)
+        parsed_chunks = processor.process(chunks)
 
-    def _should_accumulate(self, total_count: int, next_tag: Optional[Tag]) -> bool:
-        """Return True if the current paragraph should be accumulated rather than emitted.
-
-        Args:
-            total_count: Combined character count of accumulated and current paragraph.
-            next_tag: The next tag in the section, or None if at end of section.
-
-        Returns:
-            True if the paragraph should be accumulated.
-        """
-        if total_count >= self._min_paragraph_size:
-            # Reached minimum size — emit now
-            return False
-        if next_tag is None:
-            # End of section — emit whatever we have
-            return False
-        if is_section_title(next_tag):
-            # Next element is a section title — emit now to avoid crossing a section boundary
-            return False
-        # More text is coming and we haven't reached minimum size — accumulate
-        return True
+        docs: List[str] = [chunk.text for chunk in parsed_chunks]
+        meta: List[Dict[str, str]] = [chunk.meta for chunk in parsed_chunks]
+        return docs, meta

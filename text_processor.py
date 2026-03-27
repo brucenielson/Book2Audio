@@ -120,19 +120,13 @@ class TextProcessor:
         return True
 
     def _build_meta(self, meta: Dict[str, str]) -> Dict[str, str]:
-        """Build the final metadata dict for a parsed chunk.
-
-        Args:
-            meta: The base metadata from the raw chunk.
-
-        Returns:
-            The metadata dict with paragraph_# and section_name added.
-        """
-        return {
+        result = {
             **meta,
             "paragraph_#": str(self._para_num),
-            "section_name": self._section_name,
         }
+        if self._section_name:
+            result["section_name"] = self._section_name
+        return result
 
     def _handle_section_header(self, chunk: RawChunk) -> None:
         """Flush any accumulated paragraph and emit the section header.
