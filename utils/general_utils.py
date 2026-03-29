@@ -1,7 +1,7 @@
 import csv
 import re
 from pathlib import Path
-from typing import Optional, Dict, Any, Tuple, Set
+from typing import Optional, Dict, Any, Tuple, Set, List
 
 
 def print_debug_results(results: Dict[str, Any],
@@ -282,27 +282,37 @@ def is_ends_with_punctuation(text: str) -> bool:
     return text.endswith(".") or text.endswith("?") or text.endswith("!")
 
 
-def combine_paragraphs(p1_str: str, p2_str: str) -> str:
-    """Combine two paragraph strings into one.
+def combine_paragraphs(paragraphs: List[str] | str, p2_str: str = "") -> str:
+    """Combine paragraph strings into a single string.
 
+    Accepts either a list of strings or two strings (legacy usage).
     If the first paragraph ends with sentence-ending punctuation, the two are
     joined with a newline. Otherwise, they are joined with a space, treating
     them as a continuation of the same sentence.
 
     Args:
-        p1_str: The first paragraph string.
-        p2_str: The second paragraph string.
+        paragraphs: Either a list of strings to combine, or the first string
+                    in a two-string combination.
+        p2_str: The second string when called with two string arguments.
 
     Returns:
         The combined paragraph string, stripped of leading and trailing whitespace.
     """
-    p1_str = p1_str.strip()
+    if isinstance(paragraphs, list):
+        result: str = ""
+        for p in paragraphs:
+            result = combine_paragraphs(result, p)
+        return result
+
+    # Two-string usage
+    p1_str = paragraphs.strip()
     p2_str = p2_str.strip()
+    if not p1_str:
+        return p2_str
     if is_sentence_end(p1_str):
-        combined = p1_str + "\n" + p2_str
+        return (p1_str + "\n" + p2_str).strip()
     else:
-        combined = p1_str + " " + p2_str
-    return combined.strip()
+        return (p1_str + " " + p2_str).strip()
 
 
 def is_sentence_end(text: str) -> bool:
