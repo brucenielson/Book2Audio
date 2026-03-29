@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import List, Dict
 from text_chunk import RawChunk, ParsedChunk
 from word_validator import word_validator
-from utils.general_utils import is_sentence_end, combine_paragraphs, clean_text
+from utils.general_utils import is_sentence_end, build_paragraph, clean_text
 
 
 class TextProcessor:
@@ -25,23 +25,23 @@ class TextProcessor:
         """
         self._min_paragraph_size: int = min_paragraph_size
         self._include_footnotes: bool = include_footnotes
-        self._combined_paragraph: List[str] = []
+        self._paragraph: List[str] = []
         self._section_name: str = ""
         self._para_num: int = 0
         self._result: List[ParsedChunk] = []
 
     @property
     def _combined_count(self) -> int:
-        return sum(len(p) for p in self._combined_paragraph)
+        return sum(len(p) for p in self._paragraph)
 
     def _init_state(self) -> None:
-        self._combined_paragraph = []
+        self._paragraph = []
         self._section_name = ""
         self._para_num = 0
         self._result = []
 
     def _clear_state(self) -> None:
-        self._combined_paragraph = []
+        self._paragraph = []
         self._section_name = ""
         self._para_num = 0
         self._result = []
@@ -81,7 +81,7 @@ class TextProcessor:
             self._process_chunk(chunk, next_chunk)
 
         # Flush any remaining accumulated paragraph
-        if self._combined_paragraph:
+        if self._paragraph:
             self._flush_paragraph({})
 
         if generate_text_file and output_path is not None:
@@ -140,7 +140,7 @@ class TextProcessor:
             chunk: The section header RawChunk.
         """
         self._section_name = chunk.text
-        if self._combined_paragraph:
+        if self._paragraph:
             self._flush_paragraph(chunk.meta)
         if chunk.text:
             self._para_num += 1
@@ -150,6 +150,17 @@ class TextProcessor:
                 label=chunk.label
             ))
 
+    def _build_paragraph(self) -> str:
+        """Build a single paragraph string from the accumulated chunks.
+
+        If a cleaner is configured, uses the LLM cleaner to combine and clean.
+        Otherwise, joins the chunks using standard paragraph combination rules.
+
+        Returns:
+            A single paragraph string.
+        """
+        return build_paragraph(self._paragraph)
+
     def _flush_paragraph(self, meta: Dict[str, str], label: str = 'text') -> None:
         """Flush the accumulated paragraph as a ParsedChunk.
 
@@ -157,7 +168,7 @@ class TextProcessor:
             meta: Metadata to attach to the flushed paragraph.
             label: The label for the emitted ParsedChunk.
         """
-        p_str: str = combine_paragraphs(self._combined_paragraph)
+        p_str: str = self._build_paragraph()
         p_str = word_validator.combine_hyphenated_words(p_str)
         if p_str:
             self._para_num += 1
@@ -166,7 +177,7 @@ class TextProcessor:
                 meta=self._build_meta(meta),
                 label=label
             ))
-        self._combined_paragraph = []
+        self._paragraph = []
 
     def _process_chunk(self, chunk: RawChunk, next_chunk: RawChunk | None) -> None:
         """Process a single body text chunk.
@@ -178,11 +189,11 @@ class TextProcessor:
         p_str: str = chunk.text
 
         if self._should_accumulate(p_str, next_chunk):
-            self._combined_paragraph.append(p_str)
+            self._paragraph.append(p_str)
             return
 
         # Ready to emit — accumulate and flush
-        self._combined_paragraph.append(p_str)
+        self._paragraph.append(p_str)
         self._flush_paragraph(chunk.meta, label=chunk.label)
 
     def _save_paragraphs_file(self, output_path: Path) -> None:

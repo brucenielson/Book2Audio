@@ -282,8 +282,8 @@ def is_ends_with_punctuation(text: str) -> bool:
     return text.endswith(".") or text.endswith("?") or text.endswith("!")
 
 
-def combine_paragraphs(paragraphs: List[str] | str, p2_str: str = "") -> str:
-    """Combine paragraph strings into a single string.
+def build_paragraph(paragraphs: List[str] | str, p2_str: str = "") -> str:
+    """Build a single paragraph out of two strings.
 
     Accepts either a list of strings or two strings (legacy usage).
     If the first paragraph ends with sentence-ending punctuation, the two are
@@ -301,7 +301,7 @@ def combine_paragraphs(paragraphs: List[str] | str, p2_str: str = "") -> str:
     if isinstance(paragraphs, list):
         result: str = ""
         for p in paragraphs:
-            result = combine_paragraphs(result, p)
+            result = build_paragraph(result, p)
         return result
 
     # Two-string usage
