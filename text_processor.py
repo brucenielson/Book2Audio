@@ -152,6 +152,11 @@ class TextProcessor:
 
     def _flush_paragraph(self, meta: Dict[str, str], label: str = 'text') -> None:
         """Flush the accumulated paragraph as a ParsedChunk.
+
+        Args:
+            meta: Metadata to attach to the flushed paragraph.
+            label: The label for the emitted ParsedChunk.
+        """
         p_str: str = combine_paragraphs(self._combined_paragraph)
         p_str = word_validator.combine_hyphenated_words(p_str)
         if p_str:
