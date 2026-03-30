@@ -20,6 +20,7 @@ def make_response(cleaned: str, classification: str) -> dict:
         }
     }
 
+
 # --- TestClean ---
 
 class TestClean:
@@ -62,13 +63,38 @@ class TestClean:
             cleaner.clean("Text.")
         assert mock_chat.call_args[1]['model'] == 'llama3.2:3b'
 
-    def test_passes_paragraph_as_user_message(self):
+    def test_passes_paragraph_as_user_message_without_previous(self):
         cleaner = make_cleaner()
         with patch(patch_ollama_chat, return_value=make_response("Text.", "body")) as mock_chat:
             cleaner.clean("Some paragraph text.")
         messages = mock_chat.call_args[1]['messages']
         user_message = next(m for m in messages if m['role'] == 'user')
-        assert user_message['content'] == "Some paragraph text."
+        assert user_message['content'] == "Current paragraph:\nSome paragraph text."
+
+    def test_includes_previous_paragraph_in_user_message(self):
+        cleaner = make_cleaner()
+        with patch(patch_ollama_chat, return_value=make_response("Text.", "body")) as mock_chat:
+            cleaner.clean("Current paragraph.", previous_paragraph="Previous paragraph.")
+        messages = mock_chat.call_args[1]['messages']
+        user_message = next(m for m in messages if m['role'] == 'user')
+        assert "Previous paragraph." in user_message['content']
+        assert "Current paragraph." in user_message['content']
+
+    def test_previous_paragraph_not_included_when_empty(self):
+        cleaner = make_cleaner()
+        with patch(patch_ollama_chat, return_value=make_response("Text.", "body")) as mock_chat:
+            cleaner.clean("Some paragraph text.", previous_paragraph="")
+        messages = mock_chat.call_args[1]['messages']
+        user_message = next(m for m in messages if m['role'] == 'user')
+        assert user_message['content'] == "Current paragraph:\nSome paragraph text."
+
+    def test_previous_paragraph_not_included_when_not_provided(self):
+        cleaner = make_cleaner()
+        with patch(patch_ollama_chat, return_value=make_response("Text.", "body")) as mock_chat:
+            cleaner.clean("Some paragraph text.")
+        messages = mock_chat.call_args[1]['messages']
+        user_message = next(m for m in messages if m['role'] == 'user')
+        assert "Previous paragraph" not in user_message['content']
 
     def test_system_prompt_included(self):
         cleaner = make_cleaner()
@@ -84,10 +110,7 @@ class TestClean:
 class TestRetry:
     def test_retries_on_malformed_json(self):
         cleaner = make_cleaner(max_retries=3)
-        bad_response = MagicMock()
-        bad_response.__getitem__ = MagicMock(side_effect=lambda k: {
-            'message': {'content': 'not valid json'}
-        }[k])
+        bad_response = {'message': {'content': 'not valid json'}}
         good_response = make_response("Clean text.", "body")
         with patch(patch_ollama_chat, side_effect=[bad_response, good_response]):
             cleaned, classification = cleaner.clean("Some text.")
@@ -104,10 +127,7 @@ class TestRetry:
 
     def test_retries_on_missing_key(self):
         cleaner = make_cleaner(max_retries=3)
-        bad_response = MagicMock()
-        bad_response.__getitem__ = MagicMock(side_effect=lambda k: {
-            'message': {'content': '{"cleaned": "Text."}'}
-        }[k])
+        bad_response = {'message': {'content': '{"cleaned": "Text."}'}}
         good_response = make_response("Text.", "body")
         with patch(patch_ollama_chat, side_effect=[bad_response, good_response]):
             cleaned, classification = cleaner.clean("Some text.")
@@ -115,20 +135,14 @@ class TestRetry:
 
     def test_raises_after_max_retries_exceeded(self):
         cleaner = make_cleaner(max_retries=3)
-        bad_response = MagicMock()
-        bad_response.__getitem__ = MagicMock(side_effect=lambda k: {
-            'message': {'content': 'not valid json'}
-        }[k])
+        bad_response = {'message': {'content': 'not valid json'}}
         with patch(patch_ollama_chat, return_value=bad_response):
             with pytest.raises(ValueError):
                 cleaner.clean("Some text.")
 
     def test_correct_number_of_attempts(self):
         cleaner = make_cleaner(max_retries=3)
-        bad_response = MagicMock()
-        bad_response.__getitem__ = MagicMock(side_effect=lambda k: {
-            'message': {'content': 'not valid json'}
-        }[k])
+        bad_response = {'message': {'content': 'not valid json'}}
         with patch(patch_ollama_chat, return_value=bad_response) as mock_chat:
             with pytest.raises(ValueError):
                 cleaner.clean("Some text.")
@@ -136,10 +150,7 @@ class TestRetry:
 
     def test_succeeds_on_last_retry(self):
         cleaner = make_cleaner(max_retries=3)
-        bad_response = MagicMock()
-        bad_response.__getitem__ = MagicMock(side_effect=lambda k: {
-            'message': {'content': 'not valid json'}
-        }[k])
+        bad_response = {'message': {'content': 'not valid json'}}
         good_response = make_response("Clean text.", "body")
         with patch(patch_ollama_chat, side_effect=[bad_response, bad_response, good_response]):
             cleaned, classification = cleaner.clean("Some text.")
@@ -148,14 +159,23 @@ class TestRetry:
 
     def test_max_retries_configurable(self):
         cleaner = make_cleaner(max_retries=5)
-        bad_response = MagicMock()
-        bad_response.__getitem__ = MagicMock(side_effect=lambda k: {
-            'message': {'content': 'not valid json'}
-        }[k])
+        bad_response = {'message': {'content': 'not valid json'}}
         with patch(patch_ollama_chat, return_value=bad_response) as mock_chat:
             with pytest.raises(ValueError):
                 cleaner.clean("Some text.")
         assert mock_chat.call_count == 5
+
+    def test_retry_uses_same_messages(self):
+        cleaner = make_cleaner(max_retries=3)
+        bad_response = {'message': {'content': 'not valid json'}}
+        good_response = make_response("Text.", "body")
+        with patch(patch_ollama_chat, side_effect=[bad_response, good_response]) as mock_chat:
+            cleaner.clean("Some text.", previous_paragraph="Previous text.")
+        for call in mock_chat.call_args_list:
+            messages = call[1]['messages']
+            user_message = next(m for m in messages if m['role'] == 'user')
+            assert "Previous text." in user_message['content']
+            assert "Some text." in user_message['content']
 
 
 # --- TestIntegration ---
@@ -177,7 +197,22 @@ class TestIntegration:
         """Integration test — requires Ollama running with llama3.1:8b."""
         cleaner = make_cleaner()
         cleaned, classification = cleaner.clean(
-            "1. See also Smith (1984) for a detailed discussion of this topic."
+            "1 This ignores the interesting question of whether the defectors have given up "
+            "all the beliefs in the doctrines of the movement they have quit.",
+            previous_paragraph="Others have found very similar defection rates in various minor religious sects."
+        )
+        assert classification in ('footnote', 'drop')
+
+    @pytest.mark.integration
+    def test_real_ollama_call_footnote_with_incomplete_previous(self):
+        """Integration test — requires Ollama running with llama3.1:8b.
+        Previous paragraph does not end with sentence-ending punctuation,
+        which is a strong signal that the current paragraph is a footnote."""
+        cleaner = make_cleaner()
+        cleaned, classification = cleaner.clean(
+            "1 This ignores the interesting question of whether the defectors have given up "
+            "all the beliefs in the doctrines of the movement they have quit.",
+            previous_paragraph="Others have found very similar defection rates in various minor religious sects"
         )
         assert classification in ('footnote', 'drop')
 
