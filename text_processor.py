@@ -16,7 +16,7 @@ class TextProcessor:
         _include_footnotes: If True, footnote chunks are included in the output.
     """
 
-    def __init__(self, min_paragraph_size: int = 300, include_footnotes: bool = False) -> None:
+    def __init__(self, min_paragraph_size: int = 0, include_footnotes: bool = False) -> None:
         """Initialise TextProcessor.
 
         Args:
