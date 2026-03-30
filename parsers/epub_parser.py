@@ -345,7 +345,8 @@ class EpubParser(BaseParser):
             if not chapter_title and headers and 0 in headers:
                 chapter_title = headers[0]
 
-            p_str: str = clean_text(tag.get_text())
+            # p_str: str = clean_text(tag.get_text()) # TODO: This seems a the wrong place to clean_text. Should only be called in TextProcessor. This whole method seems strange to me.
+            p_str: str = tag.get_text()
             if not p_str:
                 continue
 

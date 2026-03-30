@@ -341,22 +341,22 @@ def is_sentence_end(text: str) -> bool:
 
 
 def strip_footnote_numbers(p_str: str) -> str:
-    """Remove trailing footnote reference numbers from a string.
+    """Remove footnote markers from paragraph text.
 
-    Strips digits from the end of the string until the string ends with
-    valid sentence-ending punctuation or no more digits remain.
+    Removes trailing footnote numbers that appear after sentence-ending
+    punctuation, e.g. "minor religious sects. 1" -> "minor religious sects."
+    Only strips numbers that are clearly footnote markers — i.e. a space
+    followed by a number at the end of a sentence.
 
     Args:
-        p_str: The string to process.
+        p_str: The paragraph string to clean.
 
     Returns:
-        The string with trailing footnote numbers removed.
+        The string with footnote markers removed.
     """
-    while p_str and not is_sentence_end(p_str):
-        last_char: str = p_str[-1]
-        if not last_char.isdigit():
-            break
-        p_str = p_str[:-1].strip()
+    # Remove trailing footnote number after sentence-ending punctuation
+    # e.g. "Hello world. 1" -> "Hello world."
+    p_str = re.sub(r'(\w[.!?])\s*\d+\s*$', r'\1', p_str)
     return p_str
 
 

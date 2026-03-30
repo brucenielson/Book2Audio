@@ -63,7 +63,7 @@ class TextProcessor:
 
         # Clean all chunks upfront
         for chunk in chunks:
-            chunk.text = clean_text(chunk.text)
+            chunk.text = clean_text(chunk.text, remove_footnotes=True)
 
         for i, chunk in enumerate(chunks):
             next_chunk: RawChunk | None = chunks[i + 1] if i < len(chunks) - 1 else None
