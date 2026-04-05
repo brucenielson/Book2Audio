@@ -5,6 +5,7 @@ from bs4 import BeautifulSoup, Tag
 from ebooklib import ITEM_DOCUMENT, epub
 from utils.general_utils import enhance_title, clean_text
 from text_chunk import RawChunk
+from text_cleaner import TextCleaner
 from text_processor import TextProcessor
 from parsers.base_parser import BaseParser
 
@@ -191,7 +192,8 @@ class EpubParser(BaseParser):
                  include_footnotes: bool = False,
                  meta_data: dict[str, str] | None = None,
                  min_paragraph_size: int = 0,
-                 sections_to_skip: List[str] | None = None) -> None:
+                 sections_to_skip: List[str] | None = None,
+                 cleaner: TextCleaner | None = None) -> None:
         """Initialise EpubParser.
 
         Args:
@@ -207,6 +209,8 @@ class EpubParser(BaseParser):
             sections_to_skip: Optional list of section IDs to skip. Use
                               load_sections_to_skip from general_utils to
                               load section IDs from a CSV file.
+            cleaner: Optional TextCleaner for LLM-based cleaning and
+                     classification. Defaults to None (rule-based only).
         """
         if isinstance(source, epub.EpubBook):
             self._book: epub.EpubBook = source
@@ -221,6 +225,7 @@ class EpubParser(BaseParser):
         self._meta_data: dict[str, str] = meta_data
         self._min_paragraph_size: int = min_paragraph_size
         self._remove_footnotes: bool = True
+        self._cleaner: TextCleaner | None = cleaner
         self._sections_to_skip: Dict[str, Set[str]] = {}
         if sections_to_skip:
             self._sections_to_skip[self._book.title] = set(sections_to_skip)
@@ -381,7 +386,8 @@ class EpubParser(BaseParser):
 
             chunks.append(RawChunk(text=p_str, meta=chunk_meta, label='text'))
 
-        processor: TextProcessor = TextProcessor(min_paragraph_size=self._min_paragraph_size)
+        processor: TextProcessor = TextProcessor(min_paragraph_size=self._min_paragraph_size,
+                                                  cleaner=self._cleaner)
         parsed_chunks = processor.process(chunks)
 
         docs: List[str] = [chunk.text for chunk in parsed_chunks]

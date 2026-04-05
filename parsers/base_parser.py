@@ -1,5 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import List, Dict, Tuple
+from text_cleaner import TextCleaner
+
 
 class BaseParser(ABC):
     """Abstract base class for document parsers."""
@@ -9,7 +11,8 @@ class BaseParser(ABC):
     def __init__(self, source,
                  include_footnotes: bool = False,
                  meta_data: dict[str, str] | None = None,
-                 min_paragraph_size: int = 0) -> None:
+                 min_paragraph_size: int = 0,
+                 cleaner: TextCleaner | None = None) -> None:
         """Initialize the parser.
 
         Args:
@@ -23,6 +26,8 @@ class BaseParser(ABC):
                                 emitted. For audio output, 0 is a reasonable
                                 default since short paragraphs are simply read
                                 as brief pauses. Defaults to 0.
+            cleaner: Optional TextCleaner for LLM-based cleaning and
+                     classification. Defaults to None (rule-based only).
         """
         pass
 

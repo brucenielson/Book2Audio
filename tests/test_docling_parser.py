@@ -1,7 +1,9 @@
+import pytest
 from unittest.mock import MagicMock
 from docling_core.types.doc.document import SectionHeaderItem, TextItem, DocItemLabel
 from docling_core.types import DoclingDocument
 from parsers.docling_parser import DoclingParser
+from text_cleaner import TextCleaner
 
 
 # --- Fixtures ---
@@ -40,13 +42,15 @@ def make_parser(texts: list,
                 min_paragraph_size: int = 0,
                 start_page: int | None = None,
                 end_page: int | None = None,
-                include_notes: bool = True) -> DoclingParser:
+                include_notes: bool = True,
+                cleaner: TextCleaner | None = None) -> DoclingParser:
     """Create a DoclingParser with a mocked DoclingDocument."""
     doc = MagicMock(spec=DoclingDocument)
     doc.name = "test_doc"
     doc.texts = texts
     return DoclingParser(source=doc, meta_data=meta_data or {}, min_paragraph_size=min_paragraph_size,
-                         start_page=start_page, end_page=end_page, include_footnotes=include_notes)
+                         start_page=start_page, end_page=end_page, include_footnotes=include_notes,
+                         cleaner=cleaner)
 
 
 # --- TestGetProcessedTexts ---
@@ -229,3 +233,26 @@ class TestRun:
         docs, meta = parser.run()
         assert docs == []
         assert meta == []
+
+
+# --- TestIntegration ---
+
+class TestIntegration:
+    @pytest.mark.integration
+    def test_mislabelled_footnote_dropped_by_cleaner(self):
+        """A footnote mislabeled as body text should be identified and dropped by the LLM cleaner."""
+        texts = [
+            make_text_item(
+                "Others have found very similar defection rates in various minor religious sects.1",
+                page_no=1
+            ),
+            make_text_item(
+                "1 This ignores the interesting question of whether the defectors have given up "
+                "all the beliefs in the doctrines of the movement they have quit.",
+                page_no=1
+            ),
+        ]
+        parser = make_parser(texts, cleaner=TextCleaner(), include_notes=False)
+        docs, meta = parser.run()
+        assert any("religious sects" in d for d in docs)
+        assert all("This ignores the interesting question" not in d for d in docs)

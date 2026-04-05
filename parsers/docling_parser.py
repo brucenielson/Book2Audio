@@ -4,6 +4,7 @@ from docling_core.types import DoclingDocument
 from docling_core.types.doc.document import DocItem, TextItem
 from text_chunk import RawChunk, ParsedChunk
 from text_processor import TextProcessor
+from text_cleaner import TextCleaner
 from parsers.base_parser import BaseParser
 from utils.docling_utils import (is_footnote,
                                  should_skip_element,
@@ -19,7 +20,8 @@ class DoclingParser(BaseParser):
                  meta_data: dict[str, str] | None = None,
                  min_paragraph_size: int = 0,
                  start_page: int | None = None,
-                 end_page: int | None = None) -> None:
+                 end_page: int | None = None,
+                 cleaner: TextCleaner | None = None) -> None:
         """Initialise DoclingParser.
 
         Args:
@@ -38,6 +40,8 @@ class DoclingParser(BaseParser):
                         skipped. Defaults to None (start from beginning).
             end_page: Optional last page to include. Pages after this are
                       skipped. Defaults to None (read to end).
+            cleaner: Optional TextCleaner for LLM-based cleaning and classification.
+                     Defaults to None (rule-based cleaning only).
         """
         if isinstance(source, DoclingDocument):
             self._doc: DoclingDocument = source
@@ -51,6 +55,7 @@ class DoclingParser(BaseParser):
         self._start_page: int | None = start_page
         self._end_page: int | None = end_page
         self._include_notes: bool = include_footnotes
+        self._cleaner: TextCleaner | None = cleaner
 
     def _is_in_page_range(self, page_no: int | None) -> bool:
         if self._start_page is not None and page_no is not None and page_no < self._start_page:
@@ -78,7 +83,8 @@ class DoclingParser(BaseParser):
 
         processor: TextProcessor = TextProcessor(
             min_paragraph_size=self._min_paragraph_size,
-            include_footnotes=self._include_notes
+            include_footnotes=self._include_notes,
+            cleaner=self._cleaner
         )
 
         parsed_chunks: List[ParsedChunk] = processor.process(
