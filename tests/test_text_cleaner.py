@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 from text_cleaner import TextCleaner
 
 patch_ollama_chat: str = 'text_cleaner.ollama.chat'

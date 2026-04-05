@@ -6,15 +6,25 @@ from text_processor import TextProcessor
 
 # --- Fixtures ---
 
-def make_chunk(text: str, label: str = 'text') -> RawChunk:
-    """Create a RawChunk with the given text and label."""
-    return RawChunk(text=text, meta={}, label=label)
+def make_chunk(text: str, label: str = 'text', page: str = '') -> RawChunk:
+    """Create a RawChunk with the given text, label, and optional page number."""
+    meta = {'page_#': page} if page else {}
+    return RawChunk(text=text, meta=meta, label=label)
 
 
 def make_processor(min_paragraph_size: int = 0,
                    include_footnotes: bool = False) -> TextProcessor:
     return TextProcessor(min_paragraph_size=min_paragraph_size,
                          include_footnotes=include_footnotes)
+
+
+def make_cleaner(classification: str = 'body', cleaned: str | None = None) -> MagicMock:
+    """Create a mock TextCleaner that returns the given classification."""
+    cleaner = MagicMock()
+    cleaner.clean.side_effect = lambda text, page_context='': (
+        cleaned if cleaned is not None else text, classification
+    )
+    return cleaner
 
 
 # --- TestProcess ---
@@ -192,3 +202,64 @@ class TestProcess:
         assert len(result1) == 1
         assert len(result2) == 1
         assert result1[0].text == result2[0].text
+
+
+# --- TestCleaner ---
+
+class TestCleaner:
+    def test_cleaner_body_paragraph_kept(self):
+        cleaner = make_cleaner(classification='body')
+        processor = TextProcessor(cleaner=cleaner)
+        result = processor.process([make_chunk("Some body text.")])
+        assert len(result) == 1
+        assert "Some body text." in result[0].text
+
+    def test_cleaner_drop_paragraph_discarded(self):
+        cleaner = make_cleaner(classification='drop')
+        processor = TextProcessor(cleaner=cleaner)
+        result = processor.process([make_chunk("Table of contents ... 1")])
+        assert result == []
+
+    def test_cleaner_footnote_excluded_by_default(self):
+        cleaner = make_cleaner(classification='footnote')
+        processor = TextProcessor(cleaner=cleaner, include_footnotes=False)
+        result = processor.process([make_chunk("1 A footnote.")])
+        assert result == []
+
+    def test_cleaner_footnote_included_when_flag_set(self):
+        cleaner = make_cleaner(classification='footnote', cleaned="A footnote.")
+        processor = TextProcessor(cleaner=cleaner, include_footnotes=True)
+        result = processor.process([make_chunk("1 A footnote.")])
+        assert len(result) == 1
+        assert result[0].label == 'footnote'
+
+    def test_cleaner_cleaned_text_used(self):
+        cleaner = make_cleaner(classification='body', cleaned="Fixed text.")
+        processor = TextProcessor(cleaner=cleaner)
+        result = processor.process([make_chunk("Brok en text.")])
+        assert result[0].text == "Fixed text."
+
+    def test_cleaner_receives_page_context(self):
+        cleaner = make_cleaner(classification='body')
+        processor = TextProcessor(cleaner=cleaner)
+        chunks = [
+            make_chunk("First paragraph.", page='1'),
+            make_chunk("Second paragraph.", page='1'),
+        ]
+        processor.process(chunks)
+        call_args = cleaner.clean.call_args
+        assert call_args[1]['page_context'] != '' or call_args[0][1] != ''
+
+    def test_cleaner_called_once_per_flushed_paragraph(self):
+        cleaner = make_cleaner(classification='body')
+        processor = TextProcessor(cleaner=cleaner)
+        chunks = [make_chunk("First."), make_chunk("Second.")]
+        processor.process(chunks)
+        assert cleaner.clean.call_count == 2
+
+    def test_no_cleaner_uses_existing_behavior(self):
+        processor = make_processor()
+        chunks = [make_chunk("Normal text.")]
+        result = processor.process(chunks)
+        assert len(result) == 1
+        assert result[0].text == "Normal text."

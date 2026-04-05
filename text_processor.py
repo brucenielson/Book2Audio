@@ -1,8 +1,10 @@
+from __future__ import annotations
 from pathlib import Path
 from typing import List, Dict
 from text_chunk import RawChunk, ParsedChunk
 from word_validator import word_validator
 from utils.general_utils import is_sentence_end, build_paragraph, clean_text
+from text_cleaner import TextCleaner
 
 
 class TextProcessor:
@@ -14,21 +16,27 @@ class TextProcessor:
     Attributes:
         _min_paragraph_size: Minimum character count before a paragraph is emitted.
         _include_footnotes: If True, footnote chunks are included in the output.
+        _cleaner: Optional TextCleaner for LLM-based cleaning and classification.
     """
 
-    def __init__(self, min_paragraph_size: int = 0, include_footnotes: bool = False) -> None:
+    def __init__(self, min_paragraph_size: int = 0,
+                 include_footnotes: bool = False,
+                 cleaner: TextCleaner | None = None) -> None:
         """Initialise TextProcessor.
 
         Args:
             min_paragraph_size: Minimum character count before a paragraph is emitted.
             include_footnotes: If True, footnote chunks are included in the output.
+            cleaner: Optional TextCleaner for LLM-based cleaning and classification.
         """
         self._min_paragraph_size: int = min_paragraph_size
         self._include_footnotes: bool = include_footnotes
+        self._cleaner: TextCleaner | None = cleaner
         self._paragraph: List[str] = []
         self._section_name: str = ""
         self._para_num: int = 0
         self._result: List[ParsedChunk] = []
+        self._page_contexts: Dict[str, str] = {}
 
     @property
     def _combined_count(self) -> int:
@@ -39,12 +47,14 @@ class TextProcessor:
         self._section_name = ""
         self._para_num = 0
         self._result = []
+        self._page_contexts = {}
 
     def _clear_state(self) -> None:
         self._paragraph = []
         self._section_name = ""
         self._para_num = 0
         self._result = []
+        self._page_contexts = {}
 
     def process(self, chunks: List[RawChunk],
                 output_path: Path | None = None,
@@ -64,6 +74,10 @@ class TextProcessor:
         # Clean all chunks upfront
         for chunk in chunks:
             chunk.text = clean_text(chunk.text, remove_footnotes=True)
+
+        # Build page context strings for LLM-based cleaning
+        if self._cleaner is not None:
+            self._page_contexts = self._build_page_contexts(chunks)
 
         for i, chunk in enumerate(chunks):
             next_chunk: RawChunk | None = chunks[i + 1] if i < len(chunks) - 1 else None
@@ -150,11 +164,24 @@ class TextProcessor:
                 label=chunk.label
             ))
 
+    def _build_page_contexts(self, chunks: List[RawChunk]) -> Dict[str, str]:
+        """Build a mapping of page number to full page text.
+
+        Args:
+            chunks: All RawChunks for the document.
+
+        Returns:
+            Dict mapping page_# values to concatenated page text.
+        """
+        page_texts: Dict[str, List[str]] = {}
+        for chunk in chunks:
+            page_num = chunk.meta.get('page_#', '')
+            if page_num:
+                page_texts.setdefault(page_num, []).append(chunk.text)
+        return {page: '\n\n'.join(texts) for page, texts in page_texts.items()}
+
     def _build_paragraph(self) -> str:
         """Build a single paragraph string from the accumulated chunks.
-
-        If a cleaner is configured, uses the LLM cleaner to combine and clean.
-        Otherwise, joins the chunks using standard paragraph combination rules.
 
         Returns:
             A single paragraph string.
@@ -164,11 +191,28 @@ class TextProcessor:
     def _flush_paragraph(self, meta: Dict[str, str], label: str = 'text') -> None:
         """Flush the accumulated paragraph as a ParsedChunk.
 
+        If a cleaner is configured, calls the LLM to clean and classify the
+        paragraph. 'drop' paragraphs are discarded; 'footnote' paragraphs are
+        discarded unless include_footnotes is True.
+
         Args:
             meta: Metadata to attach to the flushed paragraph.
             label: The label for the emitted ParsedChunk.
         """
         p_str: str = self._build_paragraph()
+
+        if self._cleaner is not None:
+            page_context = self._page_contexts.get(meta.get('page_#', ''), '')
+            p_str, classification = self._cleaner.clean(p_str, page_context=page_context)
+            if classification == 'drop':
+                self._paragraph = []
+                return
+            if classification == 'footnote':
+                if not self._include_footnotes:
+                    self._paragraph = []
+                    return
+                label = 'footnote'
+
         p_str = word_validator.combine_hyphenated_words(p_str)
         if p_str:
             self._para_num += 1
