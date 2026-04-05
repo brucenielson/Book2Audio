@@ -210,5 +210,3 @@ documents/
 samples/
 tests/test_documents/
 tests/test_canonical/
-.claude/worktrees/
-.claude/settings.local.json

@@ -63,38 +63,38 @@ class TestClean:
             cleaner.clean("Text.")
         assert mock_chat.call_args[1]['model'] == 'llama3.2:3b'
 
-    def test_passes_paragraph_as_user_message_without_previous(self):
+    def test_passes_paragraph_as_user_message_without_page_context(self):
         cleaner = make_cleaner()
         with patch(patch_ollama_chat, return_value=make_response("Text.", "body")) as mock_chat:
             cleaner.clean("Some paragraph text.")
         messages = mock_chat.call_args[1]['messages']
         user_message = next(m for m in messages if m['role'] == 'user')
-        assert user_message['content'] == "Current paragraph:\nSome paragraph text."
+        assert user_message['content'] == "Paragraph to clean and classify:\nSome paragraph text."
 
-    def test_includes_previous_paragraph_in_user_message(self):
+    def test_includes_page_context_in_user_message(self):
         cleaner = make_cleaner()
         with patch(patch_ollama_chat, return_value=make_response("Text.", "body")) as mock_chat:
-            cleaner.clean("Current paragraph.", previous_paragraph="Previous paragraph.")
+            cleaner.clean("Current paragraph.", page_context="Full page text here.")
         messages = mock_chat.call_args[1]['messages']
         user_message = next(m for m in messages if m['role'] == 'user')
-        assert "Previous paragraph." in user_message['content']
+        assert "Full page text here." in user_message['content']
         assert "Current paragraph." in user_message['content']
 
-    def test_previous_paragraph_not_included_when_empty(self):
+    def test_page_context_not_included_when_empty(self):
         cleaner = make_cleaner()
         with patch(patch_ollama_chat, return_value=make_response("Text.", "body")) as mock_chat:
-            cleaner.clean("Some paragraph text.", previous_paragraph="")
+            cleaner.clean("Some paragraph text.", page_context="")
         messages = mock_chat.call_args[1]['messages']
         user_message = next(m for m in messages if m['role'] == 'user')
-        assert user_message['content'] == "Current paragraph:\nSome paragraph text."
+        assert user_message['content'] == "Paragraph to clean and classify:\nSome paragraph text."
 
-    def test_previous_paragraph_not_included_when_not_provided(self):
+    def test_page_context_not_included_when_not_provided(self):
         cleaner = make_cleaner()
         with patch(patch_ollama_chat, return_value=make_response("Text.", "body")) as mock_chat:
             cleaner.clean("Some paragraph text.")
         messages = mock_chat.call_args[1]['messages']
         user_message = next(m for m in messages if m['role'] == 'user')
-        assert "Previous paragraph" not in user_message['content']
+        assert "Page context" not in user_message['content']
 
     def test_system_prompt_included(self):
         cleaner = make_cleaner()
@@ -170,11 +170,11 @@ class TestRetry:
         bad_response = {'message': {'content': 'not valid json'}}
         good_response = make_response("Text.", "body")
         with patch(patch_ollama_chat, side_effect=[bad_response, good_response]) as mock_chat:
-            cleaner.clean("Some text.", previous_paragraph="Previous text.")
+            cleaner.clean("Some text.", page_context="Full page text.")
         for call in mock_chat.call_args_list:
             messages = call[1]['messages']
             user_message = next(m for m in messages if m['role'] == 'user')
-            assert "Previous text." in user_message['content']
+            assert "Full page text." in user_message['content']
             assert "Some text." in user_message['content']
 
 
@@ -185,36 +185,31 @@ class TestIntegration:
     def test_real_ollama_call_body(self):
         """Integration test — requires Ollama running with llama3.1:8b."""
         cleaner = make_cleaner()
-        cleaned, classification = cleaner.clean(
-            "This is a sample paragraph from a book about philosophy and rationality."
-        )
-        assert isinstance(cleaned, str)
-        assert len(cleaned) > 0
-        assert classification in ('body', 'footnote', 'drop')
+        paragraph = "This is a sample paragraph from a book about philosophy and rationality."
+        cleaned, classification = cleaner.clean(paragraph)
+        assert classification == 'body'
+        assert "philosophy" in cleaned
+        assert "rationality" in cleaned
+        assert cleaned == paragraph
 
     @pytest.mark.integration
     def test_real_ollama_call_footnote(self):
         """Integration test — requires Ollama running with llama3.1:8b."""
         cleaner = make_cleaner()
+        page_context = (
+            "Others have found very similar defection rates in various minor religious sects.1\n\n"
+            "1 This ignores the interesting question of whether the defectors have given up "
+            "all the beliefs in the doctrines of the movement they have quit."
+        )
         cleaned, classification = cleaner.clean(
             "1 This ignores the interesting question of whether the defectors have given up "
             "all the beliefs in the doctrines of the movement they have quit.",
-            previous_paragraph="Others have found very similar defection rates in various minor religious sects."
+            page_context=page_context
         )
         assert classification in ('footnote', 'drop')
-
-    @pytest.mark.integration
-    def test_real_ollama_call_footnote_with_incomplete_previous(self):
-        """Integration test — requires Ollama running with llama3.1:8b.
-        Previous paragraph does not end with sentence-ending punctuation,
-        which is a strong signal that the current paragraph is a footnote."""
-        cleaner = make_cleaner()
-        cleaned, classification = cleaner.clean(
-            "1 This ignores the interesting question of whether the defectors have given up "
-            "all the beliefs in the doctrines of the movement they have quit.",
-            previous_paragraph="Others have found very similar defection rates in various minor religious sects"
-        )
-        assert classification in ('footnote', 'drop')
+        assert not cleaned.startswith("1 ")
+        assert cleaned == ("This ignores the interesting question of whether the defectors have given up "
+                           "all the beliefs in the doctrines of the movement they have quit.")
 
     @pytest.mark.integration
     def test_real_ollama_call_drop(self):
