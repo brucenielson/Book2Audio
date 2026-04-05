@@ -70,16 +70,10 @@ class BookToAudio:
         if suffix == '.txt':
             paragraphs = [source.read_text(encoding='utf-8')]
         elif suffix == '.pdf':
-            parser: DoclingParser = DoclingParser(source, {},
-                                                  min_paragraph_size=300,
-                                                  start_page=start_page,
-                                                  end_page=end_page,
-                                                  include_notes=False)
+            parser: DoclingParser = DoclingParser(source, include_footnotes=False, start_page=start_page, end_page=end_page)
             paragraphs, _ = parser.run(generate_text_file=generate_text_file)
         elif suffix == '.epub':
-            epub_parser: EpubParser = EpubParser(source, {},
-                                                 min_paragraph_size=300,
-                                                 sections_to_skip=sections_to_skip)
+            epub_parser: EpubParser = EpubParser(source, include_footnotes=False, sections_to_skip=sections_to_skip)
             paragraphs, _ = epub_parser.run(generate_text_file=generate_text_file)
         else:
             raise ValueError(f"Unsupported file type: '{suffix}'. Supported types: .pdf, .epub, .txt")

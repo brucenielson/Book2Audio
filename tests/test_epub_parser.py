@@ -33,7 +33,6 @@ def make_parser(book: MagicMock | None = None,
         source=book,
         meta_data=meta_data or {},
         min_paragraph_size=min_paragraph_size,
-        remove_footnotes=remove_footnotes,
         sections_to_skip=sections_to_skip
     )
 
@@ -80,12 +79,6 @@ class TestParseSection:
         html = "<p>Main text.<sup>1</sup></p>"
         docs, meta = parser._parse_section(html, {})
         assert "1" not in docs[0]
-
-    def test_keeps_footnotes_when_disabled(self):
-        parser = make_parser(remove_footnotes=False)
-        html = "<p>Main text.<sup>1</sup></p>"
-        docs, meta = parser._parse_section(html, {})
-        assert "1" in docs[0]
 
     def test_meta_contains_paragraph_number(self):
         parser = make_parser()

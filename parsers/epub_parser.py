@@ -188,29 +188,39 @@ class EpubParser(BaseParser):
     """
 
     def __init__(self, source: str | Path | epub.EpubBook,
-                 meta_data: dict[str, str],
-                 min_paragraph_size: int = 300,
-                 remove_footnotes: bool = True,
+                 include_footnotes: bool = False,
+                 meta_data: dict[str, str] | None = None,
+                 min_paragraph_size: int = 0,
                  sections_to_skip: List[str] | None = None) -> None:
         """Initialise EpubParser.
 
         Args:
             source: Path to the EPUB file, or a pre-loaded EpubBook instance.
+            include_footnotes: If True, footnote content is included in the
+                               output alongside body text. Defaults to False.
             meta_data: Base metadata dict to include with every paragraph.
-            min_paragraph_size: Minimum character count before a paragraph is emitted.
-            remove_footnotes: If True, removes footnote superscripts from text.
-            sections_to_skip: Optional list of section IDs to skip.
+                       Defaults to None (empty metadata).
+            min_paragraph_size: Minimum character count before a paragraph is
+                                emitted. For audio output, 0 is a reasonable
+                                default since short paragraphs are simply read
+                                as brief pauses. Defaults to 0.
+            sections_to_skip: Optional list of section IDs to skip. Use
+                              load_sections_to_skip from general_utils to
+                              load section IDs from a CSV file.
         """
         if isinstance(source, epub.EpubBook):
             self._book: epub.EpubBook = source
             self._file_path: Path | None = None
         else:
             self._file_path = Path(source)
-            self._book = epub.read_epub(self._file_path)
+            self._book = epub.read_epub(self._file_path) or {}
 
+        # Note: include_footnotes is currently not implemented in EpubParser,
+        # but we store it for potential future use and to maintain a consistent interface with DoclingParser.
+        self._include_footnotes: bool = include_footnotes
         self._meta_data: dict[str, str] = meta_data
         self._min_paragraph_size: int = min_paragraph_size
-        self._remove_footnotes: bool = remove_footnotes
+        self._remove_footnotes: bool = True
         self._sections_to_skip: Dict[str, Set[str]] = {}
         if sections_to_skip:
             self._sections_to_skip[self._book.title] = set(sections_to_skip)

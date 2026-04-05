@@ -37,11 +37,7 @@ def process_all_documents():
         pytest.skip("No PDF or EPUB files found in test_documents/")
 
     for pdf_path in pdf_files:
-        parser = DoclingParser(
-            source=pdf_path,
-            meta_data={"source": pdf_path.name},
-            min_paragraph_size=300,
-        )
+        parser = DoclingParser(source=pdf_path, meta_data={"source": pdf_path.name}, min_paragraph_size=300)
         parser.run(generate_text_file=True)
 
     for epub_path in epub_files:
