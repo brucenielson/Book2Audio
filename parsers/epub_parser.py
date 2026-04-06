@@ -191,13 +191,13 @@ class EpubParser(BaseParser):
     def __init__(self, source: str | Path | epub.EpubBook,
                  include_footnotes: bool = False,
                  meta_data: dict[str, str] | None = None,
-                 min_paragraph_size: int = 0,
+                 min_paragraph_size: int = 5,
                  sections_to_skip: List[str] | None = None,
                  cleaner: TextCleaner | None = None) -> None:
         """Initialise EpubParser.
 
         Args:
-            source: Path to the EPUB file, or a pre-loaded EpubBook instance.
+            source: Path to the EPUB file, or a preloaded EpubBook instance.
             include_footnotes: If True, footnote content is included in the
                                output alongside body text. Defaults to False.
             meta_data: Base metadata dict to include with every paragraph.

@@ -18,7 +18,7 @@ class DoclingParser(BaseParser):
     def __init__(self, source: str | Path | DoclingDocument,
                  include_footnotes: bool = False,
                  meta_data: dict[str, str] | None = None,
-                 min_paragraph_size: int = 0,
+                 min_paragraph_size: int = 5,
                  start_page: int | None = None,
                  end_page: int | None = None,
                  cleaner: TextCleaner | None = None) -> None:

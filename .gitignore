@@ -212,3 +212,5 @@ tests/test_documents/
 tests/test_canonical/
 .claude/worktrees/
 .claude/settings.local.json
+tests/test_documents_llm/
+tests/test_canonical_llm/

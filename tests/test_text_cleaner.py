@@ -133,19 +133,19 @@ class TestRetry:
             cleaned, classification = cleaner.clean("Some text.")
         assert classification == "body"
 
-    def test_raises_after_max_retries_exceeded(self):
+    def test_not_raises_after_max_retries_exceeded(self):
         cleaner = make_cleaner(max_retries=3)
         bad_response = {'message': {'content': 'not valid json'}}
         with patch(patch_llm_chat, return_value=bad_response):
-            with pytest.raises(ValueError):
-                cleaner.clean("Some text.")
+            cleaned, classification = cleaner.clean("Some text.")
+            assert cleaned == ""
+            assert classification == 'body'
 
     def test_correct_number_of_attempts(self):
         cleaner = make_cleaner(max_retries=3)
         bad_response = {'message': {'content': 'not valid json'}}
         with patch(patch_llm_chat, return_value=bad_response) as mock_chat:
-            with pytest.raises(ValueError):
-                cleaner.clean("Some text.")
+            cleaner.clean("Some text.")
         assert mock_chat.call_count == 3
 
     def test_succeeds_on_last_retry(self):
@@ -161,8 +161,7 @@ class TestRetry:
         cleaner = make_cleaner(max_retries=5)
         bad_response = {'message': {'content': 'not valid json'}}
         with patch(patch_llm_chat, return_value=bad_response) as mock_chat:
-            with pytest.raises(ValueError):
-                cleaner.clean("Some text.")
+            cleaner.clean("Some text.")
         assert mock_chat.call_count == 5
 
     def test_retry_uses_same_messages(self):

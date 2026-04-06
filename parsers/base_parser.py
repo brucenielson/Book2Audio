@@ -11,7 +11,7 @@ class BaseParser(ABC):
     def __init__(self, source,
                  include_footnotes: bool = False,
                  meta_data: dict[str, str] | None = None,
-                 min_paragraph_size: int = 0,
+                 min_paragraph_size: int = 5,
                  cleaner: TextCleaner | None = None) -> None:
         """Initialize the parser.
 

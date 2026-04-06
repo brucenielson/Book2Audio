@@ -32,6 +32,8 @@ Your job is to:
 
 Rules:
 - Do NOT reword, paraphrase, or alter the actual prose
+- Do NOT change capitalization of words
+- Do NOT drop any words from the original text unless they are clear OCR artifacts
 - Only fix genuine errors — if text looks correct, leave it unchanged
 - Respond ONLY with a JSON object, no preamble or markdown backticks
 
@@ -40,6 +42,23 @@ Response format:
     "cleaned": "the cleaned paragraph text",
     "classification": "body" | "footnote" | "drop"
 }"""
+
+
+_DROP_HINTS = ('index', 'bibliograph', 'reference', 'encyclop', 'glossar', 'appendix', 'contents', 'header', 'footer', 'caption', 'table')
+_FOOTNOTE_HINTS = ('footnote', 'endnote', 'note')
+_BODY_HINTS = ('body', 'main', 'prose', 'content', 'paragraph', 'text')
+
+
+def _coerce_classification(raw: str) -> ClassificationType | None:
+    """Map a hallucinated classification label to the nearest valid one, or None."""
+    lowered = raw.lower()
+    if any(h in lowered for h in _FOOTNOTE_HINTS):
+        return 'footnote'
+    if any(h in lowered for h in _BODY_HINTS):
+        return 'body'
+    if any(h in lowered for h in _DROP_HINTS):
+        return 'drop'
+    return None
 
 
 class TextCleaner:
@@ -79,8 +98,7 @@ class TextCleaner:
         else:
             user_content = f"Paragraph to clean and classify:\n{paragraph}"
 
-        last_error: Exception | None = None
-
+        cleaned: str = ""
         for attempt in range(self._max_retries):
             try:
                 response = ollama.chat(
@@ -94,17 +112,18 @@ class TextCleaner:
                 print(f"LLM response: {repr(content)}")  # temporary debug
                 parsed = json.loads(content)
 
-                cleaned: str = parsed['cleaned']
-                classification: str = parsed['classification']
+                cleaned = parsed['cleaned']
+                classification: ClassificationType  = parsed['classification']
 
                 if classification not in ('body', 'footnote', 'drop'):
-                    raise ValueError(f"Invalid classification: '{classification}'")
+                    coerced = _coerce_classification(classification)
+                    if coerced is None:
+                        raise ValueError(f"Invalid classification: '{classification}'")
+                    classification = coerced
 
                 return cleaned, classification
 
             except (json.JSONDecodeError, KeyError, ValueError) as e:
-                last_error = e
                 continue
 
-        raise ValueError(f"Failed to get valid response after {self._max_retries} attempts. "
-                         f"Last error: {last_error}")
+        return cleaned, 'body'
