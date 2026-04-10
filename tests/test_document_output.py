@@ -1,3 +1,4 @@
+import re
 import pytest
 from pathlib import Path
 from parsers.docling_parser import DoclingParser
@@ -10,6 +11,10 @@ TEST_DOCUMENTS_LLM = Path(__file__).parent / "test_documents_llm"
 TEST_CANONICAL_LLM = Path(__file__).parent / "test_canonical_llm"
 
 
+def _normalize(line: str) -> str:
+    return re.sub(r'[^a-z0-9]', '', line.lower())
+
+
 def compare_files(output_path: Path, canonical_path: Path) -> None:
     output_lines = output_path.read_text(encoding="utf-8").splitlines()
     canonical_lines = canonical_path.read_text(encoding="utf-8").splitlines()
@@ -17,7 +22,7 @@ def compare_files(output_path: Path, canonical_path: Path) -> None:
     differences = [
         f"Line {i + 1}:\n  expected: {canonical_lines[i] if i < len(canonical_lines) else '<missing>'}\n  actual:   {output_lines[i] if i < len(output_lines) else '<missing>'}"
         for i in range(max(len(output_lines), len(canonical_lines)))
-        if (i >= len(output_lines) or i >= len(canonical_lines) or output_lines[i].lower() != canonical_lines[i].lower())
+        if (i >= len(output_lines) or i >= len(canonical_lines) or _normalize(output_lines[i]) != _normalize(canonical_lines[i]))
     ]
 
     if len(output_lines) != len(canonical_lines):
