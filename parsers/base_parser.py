@@ -12,7 +12,7 @@ class BaseParser(ABC):
                  include_footnotes: bool = False,
                  meta_data: dict[str, str] | None = None,
                  min_paragraph_size: int = 5,
-                 llm_cleaner: TextCleaner | None = None) -> None:
+                 llm_cleaner: str | TextCleaner | None = None) -> None:
         """Initialize the parser.
 
         Args:

@@ -21,7 +21,7 @@ class DoclingParser(BaseParser):
                  min_paragraph_size: int = 5,
                  start_page: int | None = None,
                  end_page: int | None = None,
-                 llm_cleaner: TextCleaner | None = None) -> None:
+                 llm_cleaner: str | TextCleaner | None = None) -> None:
         """Initialise DoclingParser.
 
         Args:
@@ -55,7 +55,7 @@ class DoclingParser(BaseParser):
         self._start_page: int | None = start_page
         self._end_page: int | None = end_page
         self._include_notes: bool = include_footnotes
-        self._cleaner: TextCleaner | None = llm_cleaner
+        self._cleaner: str | TextCleaner | None = llm_cleaner
 
     def _is_in_page_range(self, page_no: int | None) -> bool:
         if self._start_page is not None and page_no is not None and page_no < self._start_page:

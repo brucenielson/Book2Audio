@@ -21,17 +21,22 @@ class TextProcessor:
 
     def __init__(self, min_paragraph_size: int = 0,
                  include_footnotes: bool = False,
-                 cleaner: TextCleaner | None = None) -> None:
+                 cleaner: str | TextCleaner | None = None) -> None:
         """Initialise TextProcessor.
 
         Args:
             min_paragraph_size: Minimum character count before a paragraph is emitted.
             include_footnotes: If True, footnote chunks are included in the output.
-            cleaner: Optional TextCleaner for LLM-based cleaning and classification.
+            cleaner: Optional LLM model name (str), TextCleaner instance, or None.
+                     A string is interpreted as an Ollama model name and used to
+                     create a TextCleaner automatically. Defaults to None.
         """
         self._min_paragraph_size: int = min_paragraph_size
         self._include_footnotes: bool = include_footnotes
-        self._cleaner: TextCleaner | None = cleaner
+        if isinstance(cleaner, str):
+            self._cleaner: TextCleaner | None = TextCleaner(model=cleaner)
+        else:
+            self._cleaner = cleaner  # TextCleaner instance or None
         self._paragraph: List[str] = []
         self._section_name: str = ""
         self._para_num: int = 0
