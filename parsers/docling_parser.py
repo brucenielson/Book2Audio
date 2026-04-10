@@ -119,7 +119,6 @@ class DoclingParser(BaseParser):
             page_no = get_current_page(text, "", page_no)
 
             if not self._is_in_page_range(page_no):
-                page_no = None
                 continue
 
             if should_skip_element(text):

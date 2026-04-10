@@ -71,7 +71,7 @@ def process_all_documents_with_cleaner():
 
     for pdf_path in pdf_files:
         parser = DoclingParser(source=pdf_path, meta_data={"source": pdf_path.name},
-                               llm_cleaner=cleaner)
+                               llm_cleaner=cleaner, start_page=3, end_page=6)
         docs, _ = parser.run(generate_text_file=True)
         output_path = TEST_DOCUMENTS_LLM / f"{pdf_path.stem}_processed_paragraphs.txt"
         with open(output_path, "w", encoding="utf-8") as f:
