@@ -193,7 +193,7 @@ class EpubParser(BaseParser):
                  meta_data: dict[str, str] | None = None,
                  min_paragraph_size: int = 5,
                  sections_to_skip: List[str] | None = None,
-                 cleaner: TextCleaner | None = None) -> None:
+                 llm_cleaner: TextCleaner | None = None) -> None:
         """Initialise EpubParser.
 
         Args:
@@ -209,7 +209,7 @@ class EpubParser(BaseParser):
             sections_to_skip: Optional list of section IDs to skip. Use
                               load_sections_to_skip from general_utils to
                               load section IDs from a CSV file.
-            cleaner: Optional TextCleaner for LLM-based cleaning and
+            llm_cleaner: Optional TextCleaner for LLM-based cleaning and
                      classification. Defaults to None (rule-based only).
         """
         if isinstance(source, epub.EpubBook):
@@ -225,7 +225,7 @@ class EpubParser(BaseParser):
         self._meta_data: dict[str, str] = meta_data
         self._min_paragraph_size: int = min_paragraph_size
         self._remove_footnotes: bool = True
-        self._cleaner: TextCleaner | None = cleaner
+        self._cleaner: TextCleaner | None = llm_cleaner
         self._sections_to_skip: Dict[str, Set[str]] = {}
         if sections_to_skip:
             self._sections_to_skip[self._book.title] = set(sections_to_skip)

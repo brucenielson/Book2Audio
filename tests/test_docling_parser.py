@@ -50,7 +50,7 @@ def make_parser(texts: list,
     doc.texts = texts
     return DoclingParser(source=doc, meta_data=meta_data or {}, min_paragraph_size=min_paragraph_size,
                          start_page=start_page, end_page=end_page, include_footnotes=include_notes,
-                         cleaner=cleaner)
+                         llm_cleaner=cleaner)
 
 
 # --- TestGetProcessedTexts ---

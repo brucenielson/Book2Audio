@@ -12,7 +12,7 @@ class BaseParser(ABC):
                  include_footnotes: bool = False,
                  meta_data: dict[str, str] | None = None,
                  min_paragraph_size: int = 5,
-                 cleaner: TextCleaner | None = None) -> None:
+                 llm_cleaner: TextCleaner | None = None) -> None:
         """Initialize the parser.
 
         Args:
@@ -26,7 +26,7 @@ class BaseParser(ABC):
                                 emitted. For audio output, 0 is a reasonable
                                 default since short paragraphs are simply read
                                 as brief pauses. Defaults to 0.
-            cleaner: Optional TextCleaner for LLM-based cleaning and
+            llm_cleaner: Optional TextCleaner for LLM-based cleaning and
                      classification. Defaults to None (rule-based only).
         """
         pass
