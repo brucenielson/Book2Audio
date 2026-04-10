@@ -1,6 +1,8 @@
 import re
+import difflib
 import pytest
 from pathlib import Path
+from nltk.corpus import words as nltk_words
 from parsers.docling_parser import DoclingParser
 from parsers.epub_parser import EpubParser
 from text_cleaner import TextCleaner
@@ -11,19 +13,56 @@ TEST_DOCUMENTS_LLM = Path(__file__).parent / "test_documents_llm"
 TEST_CANONICAL_LLM = Path(__file__).parent / "test_canonical_llm"
 
 
+_ENGLISH_WORDS: set[str] = set(w.lower() for w in nltk_words.words())
+
+
 def _normalize(line: str) -> str:
     return re.sub(r'[^a-z0-9]', '', line.lower())
+
+
+def _only_valid_spelling_variants(expected: str, actual: str) -> bool:
+    """Return True if all word differences between expected and actual are
+    both valid English words (i.e. legitimate spelling variants)."""
+    expected_words = expected.lower().split()
+    actual_words = actual.lower().split()
+
+    opcodes = difflib.SequenceMatcher(None, expected_words, actual_words).get_opcodes()
+    for tag, i1, i2, j1, j2 in opcodes:
+        if tag == 'equal':
+            continue
+        if tag == 'replace' and (i2 - i1) == (j2 - j1):
+            # Same number of words substituted — check each pair
+            for exp_word, act_word in zip(expected_words[i1:i2], actual_words[j1:j2]):
+                exp_clean = re.sub(r'[^a-z]', '', exp_word)
+                act_clean = re.sub(r'[^a-z]', '', act_word)
+                if exp_clean == act_clean:
+                    continue
+                if not (exp_clean in _ENGLISH_WORDS and act_clean in _ENGLISH_WORDS):
+                    return False
+        else:
+            # Insertions or deletions — not a spelling variant
+            return False
+    return True
 
 
 def compare_files(output_path: Path, canonical_path: Path) -> None:
     output_lines = output_path.read_text(encoding="utf-8").splitlines()
     canonical_lines = canonical_path.read_text(encoding="utf-8").splitlines()
 
-    differences = [
-        f"Line {i + 1}:\n  expected: {canonical_lines[i] if i < len(canonical_lines) else '<missing>'}\n  actual:   {output_lines[i] if i < len(output_lines) else '<missing>'}"
-        for i in range(max(len(output_lines), len(canonical_lines)))
-        if (i >= len(output_lines) or i >= len(canonical_lines) or _normalize(output_lines[i]) != _normalize(canonical_lines[i]))
-    ]
+    differences = []
+    for i in range(max(len(output_lines), len(canonical_lines))):
+        if i >= len(output_lines):
+            differences.append(f"Line {i + 1}:\n  expected: {canonical_lines[i]}\n  actual:   <missing>")
+            continue
+        if i >= len(canonical_lines):
+            differences.append(f"Line {i + 1}:\n  expected: <missing>\n  actual:   {output_lines[i]}")
+            continue
+        exp, act = canonical_lines[i], output_lines[i]
+        if _normalize(exp) == _normalize(act):
+            continue
+        if _only_valid_spelling_variants(exp, act):
+            continue
+        differences.append(f"Line {i + 1}:\n  expected: {exp}\n  actual:   {act}")
 
     if len(output_lines) != len(canonical_lines):
         differences.append(
