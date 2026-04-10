@@ -46,9 +46,9 @@ class TestClean:
 
     def test_cleaned_text_returned_correctly(self):
         cleaner = make_cleaner()
-        with patch(patch_llm_chat, return_value=make_response("Fixed text.", "body")):
+        with patch(patch_llm_chat, return_value=make_response("Broken text.", "body")):
             cleaned, _ = cleaner.clean("Brok en text.")
-        assert cleaned == "Fixed text."
+        assert cleaned == "Broken text."
 
     def test_empty_paragraph(self):
         cleaner = make_cleaner()
@@ -119,16 +119,16 @@ class TestRetry:
 
     def test_retries_on_invalid_classification(self):
         cleaner = make_cleaner(max_retries=3)
-        bad_response = make_response("Text.", "invalid_type")
-        good_response = make_response("Text.", "body")
+        bad_response = make_response("Some text.", "invalid_type")
+        good_response = make_response("Some text.", "body")
         with patch(patch_llm_chat, side_effect=[bad_response, good_response]):
             cleaned, classification = cleaner.clean("Some text.")
         assert classification == "body"
 
     def test_retries_on_missing_key(self):
         cleaner = make_cleaner(max_retries=3)
-        bad_response = {'message': {'content': '{"cleaned": "Text."}'}}
-        good_response = make_response("Text.", "body")
+        bad_response = {'message': {'content': '{"cleaned": "Some text."}'}}
+        good_response = make_response("Some text.", "body")
         with patch(patch_llm_chat, side_effect=[bad_response, good_response]):
             cleaned, classification = cleaner.clean("Some text.")
         assert classification == "body"
@@ -138,7 +138,7 @@ class TestRetry:
         bad_response = {'message': {'content': 'not valid json'}}
         with patch(patch_llm_chat, return_value=bad_response):
             cleaned, classification = cleaner.clean("Some text.")
-            assert cleaned == ""
+            assert cleaned == "Some text."
             assert classification == 'body'
 
     def test_correct_number_of_attempts(self):
@@ -167,7 +167,7 @@ class TestRetry:
     def test_retry_uses_same_messages(self):
         cleaner = make_cleaner(max_retries=3)
         bad_response = {'message': {'content': 'not valid json'}}
-        good_response = make_response("Text.", "body")
+        good_response = make_response("Some text.", "body")
         with patch(patch_llm_chat, side_effect=[bad_response, good_response]) as mock_chat:
             cleaner.clean("Some text.", page_context="Full page text.")
         for call in mock_chat.call_args_list:

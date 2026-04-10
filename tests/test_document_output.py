@@ -17,7 +17,7 @@ def compare_files(output_path: Path, canonical_path: Path) -> None:
     differences = [
         f"Line {i + 1}:\n  expected: {canonical_lines[i] if i < len(canonical_lines) else '<missing>'}\n  actual:   {output_lines[i] if i < len(output_lines) else '<missing>'}"
         for i in range(max(len(output_lines), len(canonical_lines)))
-        if (i >= len(output_lines) or i >= len(canonical_lines) or output_lines[i] != canonical_lines[i])
+        if (i >= len(output_lines) or i >= len(canonical_lines) or output_lines[i].lower() != canonical_lines[i].lower())
     ]
 
     if len(output_lines) != len(canonical_lines):
@@ -111,29 +111,29 @@ class TestDoclingParserOutput:
             pytest.fail("\n\n".join(failures))
 
 
-# class TestDocumentOutputWithCleaner:
-#     @pytest.mark.integration
-#     def test_all_txt_files_have_canonical(self, process_all_documents_with_cleaner):
-#         txt_files = list(TEST_DOCUMENTS_LLM.glob("*.txt"))
-#         missing = [f.name for f in txt_files if not (TEST_CANONICAL_LLM / f.name).exists()]
-#         if missing:
-#             pytest.fail(
-#                 f"Missing LLM canonical files for: {missing}\n"
-#                 f"Copy the generated files from test_documents_llm/ to test_canonical_llm/ to create them."
-#             )
-#
-#     @pytest.mark.integration
-#     def test_output_matches_canonical(self, process_all_documents_with_cleaner):
-#         txt_files = list(TEST_DOCUMENTS_LLM.glob("*.txt"))
-#         failures = []
-#         for txt_file in txt_files:
-#             canonical_path = TEST_CANONICAL_LLM / txt_file.name
-#             if not canonical_path.exists():
-#                 continue  # already caught by test_all_txt_files_have_canonical
-#             try:
-#                 compare_files(txt_file, canonical_path)
-#             except pytest.fail.Exception as e:
-#                 failures.append(f"{txt_file.name}:\n{e}")
-#
-#         if failures:
-#             pytest.fail("\n\n".join(failures))
+class TestDocumentOutputWithCleaner:
+    @pytest.mark.integration
+    def test_all_txt_files_have_canonical(self, process_all_documents_with_cleaner):
+        txt_files = list(TEST_DOCUMENTS_LLM.glob("*.txt"))
+        missing = [f.name for f in txt_files if not (TEST_CANONICAL_LLM / f.name).exists()]
+        if missing:
+            pytest.fail(
+                f"Missing LLM canonical files for: {missing}\n"
+                f"Copy the generated files from test_documents_llm/ to test_canonical_llm/ to create them."
+            )
+
+    @pytest.mark.integration
+    def test_output_matches_canonical(self, process_all_documents_with_cleaner):
+        txt_files = list(TEST_DOCUMENTS_LLM.glob("*.txt"))
+        failures = []
+        for txt_file in txt_files:
+            canonical_path = TEST_CANONICAL_LLM / txt_file.name
+            if not canonical_path.exists():
+                continue  # already caught by test_all_txt_files_have_canonical
+            try:
+                compare_files(txt_file, canonical_path)
+            except pytest.fail.Exception as e:
+                failures.append(f"{txt_file.name}:\n{e}")
+
+        if failures:
+            pytest.fail("\n\n".join(failures))

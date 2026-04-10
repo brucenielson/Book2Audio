@@ -121,9 +121,13 @@ class TextCleaner:
                         raise ValueError(f"Invalid classification: '{classification}'")
                     classification = coerced
 
+                if paragraph and abs(len(cleaned) - len(paragraph)) / len(paragraph) > 0.10:
+                    raise ValueError(f"Cleaned text size differs by more than 10% "
+                                     f"(original={len(paragraph)}, cleaned={len(cleaned)})")
+
                 return cleaned, classification
 
             except (json.JSONDecodeError, KeyError, ValueError) as e:
                 continue
 
-        return cleaned, 'body'
+        return paragraph, 'body'
