@@ -125,6 +125,9 @@ class TextCleaner:
         Raises:
             ValueError: If the LLM returns a malformed response after all retries.
         """
+        if not paragraph.strip():
+            return paragraph, 'drop'
+
         if page_context:
             user_content = f"Page context:\n{page_context}\n\nParagraph to clean and classify:\n{paragraph}"
         else:

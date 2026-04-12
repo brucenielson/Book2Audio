@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import MagicMock, patch
 from text_chunk import RawChunk, ParsedChunk
-from text_processor import TextProcessor
+from text_processor import TextProcessor, _all_words_valid
 
 
 # --- Fixtures ---
@@ -206,45 +206,50 @@ class TestProcess:
 
 # --- TestCleaner ---
 
+# Note: several tests below use inputs containing digits or misspelled words.
+# This is intentional — _all_words_valid() skips the cleaner for clean text,
+# so inputs must contain an artifact to ensure TextProcessor actually invokes
+# TextCleaner. The artifact is a precondition, not the subject of the test.
+
 class TestCleaner:
     def test_cleaner_body_paragraph_kept(self):
         cleaner = make_cleaner(classification='body')
         processor = TextProcessor(cleaner=cleaner)
-        result = processor.process([make_chunk("Some body text.")])
+        result = processor.process([make_chunk("Some b0dy text.")])  # digit forces cleaner call
         assert len(result) == 1
-        assert "Some body text." in result[0].text
+        assert "Some b0dy text." in result[0].text
 
     def test_cleaner_drop_paragraph_discarded(self):
         cleaner = make_cleaner(classification='drop')
         processor = TextProcessor(cleaner=cleaner)
-        result = processor.process([make_chunk("Table of contents ... 1")])
+        result = processor.process([make_chunk("Table of contents ... 1")])  # digit forces cleaner call
         assert result == []
 
     def test_cleaner_footnote_excluded_by_default(self):
         cleaner = make_cleaner(classification='footnote')
         processor = TextProcessor(cleaner=cleaner, include_footnotes=False)
-        result = processor.process([make_chunk("1 A footnote.")])
+        result = processor.process([make_chunk("1 A footnote.")])  # digit forces cleaner call
         assert result == []
 
     def test_cleaner_footnote_included_when_flag_set(self):
         cleaner = make_cleaner(classification='footnote', cleaned="A footnote.")
         processor = TextProcessor(cleaner=cleaner, include_footnotes=True)
-        result = processor.process([make_chunk("1 A footnote.")])
+        result = processor.process([make_chunk("1 A footnote.")])  # digit forces cleaner call
         assert len(result) == 1
         assert result[0].label == 'footnote'
 
     def test_cleaner_cleaned_text_used(self):
         cleaner = make_cleaner(classification='body', cleaned="Fixed text.")
         processor = TextProcessor(cleaner=cleaner)
-        result = processor.process([make_chunk("Brok en text.")])
+        result = processor.process([make_chunk("Brok en text.")])  # misspelling forces cleaner call
         assert result[0].text == "Fixed text."
 
     def test_cleaner_receives_page_context(self):
         cleaner = make_cleaner(classification='body')
         processor = TextProcessor(cleaner=cleaner)
         chunks = [
-            make_chunk("First paragraph.", page='1'),
-            make_chunk("Second paragraph.", page='1'),
+            make_chunk("F1rst paragraph.", page='1'),   # digit forces cleaner call
+            make_chunk("S3cond paragraph.", page='1'),  # digit forces cleaner call
         ]
         processor.process(chunks)
         call_args = cleaner.clean.call_args
@@ -253,7 +258,7 @@ class TestCleaner:
     def test_cleaner_called_once_per_flushed_paragraph(self):
         cleaner = make_cleaner(classification='body')
         processor = TextProcessor(cleaner=cleaner)
-        chunks = [make_chunk("First."), make_chunk("Second.")]
+        chunks = [make_chunk("F1rst."), make_chunk("S3cond.")]  # digits force cleaner calls
         processor.process(chunks)
         assert cleaner.clean.call_count == 2
 
@@ -263,3 +268,63 @@ class TestCleaner:
         result = processor.process(chunks)
         assert len(result) == 1
         assert result[0].text == "Normal text."
+
+
+# --- TestAllWordsValid ---
+
+class TestAllWordsValid:
+    def test_all_valid_words_returns_true(self):
+        """A sentence of common English words should return True."""
+        assert _all_words_valid("The dog ran quickly") is True
+
+    def test_ocr_artifact_returns_false(self):
+        """A sentence containing a non-word should return False."""
+        assert _all_words_valid("I am hppy today") is False
+
+    def test_standalone_number_returns_false(self):
+        """A standalone numeric token is a potential artifact and should return False."""
+        assert _all_words_valid("Chapter 1789") is False
+
+    def test_embedded_digit_returns_false(self):
+        """A digit embedded in a word (e.g. OCR artifact) should return False."""
+        assert _all_words_valid("The dog ran quickly1.") is False
+
+    def test_empty_string_returns_true(self):
+        """An empty string has no invalid words, so _all_words_valid returns True."""
+        assert _all_words_valid("") is True
+
+    def test_punctuation_stripped_before_check(self):
+        """Punctuation attached to valid words should be ignored."""
+        assert _all_words_valid("Hello, world.") is True
+
+
+# --- TestSkipCleanerWhenAllWordsValid ---
+
+class TestSkipCleanerWhenAllWordsValid:
+    def test_cleaner_not_called_when_all_words_valid(self):
+        """Cleaner should not be called when every word in the paragraph is valid."""
+        cleaner = make_cleaner(classification='body')
+        processor = TextProcessor(cleaner=cleaner)
+        processor.process([make_chunk("The dog ran quickly.")])
+        cleaner.clean.assert_not_called()
+
+    def test_paragraph_returned_unchanged_when_all_words_valid(self):
+        """Paragraph should pass through unmodified when all words are valid."""
+        cleaner = make_cleaner(classification='body')
+        processor = TextProcessor(cleaner=cleaner)
+        result = processor.process([make_chunk("The dog ran quickly.")])
+        assert result[0].text == "The dog ran quickly."
+
+    def test_cleaner_called_when_invalid_word_present(self):
+        """Cleaner should be called when the paragraph contains an invalid word."""
+        cleaner = make_cleaner(classification='body')
+        processor = TextProcessor(cleaner=cleaner)
+        processor.process([make_chunk("The dog ran qukckly.")])
+        cleaner.clean.assert_called_once()
+
+    def test_cleaner_called_when_digit_present(self):
+        """Cleaner should be called when the paragraph contains a digit token."""
+        cleaner = make_cleaner(classification='body')
+        processor = TextProcessor(cleaner=cleaner)
+        processor.process([make_chunk("See footnote 4 for details.")])
+        cleaner.clean.assert_called_once()
