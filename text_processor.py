@@ -5,7 +5,6 @@ from typing import List, Dict
 from text_chunk import RawChunk, ParsedChunk
 from word_validator import word_validator
 from utils.general_utils import is_sentence_end, build_paragraph, clean_text
-from utils.nltk_utils import get_english_words
 from text_cleaner import TextCleaner
 
 
@@ -16,10 +15,10 @@ def _all_words_valid(text: str) -> bool:
     periods, colons, etc.). Tokens containing digits or any other non-letter
     characters are treated as potential artifacts and return False immediately.
     """
-    english_words = get_english_words()
     for token in text.split():
         stripped = re.sub(r"[,;:.!?()'\"—–]", '', token.lower())
-        if not stripped or stripped not in english_words:
+        if not stripped or not word_validator.is_valid_word(stripped):
+            print(f"  [FAIL TOKEN] {token!r} -> {stripped!r}")
             return False
     return True
 
@@ -223,17 +222,20 @@ class TextProcessor:
         """
         p_str: str = self._build_paragraph()
 
-        if self._cleaner is not None and not _all_words_valid(p_str):
-            page_context = self._page_contexts.get(meta.get('page_#', ''), '')
-            p_str, classification = self._cleaner.clean(p_str, page_context=page_context)
-            if classification == 'drop':
-                self._paragraph = []
-                return
-            if classification == 'footnote':
-                if not self._include_footnotes:
+        if self._cleaner:
+            _skip = _all_words_valid(p_str)
+            print(f"{'[SKIP]' if _skip else '[LLM ] '} {p_str[:100]!r}")
+            if not _skip:
+                page_context = self._page_contexts.get(meta.get('page_#', ''), '')
+                p_str, classification = self._cleaner.clean(p_str, page_context=page_context)
+                if classification == 'drop':
                     self._paragraph = []
                     return
-                label = 'footnote'
+                if classification == 'footnote':
+                    if not self._include_footnotes:
+                        self._paragraph = []
+                        return
+                    label = 'footnote'
 
         p_str = word_validator.combine_hyphenated_words(p_str)
         if p_str:

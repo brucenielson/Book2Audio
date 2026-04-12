@@ -163,6 +163,7 @@ class TextCleaner:
                 if _has_suspicious_substitutions(paragraph, cleaned):
                     raise ValueError("LLM replaced valid English words — possible hallucination")
 
+                cleaned = ' '.join(cleaned.split('\n'))
                 return cleaned, classification
 
             except (json.JSONDecodeError, KeyError, ValueError) as e:
