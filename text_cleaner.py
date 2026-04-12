@@ -3,7 +3,7 @@ import json
 import re
 import ollama
 from typing import Literal
-from utils.nltk_utils import get_english_words
+from word_validator import word_validator
 
 ClassificationType = Literal['body', 'footnote', 'drop']
 
@@ -84,10 +84,10 @@ def _has_suspicious_substitutions(original: str, cleaned: str) -> bool:
             new_clean = re.sub(r'[^a-z]', '', new_word)
             if orig_clean == new_clean:
                 continue
-            if orig_clean in get_english_words():
+            if word_validator.is_valid_word(orig_clean):
                 # Original was valid — any substitution is suspicious
                 return True
-            if new_clean not in get_english_words():
+            if not word_validator.is_valid_word(new_clean):
                 # Original was invalid (OCR artifact) but replacement is also invalid
                 return True
     return False
