@@ -111,10 +111,10 @@ class TestRetry:
     def test_retries_on_malformed_json(self):
         cleaner = make_cleaner(max_retries=3)
         bad_response = {'message': {'content': 'not valid json'}}
-        good_response = make_response("Clean text.", "body")
+        good_response = make_response("Some text.", "body")
         with patch(patch_llm_chat, side_effect=[bad_response, good_response]):
             cleaned, classification = cleaner.clean("Some text.")
-        assert cleaned == "Clean text."
+        assert cleaned == "Some text."
         assert classification == "body"
 
     def test_retries_on_invalid_classification(self):
@@ -151,10 +151,10 @@ class TestRetry:
     def test_succeeds_on_last_retry(self):
         cleaner = make_cleaner(max_retries=3)
         bad_response = {'message': {'content': 'not valid json'}}
-        good_response = make_response("Clean text.", "body")
+        good_response = make_response("Some text.", "body")
         with patch(patch_llm_chat, side_effect=[bad_response, bad_response, good_response]):
             cleaned, classification = cleaner.clean("Some text.")
-        assert cleaned == "Clean text."
+        assert cleaned == "Some text."
         assert classification == "body"
 
     def test_max_retries_configurable(self):
@@ -175,6 +175,61 @@ class TestRetry:
             user_message = next(m for m in messages if m['role'] == 'user')
             assert "Full page text." in user_message['content']
             assert "Some text." in user_message['content']
+
+
+# --- TestSanityCheck ---
+
+class TestSanityCheck:
+    def test_accepts_ocr_fix(self):
+        """Replacing a broken OCR word with a valid word should be accepted."""
+        cleaner = make_cleaner()
+        # "hppy" is not a valid English word — fixing it to "happy" is legitimate
+        with patch(patch_llm_chat, return_value=make_response("I am happy today.", "body")):
+            cleaned, classification = cleaner.clean("I am hppy today.")
+        assert cleaned == "I am happy today."
+
+    def test_rejects_valid_word_substitution(self):
+        """Replacing a valid English word with a different word should trigger retry and fallback."""
+        cleaner = make_cleaner(max_retries=3)
+        # "judiciary" is valid — replacing it with "judicial" is suspicious
+        bad_response = make_response("He obstructed judicial powers.", "body")
+        with patch(patch_llm_chat, return_value=bad_response):
+            cleaned, classification = cleaner.clean("He obstructed judiciary powers.")
+        assert cleaned == "He obstructed judiciary powers."
+        assert classification == "body"
+
+    def test_retries_on_suspicious_substitution(self):
+        """Should retry when a suspicious substitution is detected, then accept a clean response."""
+        cleaner = make_cleaner(max_retries=3)
+        bad_response = make_response("He obstructed judicial powers.", "body")
+        good_response = make_response("He obstructed judiciary powers.", "body")
+        with patch(patch_llm_chat, side_effect=[bad_response, good_response]):
+            cleaned, classification = cleaner.clean("He obstructed judiciary powers.")
+        assert cleaned == "He obstructed judiciary powers."
+
+    def test_accepts_punctuation_only_change(self):
+        """Changes that only affect punctuation (not words) should be accepted."""
+        cleaner = make_cleaner()
+        with patch(patch_llm_chat, return_value=make_response("Hello world.", "body")):
+            cleaned, classification = cleaner.clean("Hello, world.")
+        assert cleaned == "Hello world."
+
+    def test_rejects_valid_word_replaced_with_invalid_word(self):
+        """LLM introducing an invalid word where a valid one existed should trigger fallback."""
+        cleaner = make_cleaner(max_retries=3)
+        # "endeavoured" is valid — "endeavourd" is not
+        bad_response = make_response("He has endeavourd to bring on the inhabitants.", "body")
+        with patch(patch_llm_chat, return_value=bad_response):
+            cleaned, _ = cleaner.clean("He has endeavoured to bring on the inhabitants.")
+        assert cleaned == "He has endeavoured to bring on the inhabitants."
+
+    def test_accepts_word_removal_of_ocr_artifact(self):
+        """Removing a number that is an OCR artifact should be accepted (size check permitting)."""
+        cleaner = make_cleaner()
+        # trailing "4" is a footnote marker — removing it is legitimate
+        with patch(patch_llm_chat, return_value=make_response("The movement grew rapidly.", "body")):
+            cleaned, _ = cleaner.clean("The movement grew rapidly. 4")
+        assert cleaned == "The movement grew rapidly."
 
 
 # --- TestIntegration ---
@@ -258,7 +313,7 @@ class TestIntegration:
         paragraph = "4 For full membership statistics by region, see Jones (1987), pp. 142-156."
         cleaned, classification = cleaner.clean(paragraph, page_context=page_context)
         assert classification == 'footnote'
-        assert cleaned == "For full membership statistics by region, see Jones (1987), pp. 142-156."
+        assert cleaned.replace('–', '-') == "For full membership statistics by region, see Jones (1987), pp. 142-156."
 
     @pytest.mark.integration
     def test_real_llm_call_footnote_without_page_context(self):

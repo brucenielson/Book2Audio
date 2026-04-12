@@ -1,8 +1,13 @@
+import difflib
 import json
+import re
 import ollama
+from nltk.corpus import words as nltk_words
 from typing import Literal
 
 ClassificationType = Literal['body', 'footnote', 'drop']
+
+_ENGLISH_WORDS: set[str] = set(w.lower() for w in nltk_words.words())
 
 SYSTEM_PROMPT = """You are a text cleaning assistant for a book-to-audio conversion system.
 You will be given a paragraph of text extracted from a PDF or EPUB book, along with the
@@ -59,6 +64,35 @@ def _coerce_classification(raw: str) -> ClassificationType | None:
     if any(h in lowered for h in _DROP_HINTS):
         return 'drop'
     return None
+
+
+def _has_suspicious_substitutions(original: str, cleaned: str) -> bool:
+    """Return True if the LLM made a suspicious word substitution.
+
+    Legitimate fixes replace invalid words (OCR artifacts, misspellings) with
+    valid ones. Two cases are suspicious:
+    - Replacing a valid English word with a different word (hallucination)
+    - Replacing a valid English word with an invalid word (introducing errors)
+    """
+    original_words = original.lower().split()
+    cleaned_words = cleaned.lower().split()
+
+    opcodes = difflib.SequenceMatcher(None, original_words, cleaned_words).get_opcodes()
+    for tag, i1, i2, j1, j2 in opcodes:
+        if tag != 'replace' or (i2 - i1) != (j2 - j1):
+            continue
+        for orig_word, new_word in zip(original_words[i1:i2], cleaned_words[j1:j2]):
+            orig_clean = re.sub(r'[^a-z]', '', orig_word)
+            new_clean = re.sub(r'[^a-z]', '', new_word)
+            if orig_clean == new_clean:
+                continue
+            if orig_clean in _ENGLISH_WORDS:
+                # Original was valid — any substitution is suspicious
+                return True
+            if new_clean not in _ENGLISH_WORDS:
+                # Original was invalid (OCR artifact) but replacement is also invalid
+                return True
+    return False
 
 
 class TextCleaner:
@@ -124,6 +158,9 @@ class TextCleaner:
                 if paragraph and abs(len(cleaned) - len(paragraph)) / len(paragraph) > 0.10:
                     raise ValueError(f"Cleaned text size differs by more than 10% "
                                      f"(original={len(paragraph)}, cleaned={len(cleaned)})")
+
+                if _has_suspicious_substitutions(paragraph, cleaned):
+                    raise ValueError("LLM replaced valid English words — possible hallucination")
 
                 return cleaned, classification
 
