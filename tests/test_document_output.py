@@ -2,7 +2,7 @@ import re
 import difflib
 import pytest
 from pathlib import Path
-from nltk.corpus import words as nltk_words
+from utils.nltk_utils import get_english_words
 from parsers.docling_parser import DoclingParser
 from parsers.epub_parser import EpubParser
 from text_cleaner import TextCleaner
@@ -13,7 +13,7 @@ TEST_DOCUMENTS_LLM = Path(__file__).parent / "test_documents_llm"
 TEST_CANONICAL_LLM = Path(__file__).parent / "test_canonical_llm"
 
 
-_ENGLISH_WORDS: set[str] = set(w.lower() for w in nltk_words.words())
+_ENGLISH_WORDS: set[str] = get_english_words()
 
 
 def _normalize(line: str) -> str:

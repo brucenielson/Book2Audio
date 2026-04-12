@@ -2,12 +2,10 @@ import difflib
 import json
 import re
 import ollama
-from nltk.corpus import words as nltk_words
 from typing import Literal
+from utils.nltk_utils import get_english_words
 
 ClassificationType = Literal['body', 'footnote', 'drop']
-
-_ENGLISH_WORDS: set[str] = set(w.lower() for w in nltk_words.words())
 
 SYSTEM_PROMPT = """You are a text cleaning assistant for a book-to-audio conversion system.
 You will be given a paragraph of text extracted from a PDF or EPUB book, along with the
@@ -86,10 +84,10 @@ def _has_suspicious_substitutions(original: str, cleaned: str) -> bool:
             new_clean = re.sub(r'[^a-z]', '', new_word)
             if orig_clean == new_clean:
                 continue
-            if orig_clean in _ENGLISH_WORDS:
+            if orig_clean in get_english_words():
                 # Original was valid — any substitution is suspicious
                 return True
-            if new_clean not in _ENGLISH_WORDS:
+            if new_clean not in get_english_words():
                 # Original was invalid (OCR artifact) but replacement is also invalid
                 return True
     return False
