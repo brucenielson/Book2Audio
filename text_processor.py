@@ -19,7 +19,7 @@ def _all_words_valid(text: str) -> bool:
     for token in text.split():
         stripped = re.sub(r"[,;:.!?()'\"—–]", '', token.lower())
         if not stripped or not word_validator.is_valid_word(stripped):
-            print(f"  [FAIL TOKEN] {token!r} -> {stripped!r}")
+            # print(f"  [FAIL TOKEN] {token!r} -> {stripped!r}")
             return False
     return True
 
@@ -136,13 +136,13 @@ class TextProcessor:
         if generate_text_file and output_path is not None:
             self._save_paragraphs_file(output_path)
 
-        if self._cleaner:
-            total = self._t_validation + self._t_llm
-            print(
-                f"\n[TIMING] validation={self._t_validation:.2f}s ({self._n_skipped} skipped) | "
-                f"llm={self._t_llm:.2f}s ({self._n_llm_calls} calls) | "
-                f"total_timed={total:.2f}s"
-            )
+        # if self._cleaner:
+        #     total = self._t_validation + self._t_llm
+        #     print(
+        #         f"\n[TIMING] validation={self._t_validation:.2f}s ({self._n_skipped} skipped) | "
+        #         f"llm={self._t_llm:.2f}s ({self._n_llm_calls} calls) | "
+        #         f"total_timed={total:.2f}s"
+        #     )
 
         result = self._result
         self._clear_state()
@@ -249,7 +249,7 @@ class TextProcessor:
             _skip = _all_words_valid(p_str)
             self._t_validation += time.perf_counter() - t0
 
-            print(f"{'[SKIP]' if _skip else '[LLM ] '} {p_str[:100]!r}")
+            # print(f"{'[SKIP]' if _skip else '[LLM ] '} {p_str[:100]!r}")
             if not _skip:
                 self._n_llm_calls += 1
                 page_context = self._page_contexts.get(meta.get('page_#', ''), '')
