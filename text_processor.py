@@ -1,5 +1,6 @@
 from __future__ import annotations
 import re
+import time
 from pathlib import Path
 from typing import List, Dict
 from text_chunk import RawChunk, ParsedChunk
@@ -58,6 +59,10 @@ class TextProcessor:
         self._para_num: int = 0
         self._result: List[ParsedChunk] = []
         self._page_contexts: Dict[str, str] = {}
+        self._t_validation: float = 0.0
+        self._t_llm: float = 0.0
+        self._n_skipped: int = 0
+        self._n_llm_calls: int = 0
 
     @property
     def _combined_count(self) -> int:
@@ -69,6 +74,10 @@ class TextProcessor:
         self._para_num = 0
         self._result = []
         self._page_contexts = {}
+        self._t_validation = 0.0
+        self._t_llm = 0.0
+        self._n_skipped = 0
+        self._n_llm_calls = 0
 
     def _clear_state(self) -> None:
         self._paragraph = []
@@ -91,6 +100,11 @@ class TextProcessor:
             A list of ParsedChunks ready for audio output.
         """
         self._init_state()
+
+        # Eagerly warm up word_validator so NLTK resources are loaded before
+        # processing begins rather than on the first call mid-paragraph.
+        if self._cleaner is not None:
+            word_validator.is_valid_word('warm')
 
         # Clean all chunks upfront
         for chunk in chunks:
@@ -121,6 +135,14 @@ class TextProcessor:
 
         if generate_text_file and output_path is not None:
             self._save_paragraphs_file(output_path)
+
+        if self._cleaner:
+            total = self._t_validation + self._t_llm
+            print(
+                f"\n[TIMING] validation={self._t_validation:.2f}s ({self._n_skipped} skipped) | "
+                f"llm={self._t_llm:.2f}s ({self._n_llm_calls} calls) | "
+                f"total_timed={total:.2f}s"
+            )
 
         result = self._result
         self._clear_state()
@@ -223,11 +245,17 @@ class TextProcessor:
         p_str: str = self._build_paragraph()
 
         if self._cleaner:
+            t0 = time.perf_counter()
             _skip = _all_words_valid(p_str)
+            self._t_validation += time.perf_counter() - t0
+
             print(f"{'[SKIP]' if _skip else '[LLM ] '} {p_str[:100]!r}")
             if not _skip:
+                self._n_llm_calls += 1
                 page_context = self._page_contexts.get(meta.get('page_#', ''), '')
+                t1 = time.perf_counter()
                 p_str, classification = self._cleaner.clean(p_str, page_context=page_context)
+                self._t_llm += time.perf_counter() - t1
                 if classification == 'drop':
                     self._paragraph = []
                     return
@@ -236,6 +264,8 @@ class TextProcessor:
                         self._paragraph = []
                         return
                     label = 'footnote'
+            else:
+                self._n_skipped += 1
 
         p_str = word_validator.combine_hyphenated_words(p_str)
         if p_str:
