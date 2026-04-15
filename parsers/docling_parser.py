@@ -1,9 +1,10 @@
 from pathlib import Path
 from typing import List, Dict, Tuple
 from docling_core.types import DoclingDocument
-from docling_core.types.doc.document import DocItem, SectionHeaderItem, ListItem, TextItem
+from docling_core.types.doc.document import DocItem, TextItem
 from text_chunk import RawChunk, ParsedChunk
 from text_processor import TextProcessor
+from text_cleaner import TextCleaner
 from parsers.base_parser import BaseParser
 from utils.docling_utils import (is_footnote,
                                  should_skip_element,
@@ -15,11 +16,33 @@ from utils.docling_utils import (is_footnote,
 
 class DoclingParser(BaseParser):
     def __init__(self, source: str | Path | DoclingDocument,
-                 meta_data: dict[str, str],
-                 min_paragraph_size: int = 300,
+                 include_footnotes: bool = False,
+                 meta_data: dict[str, str] | None = None,
+                 min_paragraph_size: int = 5,
                  start_page: int | None = None,
                  end_page: int | None = None,
-                 include_notes: bool = True) -> None:
+                 llm_cleaner: str | TextCleaner | None = None) -> None:
+        """Initialise DoclingParser.
+
+        Args:
+            source: Path to the PDF file, or a preloaded DoclingDocument instance.
+                    If a file path is provided, the document is loaded and cached
+                    as a JSON file alongside the source for faster future runs.
+            include_footnotes: If True, footnote content is included in the
+                               output alongside body text. Defaults to False.
+            meta_data: Base metadata dict to include with every paragraph.
+                       Defaults to None (empty metadata).
+            min_paragraph_size: Minimum character count before a paragraph is
+                                emitted. For audio output, 0 is a reasonable
+                                default since short paragraphs are simply read
+                                as brief pauses. Defaults to 0.
+            start_page: Optional first page to include. Pages before this are
+                        skipped. Defaults to None (start from beginning).
+            end_page: Optional last page to include. Pages after this are
+                      skipped. Defaults to None (read to end).
+            llm_cleaner: Optional TextCleaner for LLM-based cleaning and classification.
+                     Defaults to None (rule-based cleaning only).
+        """
         if isinstance(source, DoclingDocument):
             self._doc: DoclingDocument = source
             self._file_path: Path | None = None
@@ -28,10 +51,11 @@ class DoclingParser(BaseParser):
             self._doc = load_as_document(self._file_path)
 
         self._min_paragraph_size: int = min_paragraph_size
-        self._meta_data: dict[str, str] = meta_data
+        self._meta_data: dict[str, str] = meta_data or {}
         self._start_page: int | None = start_page
         self._end_page: int | None = end_page
-        self._include_notes: bool = include_notes
+        self._include_notes: bool = include_footnotes
+        self._cleaner: str | TextCleaner | None = llm_cleaner
 
     def _is_in_page_range(self, page_no: int | None) -> bool:
         if self._start_page is not None and page_no is not None and page_no < self._start_page:
@@ -59,7 +83,8 @@ class DoclingParser(BaseParser):
 
         processor: TextProcessor = TextProcessor(
             min_paragraph_size=self._min_paragraph_size,
-            include_footnotes=self._include_notes
+            include_footnotes=self._include_notes,
+            cleaner=self._cleaner
         )
 
         parsed_chunks: List[ParsedChunk] = processor.process(
@@ -94,7 +119,6 @@ class DoclingParser(BaseParser):
             page_no = get_current_page(text, "", page_no)
 
             if not self._is_in_page_range(page_no):
-                page_no = None
                 continue
 
             if should_skip_element(text):

@@ -10,24 +10,19 @@ class WordValidator:
     is a valid English word and to combine hyphenated words in text.
 
     Attributes:
-        _words_list: Cached set of English words from the NLTK corpus.
         _lemmatizer: Cached WordNetLemmatizer instance.
         _stemmer: Cached PorterStemmer instance.
     """
 
     def __init__(self) -> None:
         """Initialise WordValidator with empty caches."""
-        self._words_list: set | None = None
         self._lemmatizer = None
         self._stemmer = None
 
     def _get_words_list(self) -> set:
-        """Lazily load and cache the NLTK words list."""
-        if self._words_list is None:
-            import nltk
-            nltk.download('words')
-            self._words_list = set(nltk.corpus.words.words())
-        return self._words_list
+        """Return the shared NLTK English word set."""
+        from utils.nltk_utils import get_english_words
+        return get_english_words()
 
     def _get_lemmatizer(self):
         """Lazily load and cache the WordNetLemmatizer."""

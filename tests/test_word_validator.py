@@ -14,10 +14,18 @@ def validator():
 # --- Lazy loading tests ---
 
 class TestLazyLoading:
-    def test_words_list_is_none_before_use(self):
-        """_words_list should be None before first use."""
-        v = WordValidator()
-        assert v._words_list is None
+    def test_words_list_returns_non_empty_set(self):
+        """get_english_words() should return a non-empty set."""
+        from utils.nltk_utils import get_english_words
+        words = get_english_words()
+        assert isinstance(words, set)
+        assert len(words) > 0
+
+    def test_words_list_module_cache_populated_after_use(self):
+        """The module-level cache in nltk_utils should be populated after get_english_words() is called."""
+        from utils import nltk_utils
+        nltk_utils.get_english_words()
+        assert nltk_utils._english_words is not None
 
     def test_lemmatizer_is_none_before_use(self):
         """_lemmatizer should be None before first use."""
@@ -28,11 +36,6 @@ class TestLazyLoading:
         """_stemmer should be None before first use."""
         v = WordValidator()
         assert v._stemmer is None
-
-    def test_words_list_cached_after_first_use(self, validator):
-        """_words_list should be populated after first call to _get_words_list."""
-        validator._get_words_list()
-        assert validator._words_list is not None
 
     def test_lemmatizer_cached_after_first_use(self, validator):
         """_lemmatizer should be populated after first call to _get_lemmatizer."""

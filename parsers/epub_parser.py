@@ -5,6 +5,7 @@ from bs4 import BeautifulSoup, Tag
 from ebooklib import ITEM_DOCUMENT, epub
 from utils.general_utils import enhance_title, clean_text
 from text_chunk import RawChunk
+from text_cleaner import TextCleaner
 from text_processor import TextProcessor
 from parsers.base_parser import BaseParser
 
@@ -188,29 +189,43 @@ class EpubParser(BaseParser):
     """
 
     def __init__(self, source: str | Path | epub.EpubBook,
-                 meta_data: dict[str, str],
-                 min_paragraph_size: int = 300,
-                 remove_footnotes: bool = True,
-                 sections_to_skip: List[str] | None = None) -> None:
+                 include_footnotes: bool = False,
+                 meta_data: dict[str, str] | None = None,
+                 min_paragraph_size: int = 5,
+                 sections_to_skip: List[str] | None = None,
+                 llm_cleaner: str | TextCleaner | None = None) -> None:
         """Initialise EpubParser.
 
         Args:
-            source: Path to the EPUB file, or a pre-loaded EpubBook instance.
+            source: Path to the EPUB file, or a preloaded EpubBook instance.
+            include_footnotes: If True, footnote content is included in the
+                               output alongside body text. Defaults to False.
             meta_data: Base metadata dict to include with every paragraph.
-            min_paragraph_size: Minimum character count before a paragraph is emitted.
-            remove_footnotes: If True, removes footnote superscripts from text.
-            sections_to_skip: Optional list of section IDs to skip.
+                       Defaults to None (empty metadata).
+            min_paragraph_size: Minimum character count before a paragraph is
+                                emitted. For audio output, 0 is a reasonable
+                                default since short paragraphs are simply read
+                                as brief pauses. Defaults to 0.
+            sections_to_skip: Optional list of section IDs to skip. Use
+                              load_sections_to_skip from general_utils to
+                              load section IDs from a CSV file.
+            llm_cleaner: Optional TextCleaner for LLM-based cleaning and
+                     classification. Defaults to None (rule-based only).
         """
         if isinstance(source, epub.EpubBook):
             self._book: epub.EpubBook = source
             self._file_path: Path | None = None
         else:
             self._file_path = Path(source)
-            self._book = epub.read_epub(self._file_path)
+            self._book = epub.read_epub(self._file_path) or {}
 
+        # Note: include_footnotes is currently not implemented in EpubParser,
+        # but we store it for potential future use and to maintain a consistent interface with DoclingParser.
+        self._include_footnotes: bool = include_footnotes
         self._meta_data: dict[str, str] = meta_data
         self._min_paragraph_size: int = min_paragraph_size
-        self._remove_footnotes: bool = remove_footnotes
+        self._remove_footnotes: bool = True
+        self._cleaner: str | TextCleaner | None = llm_cleaner
         self._sections_to_skip: Dict[str, Set[str]] = {}
         if sections_to_skip:
             self._sections_to_skip[self._book.title] = set(sections_to_skip)
@@ -345,7 +360,8 @@ class EpubParser(BaseParser):
             if not chapter_title and headers and 0 in headers:
                 chapter_title = headers[0]
 
-            p_str: str = clean_text(tag.get_text())
+            # p_str: str = clean_text(tag.get_text()) # TODO: This seems a the wrong place to clean_text. Should only be called in TextProcessor. This whole method seems strange to me.
+            p_str: str = tag.get_text()
             if not p_str:
                 continue
 
@@ -370,7 +386,8 @@ class EpubParser(BaseParser):
 
             chunks.append(RawChunk(text=p_str, meta=chunk_meta, label='text'))
 
-        processor: TextProcessor = TextProcessor(min_paragraph_size=self._min_paragraph_size)
+        processor: TextProcessor = TextProcessor(min_paragraph_size=self._min_paragraph_size,
+                                                  cleaner=self._cleaner)
         parsed_chunks = processor.process(chunks)
 
         docs: List[str] = [chunk.text for chunk in parsed_chunks]

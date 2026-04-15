@@ -1,7 +1,7 @@
 import csv
 import re
 from pathlib import Path
-from typing import Optional, Dict, Any, Tuple, Set
+from typing import Optional, Dict, Any, Tuple, Set, List
 
 
 def print_debug_results(results: Dict[str, Any],
@@ -282,27 +282,37 @@ def is_ends_with_punctuation(text: str) -> bool:
     return text.endswith(".") or text.endswith("?") or text.endswith("!")
 
 
-def combine_paragraphs(p1_str: str, p2_str: str) -> str:
-    """Combine two paragraph strings into one.
+def build_paragraph(paragraphs: List[str] | str, p2_str: str = "") -> str:
+    """Build a single paragraph out of two strings.
 
+    Accepts either a list of strings or two strings (legacy usage).
     If the first paragraph ends with sentence-ending punctuation, the two are
     joined with a newline. Otherwise, they are joined with a space, treating
     them as a continuation of the same sentence.
 
     Args:
-        p1_str: The first paragraph string.
-        p2_str: The second paragraph string.
+        paragraphs: Either a list of strings to combine, or the first string
+                    in a two-string combination.
+        p2_str: The second string when called with two string arguments.
 
     Returns:
         The combined paragraph string, stripped of leading and trailing whitespace.
     """
-    p1_str = p1_str.strip()
+    if isinstance(paragraphs, list):
+        result: str = ""
+        for p in paragraphs:
+            result = build_paragraph(result, p)
+        return result
+
+    # Two-string usage
+    p1_str = paragraphs.strip()
     p2_str = p2_str.strip()
+    if not p1_str:
+        return p2_str
     if is_sentence_end(p1_str):
-        combined = p1_str + "\n" + p2_str
+        return (p1_str + "\n" + p2_str).strip()
     else:
-        combined = p1_str + " " + p2_str
-    return combined.strip()
+        return (p1_str + " " + p2_str).strip()
 
 
 def is_sentence_end(text: str) -> bool:
@@ -331,22 +341,22 @@ def is_sentence_end(text: str) -> bool:
 
 
 def strip_footnote_numbers(p_str: str) -> str:
-    """Remove trailing footnote reference numbers from a string.
+    """Remove footnote markers from paragraph text.
 
-    Strips digits from the end of the string until the string ends with
-    valid sentence-ending punctuation or no more digits remain.
+    Removes trailing footnote numbers that appear after sentence-ending
+    punctuation, e.g. "minor religious sects. 1" -> "minor religious sects."
+    Only strips numbers that are clearly footnote markers — i.e. a space
+    followed by a number at the end of a sentence.
 
     Args:
-        p_str: The string to process.
+        p_str: The paragraph string to clean.
 
     Returns:
-        The string with trailing footnote numbers removed.
+        The string with footnote markers removed.
     """
-    while p_str and not is_sentence_end(p_str):
-        last_char: str = p_str[-1]
-        if not last_char.isdigit():
-            break
-        p_str = p_str[:-1].strip()
+    # Remove trailing footnote number after sentence-ending punctuation
+    # e.g. "Hello world. 1" -> "Hello world."
+    p_str = re.sub(r'(\w[.!?])\s*\d+\s*$', r'\1', p_str)
     return p_str
 
 

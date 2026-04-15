@@ -14,7 +14,7 @@ from utils.general_utils import (
     fix_apostrophes,
     strip_footnote_numbers,
     clean_text,
-    combine_paragraphs,
+    build_paragraph,
     load_sections_to_skip,
 )
 
@@ -97,19 +97,19 @@ class TestRemoveExtraWhitespace:
 
 class TestCombineParagraphs:
     def test_joins_with_newline_if_sentence_end(self):
-        result = combine_paragraphs("First sentence.", "Second sentence.")
+        result = build_paragraph("First sentence.", "Second sentence.")
         assert result == "First sentence.\nSecond sentence."
 
     def test_joins_with_space_if_no_sentence_end(self):
-        result = combine_paragraphs("First part", "second part.")
+        result = build_paragraph("First part", "second part.")
         assert result == "First part second part."
 
     def test_strips_result(self):
-        result = combine_paragraphs("  Hello.  ", "  World.  ")
+        result = build_paragraph("  Hello.  ", "  World.  ")
         assert result == "Hello.\nWorld."
 
     def test_empty_first_paragraph(self):
-        result = combine_paragraphs("", "Second.")
+        result = build_paragraph("", "Second.")
         assert result == "Second."
 
 
