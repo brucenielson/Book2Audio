@@ -1,8 +1,9 @@
 from __future__ import annotations
+
 import re
 import time
 from pathlib import Path
-from typing import List, Dict
+
 from text_chunk import RawChunk, ParsedChunk
 from word_validator import word_validator
 from utils.general_utils import is_sentence_end, build_paragraph, clean_text
@@ -54,11 +55,11 @@ class TextProcessor:
             self._cleaner: TextCleaner | None = TextCleaner(model=cleaner)
         else:
             self._cleaner = cleaner  # TextCleaner instance or None
-        self._paragraph: List[str] = []
+        self._paragraph: list[str] = []
         self._section_name: str = ""
         self._para_num: int = 0
-        self._result: List[ParsedChunk] = []
-        self._page_contexts: Dict[str, str] = {}
+        self._result: list[ParsedChunk] = []
+        self._page_contexts: dict[str, str] = {}
         self._t_validation: float = 0.0
         self._t_llm: float = 0.0
         self._n_skipped: int = 0
@@ -69,6 +70,7 @@ class TextProcessor:
         return sum(len(p) for p in self._paragraph)
 
     def _init_state(self) -> None:
+        """Reset all processing state before a new run."""
         self._paragraph = []
         self._section_name = ""
         self._para_num = 0
@@ -80,15 +82,16 @@ class TextProcessor:
         self._n_llm_calls = 0
 
     def _clear_state(self) -> None:
+        """Clear processing state after a run to free memory."""
         self._paragraph = []
         self._section_name = ""
         self._para_num = 0
         self._result = []
         self._page_contexts = {}
 
-    def process(self, chunks: List[RawChunk],
+    def process(self, chunks: list[RawChunk],
                 output_path: Path | None = None,
-                generate_text_file: bool = False) -> List[ParsedChunk]:
+                generate_text_file: bool = False) -> list[ParsedChunk]:
         """Process a list of RawChunks into ParsedChunks.
 
         Args:
@@ -181,7 +184,15 @@ class TextProcessor:
         # Paragraph is complete but short and more text is coming — accumulate
         return True
 
-    def _build_meta(self, meta: Dict[str, str]) -> Dict[str, str]:
+    def _build_meta(self, meta: dict[str, str]) -> dict[str, str]:
+        """Build the metadata dict for an emitted ParsedChunk.
+
+        Args:
+            meta: The base metadata from the source chunk.
+
+        Returns:
+            A new metadata dict that includes paragraph number and section name.
+        """
         result = {
             **meta,
             "paragraph_#": str(self._para_num),
@@ -207,7 +218,7 @@ class TextProcessor:
                 label=chunk.label
             ))
 
-    def _build_page_contexts(self, chunks: List[RawChunk]) -> Dict[str, str]:
+    def _build_page_contexts(self, chunks: list[RawChunk]) -> dict[str, str]:
         """Build a mapping of page number to full page text.
 
         Args:
@@ -216,7 +227,7 @@ class TextProcessor:
         Returns:
             Dict mapping page_# values to concatenated page text.
         """
-        page_texts: Dict[str, List[str]] = {}
+        page_texts: dict[str, list[str]] = {}
         for chunk in chunks:
             page_num = chunk.meta.get('page_#', '')
             if page_num:
@@ -231,7 +242,7 @@ class TextProcessor:
         """
         return build_paragraph(self._paragraph)
 
-    def _flush_paragraph(self, meta: Dict[str, str], label: str = 'text') -> None:
+    def _flush_paragraph(self, meta: dict[str, str], label: str = 'text') -> None:
         """Flush the accumulated paragraph as a ParsedChunk.
 
         If a cleaner is configured, calls the LLM to clean and classify the

@@ -1,13 +1,19 @@
+"""LLM-based text cleaner and classifier for book-to-audio conversion."""
+
+from __future__ import annotations
+
 import difflib
 import json
 import re
+from typing import Literal, TypeAlias
+
 import ollama
-from typing import Literal
+
 from word_validator import word_validator
 
-ClassificationType = Literal['body', 'footnote', 'drop']
+ClassificationType: TypeAlias = Literal['body', 'footnote', 'drop']
 
-SYSTEM_PROMPT = """You are a text cleaning assistant for a book-to-audio conversion system.
+SYSTEM_PROMPT: str = """You are a text cleaning assistant for a book-to-audio conversion system.
 You will be given a paragraph of text extracted from a PDF or EPUB book, along with the
 full text of the page it came from for context.
 
@@ -47,9 +53,12 @@ Response format:
 }"""
 
 
-_DROP_HINTS = ('index', 'bibliograph', 'reference', 'encyclop', 'glossar', 'appendix', 'contents', 'header', 'footer', 'caption', 'table')
-_FOOTNOTE_HINTS = ('footnote', 'endnote', 'note')
-_BODY_HINTS = ('body', 'main', 'prose', 'content', 'paragraph', 'text')
+_DROP_HINTS: tuple[str, ...] = (
+    'index', 'bibliograph', 'reference', 'encyclop', 'glossar',
+    'appendix', 'contents', 'header', 'footer', 'caption', 'table',
+)
+_FOOTNOTE_HINTS: tuple[str, ...] = ('footnote', 'endnote', 'note')
+_BODY_HINTS: tuple[str, ...] = ('body', 'main', 'prose', 'content', 'paragraph', 'text')
 
 
 def _coerce_classification(raw: str) -> ClassificationType | None:

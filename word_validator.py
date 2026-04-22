@@ -1,5 +1,10 @@
+from __future__ import annotations
+
 import re
-from typing import Union
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from nltk.stem import WordNetLemmatizer, PorterStemmer
 
 
 class WordValidator:
@@ -10,35 +15,43 @@ class WordValidator:
     is a valid English word and to combine hyphenated words in text.
 
     Attributes:
-        _lemmatizer: Cached WordNetLemmatizer instance.
-        _stemmer: Cached PorterStemmer instance.
+        _lemmatizer: Cached WordNetLemmatizer instance, or None before first use.
+        _stemmer: Cached PorterStemmer instance, or None before first use.
     """
 
     def __init__(self) -> None:
         """Initialise WordValidator with empty caches."""
-        self._lemmatizer = None
-        self._stemmer = None
+        self._lemmatizer: WordNetLemmatizer | None = None
+        self._stemmer: PorterStemmer | None = None
 
-    def _get_words_list(self) -> set:
+    def _get_words_list(self) -> set[str]:
         """Return the shared NLTK English word set."""
         from utils.nltk_utils import get_english_words
         return get_english_words()
 
     def _get_lemmatizer(self):
-        """Lazily load and cache the WordNetLemmatizer."""
+        """Lazily load and cache the WordNetLemmatizer.
+
+        Returns:
+            The cached WordNetLemmatizer instance.
+        """
         if self._lemmatizer is None:
             from nltk.stem import WordNetLemmatizer
             self._lemmatizer = WordNetLemmatizer()
         return self._lemmatizer
 
     def _get_stemmer(self):
-        """Lazily load and cache the PorterStemmer."""
+        """Lazily load and cache the PorterStemmer.
+
+        Returns:
+            The cached PorterStemmer instance.
+        """
         if self._stemmer is None:
             from nltk.stem import PorterStemmer
             self._stemmer = PorterStemmer()
         return self._stemmer
 
-    def is_valid_word(self, word: str) -> Union[bool, str]:
+    def is_valid_word(self, word: str) -> bool | str:
         """Check if a word is valid by comparing it directly and via stemming/lemmatization.
 
         Returns True (or the valid modified word) if the word is found,
@@ -102,7 +115,8 @@ class WordValidator:
             The string with hyphens resolved appropriately.
         """
 
-        def replace_dash(match) -> str:
+        def replace_dash(match: re.Match[str]) -> str:
+            """Resolve a single hyphenated match to the appropriate string form."""
             word1, word2 = match.group(1), match.group(2)
             combined = word1.strip() + word2.strip()
 
@@ -137,4 +151,4 @@ class WordValidator:
 
 
 # Module-level instance for use across the codebase
-word_validator = WordValidator()
+word_validator: WordValidator = WordValidator()

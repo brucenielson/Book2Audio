@@ -1,10 +1,15 @@
+"""Utility functions for working with Docling document objects."""
+
+from __future__ import annotations
+
 from pathlib import Path
+
 from docling_core.types.doc.document import (TextItem,
                                              DocItem,
                                              DocItemLabel,
                                              DoclingDocument)
 from docling.document_converter import DocumentConverter
-from typing import List
+
 
 def load_as_document(file_path: str | Path) -> DoclingDocument:
     """Load a document file and return it as a DoclingDocument.
@@ -33,7 +38,14 @@ def load_as_document(file_path: str | Path) -> DoclingDocument:
 
 def is_text_bearing(item: DocItem | None) -> bool:
     """Check if a DocItem is a text-bearing subclass (i.e. TextItem).
-    Note that SectionHeaderItem and ListItem are inherited from TextItem
+
+    Note that SectionHeaderItem and ListItem are inherited from TextItem.
+
+    Args:
+        item: The DocItem to check, or None.
+
+    Returns:
+        True if item is an instance of TextItem, False otherwise.
     """
     return isinstance(item, TextItem)
 
@@ -196,7 +208,7 @@ def is_text_item(item: DocItem | None) -> bool:
                 or is_page_header(item))
 
 
-def get_next_text(texts: List[DocItem], i: int) -> DocItem | None:
+def get_next_text(texts: list[DocItem], i: int) -> DocItem | None:
     """Find the next body text item in a list of DocItems after index i.
 
     Args:

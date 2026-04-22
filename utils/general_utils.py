@@ -1,12 +1,23 @@
+"""General utility functions for text processing and file I/O."""
+
+from __future__ import annotations
+
 import csv
 import re
 from pathlib import Path
-from typing import Optional, Dict, Any, Tuple, Set, List
+from typing import Any
 
 
-def print_debug_results(results: Dict[str, Any],
-                        include_outputs_from: Optional[set[str]] = None,
+def print_debug_results(results: dict[str, Any],
+                        include_outputs_from: set[str] | None = None,
                         verbose: bool = True) -> None:
+    """Print a filtered and hierarchical view of debug results.
+
+    Args:
+        results: The full results dict to display.
+        include_outputs_from: If provided, only keys present in this set are printed.
+        verbose: If False, nothing is printed. Defaults to True.
+    """
     level: int = 1
     if verbose and include_outputs_from is not None:
         results_filtered = {k: v for k, v in results.items() if k in include_outputs_from}
@@ -16,7 +27,13 @@ def print_debug_results(results: Dict[str, Any],
             _print_hierarchy(results_filtered, level)
 
 
-def _print_hierarchy(data: Dict[str, Any], level: int) -> None:
+def _print_hierarchy(data: dict[str, Any], level: int) -> None:
+    """Recursively print a nested dict structure with level indentation.
+
+    Args:
+        data: The dict to print.
+        level: The current nesting level, used for labelling output lines.
+    """
     for key, value in data.items():
         if level == 1:
             print()
@@ -34,8 +51,18 @@ def _print_hierarchy(data: Dict[str, Any], level: int) -> None:
             print(value)
 
 
-def load_valid_pages(skip_file: str) -> Dict[str, Tuple[int, int]]:
-    book_pages: Dict[str, Tuple[int, int]] = {}
+def load_valid_pages(skip_file: str) -> dict[str, tuple[int, int]]:
+    """Load a CSV file mapping book titles to valid page ranges.
+
+    The CSV must have columns 'Book Title', 'Start', and 'End'.
+
+    Args:
+        skip_file: Path to the CSV file.
+
+    Returns:
+        A dict mapping book titles to (start_page, end_page) tuples.
+    """
+    book_pages: dict[str, tuple[int, int]] = {}
     skip_file_path = Path(skip_file)
     if skip_file_path.exists():
         with open(skip_file_path, 'r', newline='', encoding='utf-8') as csvfile:
@@ -50,7 +77,7 @@ def load_valid_pages(skip_file: str) -> Dict[str, Tuple[int, int]]:
     return book_pages
 
 
-def load_sections_to_skip(csv_path: Path) -> Dict[str, Set[str]]:
+def load_sections_to_skip(csv_path: Path) -> dict[str, set[str]]:
     """Load a CSV file listing book sections to skip during parsing.
 
     The CSV file must have columns 'Book Title' and 'Section Title'.
@@ -61,7 +88,7 @@ def load_sections_to_skip(csv_path: Path) -> Dict[str, Set[str]]:
     Returns:
         A dict mapping book titles to sets of section IDs to skip.
     """
-    sections_to_skip: Dict[str, Set[str]] = {}
+    sections_to_skip: dict[str, set[str]] = {}
     if csv_path.exists():
         with open(csv_path, 'r', newline='', encoding='utf-8') as csvfile:
             reader: csv.DictReader[str] = csv.DictReader(csvfile)
@@ -282,7 +309,7 @@ def is_ends_with_punctuation(text: str) -> bool:
     return text.endswith(".") or text.endswith("?") or text.endswith("!")
 
 
-def build_paragraph(paragraphs: List[str] | str, p2_str: str = "") -> str:
+def build_paragraph(paragraphs: list[str] | str, p2_str: str = "") -> str:
     """Build a single paragraph out of two strings.
 
     Accepts either a list of strings or two strings (legacy usage).

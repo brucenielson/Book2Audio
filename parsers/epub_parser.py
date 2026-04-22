@@ -1,8 +1,14 @@
+"""EPUB document parser for Book2Audio."""
+
+from __future__ import annotations
+
 from copy import deepcopy
 from pathlib import Path
-from typing import List, Dict, Tuple, Iterator, Optional, Set
+from typing import Iterator
+
 from bs4 import BeautifulSoup, Tag
 from ebooklib import ITEM_DOCUMENT, epub
+
 from utils.general_utils import enhance_title, clean_text
 from text_chunk import RawChunk
 from text_cleaner import TextCleaner
@@ -10,12 +16,12 @@ from text_processor import TextProcessor
 from parsers.base_parser import BaseParser
 
 
-def get_header_level(paragraph: Tag) -> Optional[int]:
+def get_header_level(paragraph: Tag) -> int | None:
     """Return the level of the header (1 for h1, 2 for h2, etc.), or None if not a header."""
     if paragraph.name.startswith('h') and paragraph.name[1:].isdigit():
         return int(paragraph.name[1:])
     if hasattr(paragraph, 'attrs') and 'class' in paragraph.attrs:
-        section_headers: List[str] = ['pre-title1', 'h']
+        section_headers: list[str] = ['pre-title1', 'h']
         for cls in paragraph.attrs['class']:
             if cls.lower() in section_headers:
                 return 0
@@ -27,7 +33,7 @@ def get_header_level(paragraph: Tag) -> Optional[int]:
 def is_title(tag: Tag) -> bool:
     """Check if a tag is styled as a title."""
     # noinspection SpellCheckingInspection
-    keywords: List[str] = ['title', 'chtitle', 'tochead', 'title1', 'h1_label']
+    keywords: list[str] = ['title', 'chtitle', 'tochead', 'title1', 'h1_label']
     is_a_title: bool = (hasattr(tag, 'attrs') and 'class' in tag.attrs and
                         any(cls.lower().startswith(keyword) or cls.lower().endswith(keyword)
                             for cls in tag.attrs['class'] for keyword in keywords))
@@ -36,7 +42,7 @@ def is_title(tag: Tag) -> bool:
 
 def is_header1_title(paragraph: Tag, h1_count: int) -> bool:
     """Check if a tag is an h1 being used as a chapter title."""
-    header_level: Optional[int] = get_header_level(paragraph)
+    header_level: int | None = get_header_level(paragraph)
     if header_level == 1 and h1_count == 1:
         return True
     return False
@@ -46,7 +52,7 @@ def is_section_title(tag: Tag) -> bool:
     """Check if the tag is a title, heading, or chapter number."""
     if tag is None:
         return False
-    header_lvl: Optional[int] = get_header_level(tag)
+    header_lvl: int | None = get_header_level(tag)
     return is_title(tag) or header_lvl is not None or is_chapter_number(tag)
 
 
@@ -60,17 +66,17 @@ def is_chapter_number(paragraph: Tag) -> bool:
             paragraph.text.isdigit())
 
 
-def get_page_num(paragraph: Tag) -> Optional[str]:
+def get_page_num(paragraph: Tag) -> str | None:
     """Try to get a page number from a tag.
 
     Returns the page number as a string to accommodate Roman numerals,
     or None if no page number is found.
     """
-    tags: List[Tag] = paragraph.find_all(
+    tags: list[Tag] = paragraph.find_all(
         lambda x: (x.name == 'a' or x.name == 'span') and x.get('id')
         and (x['id'].startswith('page_') or (x['id'].startswith('p') and x['id'][1:].isdigit()))
     )
-    page_num: Optional[str] = None
+    page_num: str | None = None
     if tags:
         for tag in tags:
             page_id = tag.get('id')
@@ -112,7 +118,7 @@ def recursive_yield_tags(tag: Tag, remove_footnotes: bool = False) -> Iterator[T
     Yields:
         Leaf tags containing text content.
     """
-    invalid_children: List[str] = ['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'h7', 'h8']
+    invalid_children: list[str] = ['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'h7', 'h8']
     if not tag.name == 'div' and tag.get_text(strip=True) and not tag.find(invalid_children):
         tag_copy: Tag = deepcopy(tag)
         for br in tag_copy.find_all('br'):
@@ -128,10 +134,23 @@ def recursive_yield_tags(tag: Tag, remove_footnotes: bool = False) -> Iterator[T
                 yield from recursive_yield_tags(child, remove_footnotes=remove_footnotes)
 
 
-def get_chapter_info(tags: List[Tag],
-                     h1_tags: List[Tag],
-                     h2_tags: List[Tag],
-                     h3_tags: List[Tag]) -> Tuple[str, int, str]:
+def get_chapter_info(tags: list[Tag],
+                     h1_tags: list[Tag],
+                     h2_tags: list[Tag],
+                     h3_tags: list[Tag]) -> tuple[str, int, str]:
+    """Extract chapter title, chapter number, and first page number from a list of tags.
+
+    Also removes title tags from the list in-place so they are not processed again.
+
+    Args:
+        tags: All leaf tags extracted from an HTML section.
+        h1_tags: All h1 tags found in the section.
+        h2_tags: All h2 tags found in the section.
+        h3_tags: All h3 tags found in the section.
+
+    Returns:
+        A tuple of (chapter_title, chapter_number, first_page_num).
+    """
     if not tags:
         return "", 0, ""
 
@@ -141,7 +160,7 @@ def get_chapter_info(tags: List[Tag],
     h2_tag_count: int = len(h2_tags)
     h3_tag_count: int = len(h3_tags)
     chapter_number: int = 0
-    tags_to_delete: List[int] = []
+    tags_to_delete: list[int] = []
     first_page_num: str = ""
 
     for i, tag in enumerate(tags):
@@ -222,15 +241,15 @@ class EpubParser(BaseParser):
         # Note: include_footnotes is currently not implemented in EpubParser,
         # but we store it for potential future use and to maintain a consistent interface with DoclingParser.
         self._include_footnotes: bool = include_footnotes
-        self._meta_data: dict[str, str] = meta_data
+        self._meta_data: dict[str, str] = meta_data or {}
         self._min_paragraph_size: int = min_paragraph_size
         self._remove_footnotes: bool = True
         self._cleaner: str | TextCleaner | None = llm_cleaner
-        self._sections_to_skip: Dict[str, Set[str]] = {}
+        self._sections_to_skip: dict[str, set[str]] = {}
         if sections_to_skip:
             self._sections_to_skip[self._book.title] = set(sections_to_skip)
 
-    def run(self, generate_text_file: bool = False) -> Tuple[List[str], List[Dict[str, str]]]:
+    def run(self, generate_text_file: bool = False) -> tuple[list[str], list[dict[str, str]]]:
         """Parse the EPUB and return paragraphs and metadata.
 
         Args:
@@ -244,8 +263,8 @@ class EpubParser(BaseParser):
         book: epub.EpubBook = self._book
         print(f"Loaded Book: {book.title}")
 
-        all_docs: List[str] = []
-        all_meta: List[Dict[str, str]] = []
+        all_docs: list[str] = []
+        all_meta: list[dict[str, str]] = []
         section_num: int = 0
 
         item: epub.EpubHtml
@@ -256,7 +275,7 @@ class EpubParser(BaseParser):
 
             section_num += 1
             item_html: str = item.get_body_content().decode('utf-8')
-            section_meta: Dict[str, str] = {
+            section_meta: dict[str, str] = {
                 **self._meta_data,
                 "book_title": book.title,
                 "item_id": item.id,
@@ -293,7 +312,7 @@ class EpubParser(BaseParser):
                 f.write(text + "\n\n")
 
     def _parse_section(self, html: str,
-                       section_meta: Dict[str, str]) -> Tuple[List[str], List[Dict[str, str]]]:
+                       section_meta: dict[str, str]) -> tuple[list[str], list[dict[str, str]]]:
         """Parse a single HTML section into paragraphs using TextProcessor.
 
         Args:
@@ -304,16 +323,16 @@ class EpubParser(BaseParser):
             A tuple of (docs, meta) for this section.
         """
         soup: BeautifulSoup = BeautifulSoup(html, 'html.parser')
-        tags: List[Tag] = list(recursive_yield_tags(soup, remove_footnotes=self._remove_footnotes))
-        h1_tags: List[Tag] = soup.find_all('h1')
-        h2_tags: List[Tag] = soup.find_all('h2')
-        h3_tags: List[Tag] = soup.find_all('h3')
+        tags: list[Tag] = list(recursive_yield_tags(soup, remove_footnotes=self._remove_footnotes))
+        h1_tags: list[Tag] = soup.find_all('h1')
+        h2_tags: list[Tag] = soup.find_all('h2')
+        h3_tags: list[Tag] = soup.find_all('h3')
 
         chapter_title, chapter_number, page_num = get_chapter_info(tags, h1_tags, h2_tags, h3_tags)
 
-        headers: Dict[int, str] = {}
+        headers: dict[int, str] = {}
         combine_headers: bool = False
-        chunks: List[RawChunk] = []
+        chunks: list[RawChunk] = []
 
         # Emit chapter title as its own chunk
         if chapter_title:
@@ -366,7 +385,7 @@ class EpubParser(BaseParser):
                 continue
 
             # Build metadata for this chunk
-            chunk_meta: Dict[str, str] = {**section_meta}
+            chunk_meta: dict[str, str] = {**section_meta}
             if page_num:
                 chunk_meta["page_#"] = page_num
             if chapter_title:
@@ -390,6 +409,6 @@ class EpubParser(BaseParser):
                                                   cleaner=self._cleaner)
         parsed_chunks = processor.process(chunks)
 
-        docs: List[str] = [chunk.text for chunk in parsed_chunks]
-        meta: List[Dict[str, str]] = [chunk.meta for chunk in parsed_chunks]
+        docs: list[str] = [chunk.text for chunk in parsed_chunks]
+        meta: list[dict[str, str]] = [chunk.meta for chunk in parsed_chunks]
         return docs, meta

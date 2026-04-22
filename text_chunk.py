@@ -1,5 +1,6 @@
+from __future__ import annotations
+
 from dataclasses import dataclass, field
-from typing import Dict
 
 
 @dataclass
@@ -14,7 +15,7 @@ class TextChunk:
                or HTML tag names for EPUB (e.g. 'h1', 'h2').
     """
     text: str
-    meta: Dict[str, str] = field(default_factory=dict)
+    meta: dict[str, str] = field(default_factory=dict)
     label: str = ""
 
     @property
