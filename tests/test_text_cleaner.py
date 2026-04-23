@@ -1,3 +1,5 @@
+"""Tests for the TextCleaner class."""
+
 import pytest
 from unittest.mock import patch
 from text_cleaner import TextCleaner
@@ -9,7 +11,7 @@ patch_llm_chat: str = 'text_cleaner.ollama.chat'
 
 def make_cleaner(model: str = 'llama3.1:8b', max_retries: int = 3) -> TextCleaner:
     """Create a TextCleaner instance."""
-    return TextCleaner(model=model, max_retries=max_retries)
+    return TextCleaner(model=model, max_retries=max_retries, temperature=0)
 
 
 def make_response(cleaned: str, classification: str) -> dict:
@@ -24,46 +26,46 @@ def make_response(cleaned: str, classification: str) -> dict:
 # --- TestClean ---
 
 class TestClean:
-    def test_body_classification(self):
+    def test_body_classification(self) -> None:
         cleaner = make_cleaner()
         with patch(patch_llm_chat, return_value=make_response("Clean body text.", "body")):
             cleaned, classification = cleaner.clean("Clean body text.")
         assert cleaned == "Clean body text."
         assert classification == "body"
 
-    def test_footnote_classification(self):
+    def test_footnote_classification(self) -> None:
         cleaner = make_cleaner()
         with patch(patch_llm_chat, return_value=make_response("A footnote.", "footnote")):
             cleaned, classification = cleaner.clean("A footnote.1")
         assert cleaned == "A footnote."
         assert classification == "footnote"
 
-    def test_drop_classification(self):
+    def test_drop_classification(self) -> None:
         cleaner = make_cleaner()
         with patch(patch_llm_chat, return_value=make_response("Chapter 1", "drop")):
             cleaned, classification = cleaner.clean("Chapter 1")
         assert classification == "drop"
 
-    def test_cleaned_text_returned_correctly(self):
+    def test_cleaned_text_returned_correctly(self) -> None:
         cleaner = make_cleaner()
         with patch(patch_llm_chat, return_value=make_response("Broken text.", "body")):
             cleaned, _ = cleaner.clean("Brok en text.")
         assert cleaned == "Broken text."
 
-    def test_empty_paragraph(self):
+    def test_empty_paragraph(self) -> None:
         cleaner = make_cleaner()
         with patch(patch_llm_chat, return_value=make_response("", "drop")):
             cleaned, classification = cleaner.clean("")
         assert cleaned == ""
         assert classification == "drop"
 
-    def test_uses_configured_model(self):
+    def test_uses_configured_model(self) -> None:
         cleaner = make_cleaner(model='llama3.2:3b')
         with patch(patch_llm_chat, return_value=make_response("Text.", "body")) as mock_chat:
             cleaner.clean("Text.")
         assert mock_chat.call_args[1]['model'] == 'llama3.2:3b'
 
-    def test_passes_paragraph_as_user_message_without_page_context(self):
+    def test_passes_paragraph_as_user_message_without_page_context(self) -> None:
         cleaner = make_cleaner()
         with patch(patch_llm_chat, return_value=make_response("Text.", "body")) as mock_chat:
             cleaner.clean("Some paragraph text.")
@@ -71,7 +73,7 @@ class TestClean:
         user_message = next(m for m in messages if m['role'] == 'user')
         assert user_message['content'] == "Paragraph to clean and classify:\nSome paragraph text."
 
-    def test_includes_page_context_in_user_message(self):
+    def test_includes_page_context_in_user_message(self) -> None:
         cleaner = make_cleaner()
         with patch(patch_llm_chat, return_value=make_response("Text.", "body")) as mock_chat:
             cleaner.clean("Current paragraph.", page_context="Full page text here.")
@@ -80,7 +82,7 @@ class TestClean:
         assert "Full page text here." in user_message['content']
         assert "Current paragraph." in user_message['content']
 
-    def test_page_context_not_included_when_empty(self):
+    def test_page_context_not_included_when_empty(self) -> None:
         cleaner = make_cleaner()
         with patch(patch_llm_chat, return_value=make_response("Text.", "body")) as mock_chat:
             cleaner.clean("Some paragraph text.", page_context="")
@@ -88,7 +90,7 @@ class TestClean:
         user_message = next(m for m in messages if m['role'] == 'user')
         assert user_message['content'] == "Paragraph to clean and classify:\nSome paragraph text."
 
-    def test_page_context_not_included_when_not_provided(self):
+    def test_page_context_not_included_when_not_provided(self) -> None:
         cleaner = make_cleaner()
         with patch(patch_llm_chat, return_value=make_response("Text.", "body")) as mock_chat:
             cleaner.clean("Some paragraph text.")
@@ -96,7 +98,7 @@ class TestClean:
         user_message = next(m for m in messages if m['role'] == 'user')
         assert "Page context" not in user_message['content']
 
-    def test_system_prompt_included(self):
+    def test_system_prompt_included(self) -> None:
         cleaner = make_cleaner()
         with patch(patch_llm_chat, return_value=make_response("Text.", "body")) as mock_chat:
             cleaner.clean("Text.")
@@ -108,7 +110,7 @@ class TestClean:
 # --- TestRetry ---
 
 class TestRetry:
-    def test_retries_on_malformed_json(self):
+    def test_retries_on_malformed_json(self) -> None:
         cleaner = make_cleaner(max_retries=3)
         bad_response = {'message': {'content': 'not valid json'}}
         good_response = make_response("Some text.", "body")
@@ -117,7 +119,7 @@ class TestRetry:
         assert cleaned == "Some text."
         assert classification == "body"
 
-    def test_retries_on_invalid_classification(self):
+    def test_retries_on_invalid_classification(self) -> None:
         cleaner = make_cleaner(max_retries=3)
         bad_response = make_response("Some text.", "invalid_type")
         good_response = make_response("Some text.", "body")
@@ -125,7 +127,7 @@ class TestRetry:
             cleaned, classification = cleaner.clean("Some text.")
         assert classification == "body"
 
-    def test_retries_on_missing_key(self):
+    def test_retries_on_missing_key(self) -> None:
         cleaner = make_cleaner(max_retries=3)
         bad_response = {'message': {'content': '{"cleaned": "Some text."}'}}
         good_response = make_response("Some text.", "body")
@@ -133,7 +135,7 @@ class TestRetry:
             cleaned, classification = cleaner.clean("Some text.")
         assert classification == "body"
 
-    def test_not_raises_after_max_retries_exceeded(self):
+    def test_not_raises_after_max_retries_exceeded(self) -> None:
         cleaner = make_cleaner(max_retries=3)
         bad_response = {'message': {'content': 'not valid json'}}
         with patch(patch_llm_chat, return_value=bad_response):
@@ -141,14 +143,14 @@ class TestRetry:
             assert cleaned == "Some text."
             assert classification == 'body'
 
-    def test_correct_number_of_attempts(self):
+    def test_correct_number_of_attempts(self) -> None:
         cleaner = make_cleaner(max_retries=3)
         bad_response = {'message': {'content': 'not valid json'}}
         with patch(patch_llm_chat, return_value=bad_response) as mock_chat:
             cleaner.clean("Some text.")
         assert mock_chat.call_count == 3
 
-    def test_succeeds_on_last_retry(self):
+    def test_succeeds_on_last_retry(self) -> None:
         cleaner = make_cleaner(max_retries=3)
         bad_response = {'message': {'content': 'not valid json'}}
         good_response = make_response("Some text.", "body")
@@ -157,14 +159,14 @@ class TestRetry:
         assert cleaned == "Some text."
         assert classification == "body"
 
-    def test_max_retries_configurable(self):
+    def test_max_retries_configurable(self) -> None:
         cleaner = make_cleaner(max_retries=5)
         bad_response = {'message': {'content': 'not valid json'}}
         with patch(patch_llm_chat, return_value=bad_response) as mock_chat:
             cleaner.clean("Some text.")
         assert mock_chat.call_count == 5
 
-    def test_retry_uses_same_messages(self):
+    def test_retry_uses_same_messages(self) -> None:
         cleaner = make_cleaner(max_retries=3)
         bad_response = {'message': {'content': 'not valid json'}}
         good_response = make_response("Some text.", "body")
@@ -180,7 +182,7 @@ class TestRetry:
 # --- TestSanityCheck ---
 
 class TestSanityCheck:
-    def test_accepts_ocr_fix(self):
+    def test_accepts_ocr_fix(self) -> None:
         """Replacing a broken OCR word with a valid word should be accepted."""
         cleaner = make_cleaner()
         # "hppy" is not a valid English word — fixing it to "happy" is legitimate
@@ -188,7 +190,7 @@ class TestSanityCheck:
             cleaned, classification = cleaner.clean("I am hppy today.")
         assert cleaned == "I am happy today."
 
-    def test_rejects_valid_word_substitution(self):
+    def test_rejects_valid_word_substitution(self) -> None:
         """Replacing a valid English word with a different word should trigger retry and fallback."""
         cleaner = make_cleaner(max_retries=3)
         # "judiciary" is valid — replacing it with "judicial" is suspicious
@@ -198,7 +200,7 @@ class TestSanityCheck:
         assert cleaned == "He obstructed judiciary powers."
         assert classification == "body"
 
-    def test_retries_on_suspicious_substitution(self):
+    def test_retries_on_suspicious_substitution(self) -> None:
         """Should retry when a suspicious substitution is detected, then accept a clean response."""
         cleaner = make_cleaner(max_retries=3)
         bad_response = make_response("He obstructed judicial powers.", "body")
@@ -207,23 +209,24 @@ class TestSanityCheck:
             cleaned, classification = cleaner.clean("He obstructed judiciary powers.")
         assert cleaned == "He obstructed judiciary powers."
 
-    def test_accepts_punctuation_only_change(self):
+    def test_accepts_punctuation_only_change(self) -> None:
         """Changes that only affect punctuation (not words) should be accepted."""
         cleaner = make_cleaner()
         with patch(patch_llm_chat, return_value=make_response("Hello world.", "body")):
             cleaned, classification = cleaner.clean("Hello, world.")
         assert cleaned == "Hello world."
 
-    def test_rejects_valid_word_replaced_with_invalid_word(self):
+    def test_rejects_valid_word_replaced_with_invalid_word(self) -> None:
         """LLM introducing an invalid word where a valid one existed should trigger fallback."""
         cleaner = make_cleaner(max_retries=3)
-        # "endeavoured" is valid — "endeavourd" is not
+        # LLM drops a letter from a valid word, producing an invalid replacement
+        # noinspection SpellCheckingInspection
         bad_response = make_response("He has endeavourd to bring on the inhabitants.", "body")
         with patch(patch_llm_chat, return_value=bad_response):
             cleaned, _ = cleaner.clean("He has endeavoured to bring on the inhabitants.")
         assert cleaned == "He has endeavoured to bring on the inhabitants."
 
-    def test_accepts_word_removal_of_ocr_artifact(self):
+    def test_accepts_word_removal_of_ocr_artifact(self) -> None:
         """Removing a number that is an OCR artifact should be accepted (size check permitting)."""
         cleaner = make_cleaner()
         # trailing "4" is a footnote marker — removing it is legitimate
@@ -236,7 +239,7 @@ class TestSanityCheck:
 
 class TestIntegration:
     @pytest.mark.integration
-    def test_real_llm_call_body(self):
+    def test_real_llm_call_body(self) -> None:
         """Integration test — requires a running LLM with llama3.1:8b."""
         cleaner = make_cleaner()
         paragraph = "This is a sample paragraph from a book about philosophy and rationality."
@@ -247,7 +250,7 @@ class TestIntegration:
         assert cleaned == paragraph
 
     @pytest.mark.integration
-    def test_real_llm_call_footnote(self):
+    def test_real_llm_call_footnote(self) -> None:
         """Integration test — requires a running LLM with llama3.1:8b."""
         cleaner = make_cleaner()
         page_context = (
@@ -266,7 +269,7 @@ class TestIntegration:
                            "all the beliefs in the doctrines of the movement they have quit.")
 
     @pytest.mark.integration
-    def test_real_llm_call_drop(self):
+    def test_real_llm_call_drop(self) -> None:
         """Integration test — requires a running LLM with llama3.1:8b."""
         cleaner = make_cleaner()
         cleaned, classification = cleaner.clean(
@@ -275,7 +278,7 @@ class TestIntegration:
         assert classification == 'drop'
 
     @pytest.mark.integration
-    def test_real_llm_call_body_unchanged(self):
+    def test_real_llm_call_body_unchanged(self) -> None:
         """Clean prose with no issues should be returned exactly as-is."""
         cleaner = make_cleaner()
         paragraph = "The French Revolution began in 1789 and fundamentally transformed the political landscape of Europe."
@@ -284,7 +287,7 @@ class TestIntegration:
         assert cleaned == paragraph
 
     @pytest.mark.integration
-    def test_real_llm_call_ocr_word_break_fixed(self):
+    def test_real_llm_call_ocr_word_break_fixed(self) -> None:
         """Mid-word line breaks introduced by OCR should be rejoined."""
         cleaner = make_cleaner()
         paragraph = "The development of mod- ern philosophy can be traced to the six- teenth century."
@@ -293,7 +296,7 @@ class TestIntegration:
         assert cleaned == "The development of modern philosophy can be traced to the sixteenth century."
 
     @pytest.mark.integration
-    def test_real_llm_call_trailing_footnote_marker_stripped(self):
+    def test_real_llm_call_trailing_footnote_marker_stripped(self) -> None:
         """A trailing footnote number at the end of a body paragraph should be removed."""
         cleaner = make_cleaner()
         paragraph = "The movement grew rapidly throughout the nineteenth century, attracting followers from across the social spectrum. 4"
@@ -302,7 +305,7 @@ class TestIntegration:
         assert cleaned == "The movement grew rapidly throughout the nineteenth century, attracting followers from across the social spectrum."
 
     @pytest.mark.integration
-    def test_real_llm_call_footnote_identified_with_page_context(self):
+    def test_real_llm_call_footnote_identified_with_page_context(self) -> None:
         """A footnote paragraph should be identified and its leading number stripped when page context is provided."""
         cleaner = make_cleaner()
         page_context = (
@@ -316,7 +319,7 @@ class TestIntegration:
         assert cleaned.replace('–', '-') == "For full membership statistics by region, see Jones (1987), pp. 142-156."
 
     @pytest.mark.integration
-    def test_real_llm_call_footnote_without_page_context(self):
+    def test_real_llm_call_footnote_without_page_context(self) -> None:
         """Without page context the response should still be valid, even if classification varies."""
         cleaner = make_cleaner()
         paragraph = "4 For full membership statistics by region, see Jones (1987), pp. 142-156."
@@ -325,7 +328,7 @@ class TestIntegration:
         assert isinstance(cleaned, str)
 
     @pytest.mark.integration
-    def test_real_llm_call_drop_toc(self):
+    def test_real_llm_call_drop_toc(self) -> None:
         """An obvious table of contents should be classified as drop."""
         cleaner = make_cleaner()
         cleaned, classification = cleaner.clean(

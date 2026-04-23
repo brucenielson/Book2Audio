@@ -1,41 +1,71 @@
+"""General utility functions for text processing and file I/O."""
+
+from __future__ import annotations
+
 import csv
 import re
 from pathlib import Path
-from typing import Optional, Dict, Any, Tuple, Set, List
+from typing import Any
+
+from utils.logging_utils import vprint
 
 
-def print_debug_results(results: Dict[str, Any],
-                        include_outputs_from: Optional[set[str]] = None,
+def print_debug_results(results: dict[str, Any],
+                        include_outputs_from: set[str] | None = None,
                         verbose: bool = True) -> None:
+    """Print a filtered and hierarchical view of debug results.
+
+    Args:
+        results: The full results dict to display.
+        include_outputs_from: If provided, only keys present in this set are printed.
+        verbose: If False, nothing is printed. Defaults to True.
+    """
     level: int = 1
     if verbose and include_outputs_from is not None:
         results_filtered = {k: v for k, v in results.items() if k in include_outputs_from}
         if results_filtered:
-            print()
-            print("Debug Results:")
-            _print_hierarchy(results_filtered, level)
+            vprint(verbose)
+            vprint(verbose, "Debug Results:")
+            _print_hierarchy(results_filtered, level, verbose)
 
 
-def _print_hierarchy(data: Dict[str, Any], level: int) -> None:
+def _print_hierarchy(data: dict[str, Any], level: int, verbose: bool = True) -> None:
+    """Recursively print a nested dict structure with level indentation.
+
+    Args:
+        data: The dict to print.
+        level: The current nesting level, used for labeling output lines.
+        verbose: If False, nothing is printed. Defaults to True.
+    """
     for key, value in data.items():
         if level == 1:
-            print()
-        print(f"Level {level}: {key}")
+            vprint(verbose)
+        vprint(verbose, f"Level {level}: {key}")
         if isinstance(value, dict):
-            _print_hierarchy(value, level + 1)
+            _print_hierarchy(value, level + 1, verbose)
         elif isinstance(value, list):
             for index, item in enumerate(value):
-                print(f"Level {level + 1}: Item {index + 1}")
+                vprint(verbose, f"Level {level + 1}: Item {index + 1}")
                 if isinstance(item, dict):
-                    _print_hierarchy(item, level + 2)
+                    _print_hierarchy(item, level + 2, verbose)
                 else:
-                    print(item)
+                    vprint(verbose, item)
         else:
-            print(value)
+            vprint(verbose, value)
 
 
-def load_valid_pages(skip_file: str) -> Dict[str, Tuple[int, int]]:
-    book_pages: Dict[str, Tuple[int, int]] = {}
+def load_valid_pages(skip_file: str) -> dict[str, tuple[int, int]]:
+    """Load a CSV file mapping book titles to valid page ranges.
+
+    The CSV must have columns 'Book Title', 'Start', and 'End'.
+
+    Args:
+        skip_file: Path to the CSV file.
+
+    Returns:
+        A dict mapping book titles to (start_page, end_page) tuples.
+    """
+    book_pages: dict[str, tuple[int, int]] = {}
     skip_file_path = Path(skip_file)
     if skip_file_path.exists():
         with open(skip_file_path, 'r', newline='', encoding='utf-8') as csvfile:
@@ -50,18 +80,19 @@ def load_valid_pages(skip_file: str) -> Dict[str, Tuple[int, int]]:
     return book_pages
 
 
-def load_sections_to_skip(csv_path: Path) -> Dict[str, Set[str]]:
+def load_sections_to_skip(csv_path: Path, verbose: bool = False) -> dict[str, set[str]]:
     """Load a CSV file listing book sections to skip during parsing.
 
     The CSV file must have columns 'Book Title' and 'Section Title'.
 
     Args:
         csv_path: Path to the CSV file.
+        verbose: If True, prints a summary of what was loaded. Defaults to False.
 
     Returns:
         A dict mapping book titles to sets of section IDs to skip.
     """
-    sections_to_skip: Dict[str, Set[str]] = {}
+    sections_to_skip: dict[str, set[str]] = {}
     if csv_path.exists():
         with open(csv_path, 'r', newline='', encoding='utf-8') as csvfile:
             reader: csv.DictReader[str] = csv.DictReader(csvfile)
@@ -74,13 +105,14 @@ def load_sections_to_skip(csv_path: Path) -> Dict[str, Set[str]]:
                         sections_to_skip[book_title] = set()
                     sections_to_skip[book_title].add(section_title)
         skip_count: int = sum(len(sections) for sections in sections_to_skip.values())
-        print(f"Loaded {skip_count} sections to skip.")
+        vprint(verbose, f"Loaded {skip_count} sections to skip.")
     else:
-        print("No sections_to_skip.csv file found. Processing all sections.")
+        vprint(verbose, "No sections_to_skip.csv file found. Processing all sections.")
     return sections_to_skip
 
 
 def is_roman_numeral(s: str) -> bool:
+    # noinspection SpellCheckingInspection
     """Check if a string is a Roman numeral.
 
     The check is case-insensitive and matches standard Roman numerals
@@ -149,6 +181,7 @@ def normalize_whitespace(p_str: str) -> str:
 
 
 def normalize_hyphens(p_str: str) -> str:
+    # noinspection SpellCheckingInspection
     """Remove soft hyphens (SHY, U+00AD) from a string.
 
     Soft hyphens are invisible line-break hints inserted by typesetters.
@@ -282,7 +315,7 @@ def is_ends_with_punctuation(text: str) -> bool:
     return text.endswith(".") or text.endswith("?") or text.endswith("!")
 
 
-def build_paragraph(paragraphs: List[str] | str, p2_str: str = "") -> str:
+def build_paragraph(paragraphs: list[str] | str, p2_str: str = "") -> str:
     """Build a single paragraph out of two strings.
 
     Accepts either a list of strings or two strings (legacy usage).

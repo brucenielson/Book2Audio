@@ -1,3 +1,5 @@
+"""Tests for the DoclingParser class."""
+
 import pytest
 from unittest.mock import MagicMock
 from docling_core.types.doc.document import SectionHeaderItem, TextItem, DocItemLabel
@@ -18,22 +20,27 @@ def make_doc_item(spec, label: str, text: str, page_no: int = 1) -> MagicMock:
 
 
 def make_text_item(text: str, page_no: int = 1) -> MagicMock:
+    """Create a mock regular text item."""
     return make_doc_item(TextItem, DocItemLabel.TEXT.value, text, page_no)
 
 
 def make_section_header(text: str, page_no: int = 1) -> MagicMock:
+    """Create a mock section header item."""
     return make_doc_item(SectionHeaderItem, DocItemLabel.SECTION_HEADER.value, text, page_no)
 
 
 def make_footnote(text: str, page_no: int = 1) -> MagicMock:
+    """Create a mock footnote item."""
     return make_doc_item(TextItem, DocItemLabel.FOOTNOTE.value, text, page_no)
 
 
 def make_page_header(text: str, page_no: int = 1) -> MagicMock:
+    """Create a mock page header item."""
     return make_doc_item(TextItem, DocItemLabel.PAGE_HEADER.value, text, page_no)
 
 
 def make_page_footer(text: str, page_no: int = 1) -> MagicMock:
+    """Create a mock page footer item."""
     return make_doc_item(TextItem, DocItemLabel.PAGE_FOOTER.value, text, page_no)
 
 
@@ -56,7 +63,7 @@ def make_parser(texts: list,
 # --- TestGetProcessedTexts ---
 
 class TestGetProcessedTexts:
-    def test_separates_regular_and_footnotes(self):
+    def test_separates_regular_and_footnotes(self) -> None:
         texts = [
             make_text_item("Regular text."),
             make_footnote("Footnote text."),
@@ -66,7 +73,7 @@ class TestGetProcessedTexts:
         assert len(regular) == 1
         assert len(notes) == 1
 
-    def test_skips_too_short_items(self):
+    def test_skips_too_short_items(self) -> None:
         texts = [
             make_text_item("Hi"),
             make_text_item("This is a longer sentence."),
@@ -76,7 +83,7 @@ class TestGetProcessedTexts:
         assert len(regular) == 1
         assert regular[0].text == "This is a longer sentence."
 
-    def test_regular_texts_before_notes(self):
+    def test_regular_texts_before_notes(self) -> None:
         texts = [
             make_footnote("Footnote."),
             make_text_item("Regular text."),
@@ -86,7 +93,7 @@ class TestGetProcessedTexts:
         assert regular[0].text == "Regular text."
         assert notes[0].text == "Footnote."
 
-    def test_empty_document(self):
+    def test_empty_document(self) -> None:
         parser = make_parser([])
         regular, notes = parser._get_processed_texts()
         assert regular == []
@@ -96,14 +103,14 @@ class TestGetProcessedTexts:
 # --- TestRun ---
 
 class TestRun:
-    def test_basic_paragraph(self):
+    def test_basic_paragraph(self) -> None:
         texts = [make_text_item("This is a complete sentence.")]
         parser = make_parser(texts)
         docs, meta = parser.run()
         assert len(docs) == 1
         assert "This is a complete sentence." in docs[0]
 
-    def test_meta_contains_expected_keys(self):
+    def test_meta_contains_expected_keys(self) -> None:
         texts = [make_text_item("This is a complete sentence.")]
         parser = make_parser(texts, meta_data={"source": "test"})
         docs, meta = parser.run()
@@ -112,13 +119,13 @@ class TestRun:
         assert "page_#" in meta[0]
         assert "paragraph_#" in meta[0]
 
-    def test_section_header_becomes_paragraph(self):
+    def test_section_header_becomes_paragraph(self) -> None:
         texts = [make_section_header("Chapter One")]
         parser = make_parser(texts)
         docs, meta = parser.run()
         assert any("Chapter One" in d for d in docs)
 
-    def test_section_header_flushes_accumulated_paragraph(self):
+    def test_section_header_flushes_accumulated_paragraph(self) -> None:
         texts = [
             make_text_item("First sentence without end"),
             make_section_header("Chapter Two"),
@@ -128,7 +135,7 @@ class TestRun:
         assert any("First sentence without end" in d for d in docs)
         assert any("Chapter Two" in d for d in docs)
 
-    def test_skips_page_header(self):
+    def test_skips_page_header(self) -> None:
         texts = [
             make_page_header("Page Header"),
             make_text_item("Real content."),
@@ -137,7 +144,7 @@ class TestRun:
         docs, meta = parser.run()
         assert all("Page Header" not in d for d in docs)
 
-    def test_skips_page_footer(self):
+    def test_skips_page_footer(self) -> None:
         texts = [
             make_text_item("Real content."),
             make_page_footer("Page Footer"),
@@ -146,7 +153,7 @@ class TestRun:
         docs, meta = parser.run()
         assert all("Page Footer" not in d for d in docs)
 
-    def test_include_notes_true(self):
+    def test_include_notes_true(self) -> None:
         texts = [
             make_text_item("Main text."),
             make_footnote("Footnote content."),
@@ -155,7 +162,7 @@ class TestRun:
         docs, meta = parser.run()
         assert any("Footnote content." in d for d in docs)
 
-    def test_include_notes_false(self):
+    def test_include_notes_false(self) -> None:
         texts = [
             make_text_item("Main text."),
             make_footnote("Footnote content."),
@@ -164,7 +171,7 @@ class TestRun:
         docs, meta = parser.run()
         assert all("Footnote content." not in d for d in docs)
 
-    def test_start_page_filters_early_pages(self):
+    def test_start_page_filters_early_pages(self) -> None:
         texts = [
             make_text_item("Page one content.", page_no=1),
             make_text_item("Page two content.", page_no=2),
@@ -174,7 +181,7 @@ class TestRun:
         assert all("Page one content." not in d for d in docs)
         assert any("Page two content." in d for d in docs)
 
-    def test_end_page_filters_later_pages(self):
+    def test_end_page_filters_later_pages(self) -> None:
         texts = [
             make_text_item("Page one content.", page_no=1),
             make_text_item("Page two content.", page_no=2),
@@ -184,7 +191,7 @@ class TestRun:
         assert any("Page one content." in d for d in docs)
         assert all("Page two content." not in d for d in docs)
 
-    def test_page_range_inclusive(self):
+    def test_page_range_inclusive(self) -> None:
         texts = [
             make_text_item("Page one.", page_no=1),
             make_text_item("Page two.", page_no=2),
@@ -196,7 +203,7 @@ class TestRun:
         assert any("Page two." in d for d in docs)
         assert all("Page three." not in d for d in docs)
 
-    def test_accumulates_short_paragraphs(self):
+    def test_accumulates_short_paragraphs(self) -> None:
         texts = [
             make_text_item("First sentence."),
             make_text_item("Second sentence."),
@@ -207,7 +214,7 @@ class TestRun:
         assert "First sentence." in docs[0]
         assert "Second sentence." in docs[0]
 
-    def test_paragraph_number_in_meta(self):
+    def test_paragraph_number_in_meta(self) -> None:
         texts = [
             make_text_item("First paragraph."),
             make_text_item("Second paragraph."),
@@ -217,7 +224,7 @@ class TestRun:
         assert meta[0]["paragraph_#"] == "1"
         assert meta[1]["paragraph_#"] == "2"
 
-    def test_section_name_in_meta(self):
+    def test_section_name_in_meta(self) -> None:
         texts = [
             make_section_header("Chapter One"),
             make_text_item("Content here."),
@@ -228,7 +235,7 @@ class TestRun:
         content_meta = next(m for m in meta if m["section_name"] == "Chapter One")
         assert content_meta is not None
 
-    def test_empty_document_returns_empty(self):
+    def test_empty_document_returns_empty(self) -> None:
         parser = make_parser([])
         docs, meta = parser.run()
         assert docs == []
@@ -239,7 +246,7 @@ class TestRun:
 
 class TestIntegration:
     @pytest.mark.integration
-    def test_mislabelled_footnote_dropped_by_cleaner(self):
+    def test_mislabelled_footnote_dropped_by_cleaner(self) -> None:
         """A footnote mislabeled as body text should be identified and dropped by the LLM cleaner."""
         texts = [
             make_text_item(
@@ -252,7 +259,7 @@ class TestIntegration:
                 page_no=1
             ),
         ]
-        parser = make_parser(texts, cleaner=TextCleaner(), include_notes=False)
+        parser = make_parser(texts, cleaner=TextCleaner(temperature=0), include_notes=False)
         docs, meta = parser.run()
         assert any("religious sects" in d for d in docs)
         assert all("This ignores the interesting question" not in d for d in docs)

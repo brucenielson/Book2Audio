@@ -1,25 +1,31 @@
 from __future__ import annotations
+
 import re
 import time
 from pathlib import Path
-from typing import List, Dict
+
 from text_chunk import RawChunk, ParsedChunk
 from word_validator import word_validator
 from utils.general_utils import is_sentence_end, build_paragraph, clean_text
+from utils.logging_utils import vprint
 from text_cleaner import TextCleaner
 
 
-def _all_words_valid(text: str) -> bool:
+def _all_words_valid(text: str, verbose: bool = False) -> bool:
     """Return True if every token in text is a known English word.
 
     Only common sentence punctuation is stripped before checking (commas,
     periods, colons, etc.). Tokens containing digits or any other non-letter
     characters are treated as potential artifacts and return False immediately.
+
+    Args:
+        text: The paragraph text to validate.
+        verbose: If True, prints each token that fails validation. Defaults to False.
     """
     for token in text.split():
         stripped = re.sub(r"[,;:.!?()'\"—–]", '', token.lower())
         if not stripped or not word_validator.is_valid_word(stripped):
-            # print(f"  [FAIL TOKEN] {token!r} -> {stripped!r}")
+            vprint(verbose, f"  [FAIL TOKEN] {token!r} -> {stripped!r}")
             return False
     return True
 
@@ -38,7 +44,8 @@ class TextProcessor:
 
     def __init__(self, min_paragraph_size: int = 0,
                  include_footnotes: bool = False,
-                 cleaner: str | TextCleaner | None = None) -> None:
+                 cleaner: str | TextCleaner | None = None,
+                 verbose: bool = False) -> None:
         """Initialise TextProcessor.
 
         Args:
@@ -47,18 +54,21 @@ class TextProcessor:
             cleaner: Optional LLM model name (str), TextCleaner instance, or None.
                      A string is interpreted as an Ollama model name and used to
                      create a TextCleaner automatically. Defaults to None.
+            verbose: If True, prints per-paragraph skip/LLM decisions and timing
+                     summary. Defaults to False.
         """
         self._min_paragraph_size: int = min_paragraph_size
         self._include_footnotes: bool = include_footnotes
+        self._verbose: bool = verbose
         if isinstance(cleaner, str):
             self._cleaner: TextCleaner | None = TextCleaner(model=cleaner)
         else:
             self._cleaner = cleaner  # TextCleaner instance or None
-        self._paragraph: List[str] = []
+        self._paragraph: list[str] = []
         self._section_name: str = ""
         self._para_num: int = 0
-        self._result: List[ParsedChunk] = []
-        self._page_contexts: Dict[str, str] = {}
+        self._result: list[ParsedChunk] = []
+        self._page_contexts: dict[str, str] = {}
         self._t_validation: float = 0.0
         self._t_llm: float = 0.0
         self._n_skipped: int = 0
@@ -69,6 +79,7 @@ class TextProcessor:
         return sum(len(p) for p in self._paragraph)
 
     def _init_state(self) -> None:
+        """Reset all processing state before a new run."""
         self._paragraph = []
         self._section_name = ""
         self._para_num = 0
@@ -80,15 +91,16 @@ class TextProcessor:
         self._n_llm_calls = 0
 
     def _clear_state(self) -> None:
+        """Clear processing state after a run to free memory."""
         self._paragraph = []
         self._section_name = ""
         self._para_num = 0
         self._result = []
         self._page_contexts = {}
 
-    def process(self, chunks: List[RawChunk],
+    def process(self, chunks: list[RawChunk],
                 output_path: Path | None = None,
-                generate_text_file: bool = False) -> List[ParsedChunk]:
+                generate_text_file: bool = False) -> list[ParsedChunk]:
         """Process a list of RawChunks into ParsedChunks.
 
         Args:
@@ -136,13 +148,12 @@ class TextProcessor:
         if generate_text_file and output_path is not None:
             self._save_paragraphs_file(output_path)
 
-        # if self._cleaner:
-        #     total = self._t_validation + self._t_llm
-        #     print(
-        #         f"\n[TIMING] validation={self._t_validation:.2f}s ({self._n_skipped} skipped) | "
-        #         f"llm={self._t_llm:.2f}s ({self._n_llm_calls} calls) | "
-        #         f"total_timed={total:.2f}s"
-        #     )
+        if self._cleaner and self._verbose:
+            total = self._t_validation + self._t_llm
+            vprint(self._verbose,
+                   f"\n[TIMING] validation={self._t_validation:.2f}s ({self._n_skipped} skipped) | "
+                   f"llm={self._t_llm:.2f}s ({self._n_llm_calls} calls) | "
+                   f"total_timed={total:.2f}s")
 
         result = self._result
         self._clear_state()
@@ -181,7 +192,15 @@ class TextProcessor:
         # Paragraph is complete but short and more text is coming — accumulate
         return True
 
-    def _build_meta(self, meta: Dict[str, str]) -> Dict[str, str]:
+    def _build_meta(self, meta: dict[str, str]) -> dict[str, str]:
+        """Build the metadata dict for an emitted ParsedChunk.
+
+        Args:
+            meta: The base metadata from the source chunk.
+
+        Returns:
+            A new metadata dict that includes paragraph number and section name.
+        """
         result = {
             **meta,
             "paragraph_#": str(self._para_num),
@@ -207,7 +226,8 @@ class TextProcessor:
                 label=chunk.label
             ))
 
-    def _build_page_contexts(self, chunks: List[RawChunk]) -> Dict[str, str]:
+    @staticmethod
+    def _build_page_contexts(chunks: list[RawChunk]) -> dict[str, str]:
         """Build a mapping of page number to full page text.
 
         Args:
@@ -216,7 +236,7 @@ class TextProcessor:
         Returns:
             Dict mapping page_# values to concatenated page text.
         """
-        page_texts: Dict[str, List[str]] = {}
+        page_texts: dict[str, list[str]] = {}
         for chunk in chunks:
             page_num = chunk.meta.get('page_#', '')
             if page_num:
@@ -231,7 +251,7 @@ class TextProcessor:
         """
         return build_paragraph(self._paragraph)
 
-    def _flush_paragraph(self, meta: Dict[str, str], label: str = 'text') -> None:
+    def _flush_paragraph(self, meta: dict[str, str], label: str = 'text') -> None:
         """Flush the accumulated paragraph as a ParsedChunk.
 
         If a cleaner is configured, calls the LLM to clean and classify the
@@ -246,10 +266,10 @@ class TextProcessor:
 
         if self._cleaner:
             t0 = time.perf_counter()
-            _skip = _all_words_valid(p_str)
+            _skip = _all_words_valid(p_str, verbose=self._verbose)
             self._t_validation += time.perf_counter() - t0
 
-            # print(f"{'[SKIP]' if _skip else '[LLM ] '} {p_str[:100]!r}")
+            vprint(self._verbose, f"{'[SKIP]' if _skip else '[LLM ] '} {p_str[:100]!r}")
             if not _skip:
                 self._n_llm_calls += 1
                 page_context = self._page_contexts.get(meta.get('page_#', ''), '')

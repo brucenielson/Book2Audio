@@ -1,6 +1,7 @@
-import pytest
-from unittest.mock import MagicMock, patch
-from text_chunk import RawChunk, ParsedChunk
+"""Tests for the TextProcessor class and _all_words_valid helper."""
+
+from unittest.mock import MagicMock
+from text_chunk import RawChunk
 from text_processor import TextProcessor, _all_words_valid
 
 
@@ -14,6 +15,7 @@ def make_chunk(text: str, label: str = 'text', page: str = '') -> RawChunk:
 
 def make_processor(min_paragraph_size: int = 0,
                    include_footnotes: bool = False) -> TextProcessor:
+    """Create a TextProcessor with the given settings."""
     return TextProcessor(min_paragraph_size=min_paragraph_size,
                          include_footnotes=include_footnotes)
 
@@ -30,19 +32,19 @@ def make_cleaner(classification: str = 'body', cleaned: str | None = None) -> Ma
 # --- TestProcess ---
 
 class TestProcess:
-    def test_empty_chunks_returns_empty(self):
+    def test_empty_chunks_returns_empty(self) -> None:
         processor = make_processor()
         result = processor.process([])
         assert result == []
 
-    def test_single_complete_sentence(self):
+    def test_single_complete_sentence(self) -> None:
         processor = make_processor()
         chunks = [make_chunk("This is a complete sentence.")]
         result = processor.process(chunks)
         assert len(result) == 1
         assert result[0].text == "This is a complete sentence."
 
-    def test_incomplete_sentence_accumulated_with_next(self):
+    def test_incomplete_sentence_accumulated_with_next(self) -> None:
         processor = make_processor()
         chunks = [
             make_chunk("This is incomplete"),
@@ -53,14 +55,14 @@ class TestProcess:
         assert "This is incomplete" in result[0].text
         assert "and this completes it." in result[0].text
 
-    def test_incomplete_sentence_at_end_still_emitted(self):
+    def test_incomplete_sentence_at_end_still_emitted(self) -> None:
         processor = make_processor()
         chunks = [make_chunk("This is incomplete")]
         result = processor.process(chunks)
         assert len(result) == 1
         assert "This is incomplete" in result[0].text
 
-    def test_short_paragraphs_accumulated_until_min_size(self):
+    def test_short_paragraphs_accumulated_until_min_size(self) -> None:
         processor = make_processor(min_paragraph_size=100)
         chunks = [
             make_chunk("First sentence."),
@@ -72,14 +74,14 @@ class TestProcess:
         assert "First sentence." in result[0].text
         assert "Second sentence." in result[0].text
 
-    def test_section_header_emitted_as_own_paragraph(self):
+    def test_section_header_emitted_as_own_paragraph(self) -> None:
         processor = make_processor()
         chunks = [make_chunk("Chapter One", label='section_header')]
         result = processor.process(chunks)
         assert len(result) == 1
         assert result[0].text == "Chapter One"
 
-    def test_section_header_flushes_accumulated_paragraph(self):
+    def test_section_header_flushes_accumulated_paragraph(self) -> None:
         processor = make_processor(min_paragraph_size=100)
         chunks = [
             make_chunk("Accumulated text."),
@@ -89,7 +91,7 @@ class TestProcess:
         assert any("Accumulated text." in r.text for r in result)
         assert any("Chapter One" in r.text for r in result)
 
-    def test_section_header_resets_accumulator(self):
+    def test_section_header_resets_accumulator(self) -> None:
         processor = make_processor(min_paragraph_size=100)
         chunks = [
             make_chunk("Before header."),
@@ -101,7 +103,7 @@ class TestProcess:
         assert any("Chapter One" in r.text for r in result)
         assert any("After header." in r.text for r in result)
 
-    def test_section_name_in_meta_after_header(self):
+    def test_section_name_in_meta_after_header(self) -> None:
         processor = make_processor()
         chunks = [
             make_chunk("Chapter One", label='section_header'),
@@ -111,7 +113,7 @@ class TestProcess:
         content = next(r for r in result if "Content here." in r.text)
         assert content.meta["section_name"] == "Chapter One"
 
-    def test_page_header_skipped(self):
+    def test_page_header_skipped(self) -> None:
         processor = make_processor()
         chunks = [
             make_chunk("Page Header", label='page_header'),
@@ -120,7 +122,7 @@ class TestProcess:
         result = processor.process(chunks)
         assert all("Page Header" not in r.text for r in result)
 
-    def test_page_footer_skipped(self):
+    def test_page_footer_skipped(self) -> None:
         processor = make_processor()
         chunks = [
             make_chunk("Real content."),
@@ -129,7 +131,7 @@ class TestProcess:
         result = processor.process(chunks)
         assert all("Page Footer" not in r.text for r in result)
 
-    def test_footnote_excluded_by_default(self):
+    def test_footnote_excluded_by_default(self) -> None:
         processor = make_processor(include_footnotes=False)
         chunks = [
             make_chunk("Main text."),
@@ -138,7 +140,7 @@ class TestProcess:
         result = processor.process(chunks)
         assert all("Footnote text." not in r.text for r in result)
 
-    def test_footnote_included_when_flag_set(self):
+    def test_footnote_included_when_flag_set(self) -> None:
         processor = make_processor(include_footnotes=True)
         chunks = [
             make_chunk("Main text."),
@@ -147,7 +149,7 @@ class TestProcess:
         result = processor.process(chunks)
         assert any("Footnote text." in r.text for r in result)
 
-    def test_paragraph_numbers_increment(self):
+    def test_paragraph_numbers_increment(self) -> None:
         processor = make_processor()
         chunks = [
             make_chunk("First paragraph."),
@@ -157,13 +159,13 @@ class TestProcess:
         assert result[0].meta["paragraph_#"] == "1"
         assert result[1].meta["paragraph_#"] == "2"
 
-    def test_meta_passed_through(self):
+    def test_meta_passed_through(self) -> None:
         processor = make_processor()
         chunk = RawChunk(text="Some content.", meta={"source": "test"}, label='text')
         result = processor.process([chunk])
         assert result[0].meta["source"] == "test"
 
-    def test_next_section_header_forces_emit(self):
+    def test_next_section_header_forces_emit(self) -> None:
         processor = make_processor(min_paragraph_size=1000)
         chunks = [
             make_chunk("Short paragraph."),
@@ -172,14 +174,14 @@ class TestProcess:
         result = processor.process(chunks)
         assert any("Short paragraph." in r.text for r in result)
 
-    def test_generate_text_file_creates_file(self, tmp_path):
+    def test_generate_text_file_creates_file(self, tmp_path) -> None:
         processor = make_processor()
         chunks = [make_chunk("Some content.")]
         output_path = tmp_path / "test"
         processor.process(chunks, output_path=output_path, generate_text_file=True)
         assert (tmp_path / "test_processed_paragraphs.txt").exists()
 
-    def test_generate_text_file_content(self, tmp_path):
+    def test_generate_text_file_content(self, tmp_path) -> None:
         processor = make_processor()
         chunks = [make_chunk("Some content.")]
         output_path = tmp_path / "test"
@@ -187,14 +189,14 @@ class TestProcess:
         content = (tmp_path / "test_processed_paragraphs.txt").read_text(encoding="utf-8")
         assert "Some content." in content
 
-    def test_generate_text_file_false_does_not_create_file(self, tmp_path):
+    def test_generate_text_file_false_does_not_create_file(self, tmp_path) -> None:
         processor = make_processor()
         chunks = [make_chunk("Some content.")]
         output_path = tmp_path / "test"
         processor.process(chunks, output_path=output_path, generate_text_file=False)
         assert not (tmp_path / "test_processed_paragraphs.txt").exists()
 
-    def test_process_can_be_called_multiple_times(self):
+    def test_process_can_be_called_multiple_times(self) -> None:
         processor = make_processor()
         chunks = [make_chunk("First run.")]
         result1 = processor.process(chunks)
@@ -212,39 +214,39 @@ class TestProcess:
 # TextCleaner. The artifact is a precondition, not the subject of the test.
 
 class TestCleaner:
-    def test_cleaner_body_paragraph_kept(self):
+    def test_cleaner_body_paragraph_kept(self) -> None:
         cleaner = make_cleaner(classification='body')
         processor = TextProcessor(cleaner=cleaner)
         result = processor.process([make_chunk("Some b0dy text.")])  # digit forces cleaner call
         assert len(result) == 1
         assert "Some b0dy text." in result[0].text
 
-    def test_cleaner_drop_paragraph_discarded(self):
+    def test_cleaner_drop_paragraph_discarded(self) -> None:
         cleaner = make_cleaner(classification='drop')
         processor = TextProcessor(cleaner=cleaner)
         result = processor.process([make_chunk("Table of contents ... 1")])  # digit forces cleaner call
         assert result == []
 
-    def test_cleaner_footnote_excluded_by_default(self):
+    def test_cleaner_footnote_excluded_by_default(self) -> None:
         cleaner = make_cleaner(classification='footnote')
         processor = TextProcessor(cleaner=cleaner, include_footnotes=False)
         result = processor.process([make_chunk("1 A footnote.")])  # digit forces cleaner call
         assert result == []
 
-    def test_cleaner_footnote_included_when_flag_set(self):
+    def test_cleaner_footnote_included_when_flag_set(self) -> None:
         cleaner = make_cleaner(classification='footnote', cleaned="A footnote.")
         processor = TextProcessor(cleaner=cleaner, include_footnotes=True)
         result = processor.process([make_chunk("1 A footnote.")])  # digit forces cleaner call
         assert len(result) == 1
         assert result[0].label == 'footnote'
 
-    def test_cleaner_cleaned_text_used(self):
+    def test_cleaner_cleaned_text_used(self) -> None:
         cleaner = make_cleaner(classification='body', cleaned="Fixed text.")
         processor = TextProcessor(cleaner=cleaner)
         result = processor.process([make_chunk("Brok en text.")])  # misspelling forces cleaner call
         assert result[0].text == "Fixed text."
 
-    def test_cleaner_receives_page_context(self):
+    def test_cleaner_receives_page_context(self) -> None:
         cleaner = make_cleaner(classification='body')
         processor = TextProcessor(cleaner=cleaner)
         chunks = [
@@ -255,14 +257,14 @@ class TestCleaner:
         call_args = cleaner.clean.call_args
         assert call_args[1]['page_context'] != '' or call_args[0][1] != ''
 
-    def test_cleaner_called_once_per_flushed_paragraph(self):
+    def test_cleaner_called_once_per_flushed_paragraph(self) -> None:
         cleaner = make_cleaner(classification='body')
         processor = TextProcessor(cleaner=cleaner)
         chunks = [make_chunk("F1rst."), make_chunk("S3cond.")]  # digits force cleaner calls
         processor.process(chunks)
         assert cleaner.clean.call_count == 2
 
-    def test_no_cleaner_uses_existing_behavior(self):
+    def test_no_cleaner_uses_existing_behavior(self) -> None:
         processor = make_processor()
         chunks = [make_chunk("Normal text.")]
         result = processor.process(chunks)
@@ -273,27 +275,27 @@ class TestCleaner:
 # --- TestAllWordsValid ---
 
 class TestAllWordsValid:
-    def test_all_valid_words_returns_true(self):
+    def test_all_valid_words_returns_true(self) -> None:
         """A sentence of common English words should return True."""
         assert _all_words_valid("The dog ran quickly") is True
 
-    def test_ocr_artifact_returns_false(self):
+    def test_ocr_artifact_returns_false(self) -> None:
         """A sentence containing a non-word should return False."""
         assert _all_words_valid("I am hppy today") is False
 
-    def test_standalone_number_returns_false(self):
+    def test_standalone_number_returns_false(self) -> None:
         """A standalone numeric token is a potential artifact and should return False."""
         assert _all_words_valid("Chapter 1789") is False
 
-    def test_embedded_digit_returns_false(self):
+    def test_embedded_digit_returns_false(self) -> None:
         """A digit embedded in a word (e.g. OCR artifact) should return False."""
         assert _all_words_valid("The dog ran quickly1.") is False
 
-    def test_empty_string_returns_true(self):
+    def test_empty_string_returns_true(self) -> None:
         """An empty string has no invalid words, so _all_words_valid returns True."""
         assert _all_words_valid("") is True
 
-    def test_punctuation_stripped_before_check(self):
+    def test_punctuation_stripped_before_check(self) -> None:
         """Punctuation attached to valid words should be ignored."""
         assert _all_words_valid("Hello, world.") is True
 
@@ -301,28 +303,29 @@ class TestAllWordsValid:
 # --- TestSkipCleanerWhenAllWordsValid ---
 
 class TestSkipCleanerWhenAllWordsValid:
-    def test_cleaner_not_called_when_all_words_valid(self):
+    def test_cleaner_not_called_when_all_words_valid(self) -> None:
         """Cleaner should not be called when every word in the paragraph is valid."""
         cleaner = make_cleaner(classification='body')
         processor = TextProcessor(cleaner=cleaner)
         processor.process([make_chunk("The dog ran quickly.")])
         cleaner.clean.assert_not_called()
 
-    def test_paragraph_returned_unchanged_when_all_words_valid(self):
+    def test_paragraph_returned_unchanged_when_all_words_valid(self) -> None:
         """Paragraph should pass through unmodified when all words are valid."""
         cleaner = make_cleaner(classification='body')
         processor = TextProcessor(cleaner=cleaner)
         result = processor.process([make_chunk("The dog ran quickly.")])
         assert result[0].text == "The dog ran quickly."
 
-    def test_cleaner_called_when_invalid_word_present(self):
+    def test_cleaner_called_when_invalid_word_present(self) -> None:
         """Cleaner should be called when the paragraph contains an invalid word."""
         cleaner = make_cleaner(classification='body')
         processor = TextProcessor(cleaner=cleaner)
+        # noinspection SpellCheckingInspection
         processor.process([make_chunk("The dog ran qukckly.")])
         cleaner.clean.assert_called_once()
 
-    def test_cleaner_called_when_digit_present(self):
+    def test_cleaner_called_when_digit_present(self) -> None:
         """Cleaner should be called when the paragraph contains a digit token."""
         cleaner = make_cleaner(classification='body')
         processor = TextProcessor(cleaner=cleaner)

@@ -2,6 +2,7 @@ import numpy as np
 import soundfile as sf
 
 from engines import TTSEngine
+from utils.logging_utils import vprint
 
 
 class AudioGenerator:
@@ -14,13 +15,15 @@ class AudioGenerator:
         _engine: The TTSEngine used for speech synthesis.
     """
 
-    def __init__(self, engine: TTSEngine) -> None:
+    def __init__(self, engine: TTSEngine, verbose: bool = False) -> None:
         """Initialize the AudioGenerator.
 
         Args:
             engine: A TTSEngine instance to use for speech synthesis.
+            verbose: If True, prints progress messages when saving audio. Defaults to False.
         """
         self._engine: TTSEngine = engine
+        self._verbose: bool = verbose
 
     def generate(self, text: str) -> np.ndarray:
         """Generate audio from a text string.
@@ -41,7 +44,7 @@ class AudioGenerator:
             output_file: The path to the output WAV file.
         """
         sf.write(output_file, audio, self._engine.sample_rate)
-        print(f"Audio saved to {output_file}")
+        vprint(self._verbose, f"Audio saved to {output_file}")
 
     def generate_and_save(self, text: str, output_file: str) -> None:
         """Generate audio from text and save it directly to a WAV file.

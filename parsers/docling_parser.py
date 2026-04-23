@@ -1,7 +1,12 @@
+"""Docling-based PDF parser for Book2Audio."""
+
+from __future__ import annotations
+
 from pathlib import Path
-from typing import List, Dict, Tuple
+
 from docling_core.types import DoclingDocument
 from docling_core.types.doc.document import DocItem, TextItem
+
 from text_chunk import RawChunk, ParsedChunk
 from text_processor import TextProcessor
 from text_cleaner import TextCleaner
@@ -15,6 +20,8 @@ from utils.docling_utils import (is_footnote,
 
 
 class DoclingParser(BaseParser):
+    """Parser for PDF documents using the Docling library."""
+
     def __init__(self, source: str | Path | DoclingDocument,
                  include_footnotes: bool = False,
                  meta_data: dict[str, str] | None = None,
@@ -58,13 +65,21 @@ class DoclingParser(BaseParser):
         self._cleaner: str | TextCleaner | None = llm_cleaner
 
     def _is_in_page_range(self, page_no: int | None) -> bool:
+        """Check whether a page number falls within the configured page range.
+
+        Args:
+            page_no: The page number to check, or None.
+
+        Returns:
+            True if the page is within [start_page, end_page], False otherwise.
+        """
         if self._start_page is not None and page_no is not None and page_no < self._start_page:
             return False
         if self._end_page is not None and page_no is not None and page_no > self._end_page:
             return False
         return True
 
-    def run(self, generate_text_file: bool = False) -> Tuple[List[str], List[Dict[str, str]]]:
+    def run(self, generate_text_file: bool = False) -> tuple[list[str], list[dict[str, str]]]:
         """Parse the document and return paragraphs and metadata.
 
         Args:
@@ -75,7 +90,7 @@ class DoclingParser(BaseParser):
             A tuple of (docs, meta) where docs is a list of paragraph strings
             and meta is a list of metadata dicts, one per paragraph.
         """
-        raw_chunks: List[RawChunk] = self._extract_chunks()
+        raw_chunks: list[RawChunk] = self._extract_chunks()
 
         output_path: Path | None = None
         if generate_text_file and self._file_path is not None:
@@ -87,7 +102,7 @@ class DoclingParser(BaseParser):
             cleaner=self._cleaner
         )
 
-        parsed_chunks: List[ParsedChunk] = processor.process(
+        parsed_chunks: list[ParsedChunk] = processor.process(
             chunks=raw_chunks,
             output_path=output_path,
             generate_text_file=generate_text_file
@@ -96,21 +111,21 @@ class DoclingParser(BaseParser):
         if generate_text_file and self._file_path is not None:
             self._save_text_files(self._extract_all_texts())
 
-        docs: List[str] = [chunk.text for chunk in parsed_chunks]
-        meta: List[Dict[str, str]] = [chunk.meta for chunk in parsed_chunks]
+        docs: list[str] = [chunk.text for chunk in parsed_chunks]
+        meta: list[dict[str, str]] = [chunk.meta for chunk in parsed_chunks]
         return docs, meta
 
-    def _extract_chunks(self) -> List[RawChunk]:
+    def _extract_chunks(self) -> list[RawChunk]:
         """Extract raw chunks from the document.
 
         Returns:
             A list of RawChunks extracted from the document.
         """
-        chunks: List[RawChunk] = []
+        chunks: list[RawChunk] = []
         page_no: int | None = None
 
         regular_texts, notes = self._get_processed_texts()
-        texts: List[DocItem] = regular_texts + (notes if self._include_notes else [])
+        texts: list[DocItem] = regular_texts + (notes if self._include_notes else [])
 
         for i, text in enumerate(texts):
             if not is_text_bearing(text):
@@ -124,7 +139,7 @@ class DoclingParser(BaseParser):
             if should_skip_element(text):
                 continue
 
-            meta: Dict[str, str] = {
+            meta: dict[str, str] = {
                 **self._meta_data,
                 "section_name": "",
                 "page_#": str(page_no)
@@ -143,12 +158,20 @@ class DoclingParser(BaseParser):
 
         return chunks
 
-    def _extract_all_texts(self) -> List[DocItem]:
+    def _extract_all_texts(self) -> list[DocItem]:
         """Return all DocItems for debug file writing."""
         regular_texts, notes = self._get_processed_texts()
         return regular_texts + (notes if self._include_notes else [])
 
-    def _save_text_files(self, texts: List[DocItem]) -> None:
+    def _save_text_files(self, texts: list[DocItem]) -> None:
+        """Write per-item debug text to a file alongside the source document.
+
+        Args:
+            texts: The list of DocItems to write.
+
+        Raises:
+            ValueError: If no file path is available (document was passed directly).
+        """
         if self._file_path is None:
             raise ValueError(
                 "Cannot save text files when DoclingDocument was passed directly — no file path available.")
@@ -160,17 +183,21 @@ class DoclingParser(BaseParser):
                 # noinspection PyTypeHints
                 f.write(f"{text.prov[0].page_no if text.prov else 'N/A'}: {text.label}: {text_content}\n")
 
-    def _get_processed_texts(self) -> Tuple[List[DocItem], List[DocItem]]:
+    def _get_processed_texts(self) -> tuple[list[TextItem], list[TextItem]]:
+        """Separate the document's text items into regular content and footnotes.
+
+        Returns:
+            A tuple of (regular_texts, notes) where each is a list of TextItems.
         """
-        Processes the document's text items, separating regular content from notes
-        (footnotes), and returns them as separate lists.
-        """
-        regular_texts: List[DocItem] = []
-        notes: List[DocItem] = []
+        regular_texts: list[TextItem] = []
+        notes: list[TextItem] = []
         processed_pages: set[int] = set()  # Keep track of processed pages
 
         text_item: DocItem
         for text_item in self._doc.texts:
+            if not is_text_bearing(text_item):
+                continue
+
             # noinspection PyTypeHints
             page_number: int = text_item.prov[0].page_no
 

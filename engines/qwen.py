@@ -3,6 +3,7 @@ import torch
 from qwen_tts import Qwen3TTSModel
 
 from .base import TTSEngine
+from utils.logging_utils import vprint
 
 # Map short model size names to full Hugging Face model identifiers.
 QWEN_MODEL_SIZES = {
@@ -11,9 +12,11 @@ QWEN_MODEL_SIZES = {
 }
 
 # Default speakers available in CustomVoice models.
+# noinspection SpellCheckingInspection
 QWEN_SPEAKERS = ['aiden', 'dylan', 'eric', 'ono_anna', 'ryan', 'serena', 'sohee', 'uncle_fu', 'vivian']
 
 
+# noinspection SpellCheckingInspection
 class QwenCustomVoiceEngine(TTSEngine):
     """TTS engine wrapping Qwen3-TTS CustomVoice models.
 
@@ -34,7 +37,8 @@ class QwenCustomVoiceEngine(TTSEngine):
                  language: str = 'Auto',
                  instruct: str | None = None,
                  model_size: str = '0.6b',
-                 model: Qwen3TTSModel | None = None) -> None:
+                 model: Qwen3TTSModel | None = None,
+                 verbose: bool = False) -> None:
         """Initialize the Qwen CustomVoice engine.
 
         Args:
@@ -48,20 +52,23 @@ class QwenCustomVoiceEngine(TTSEngine):
                       instruction (neutral delivery).
             model_size: The model size to use: '0.6b' or '1.7b'.
                         Defaults to '0.6b'.
-            model: An optional pre-loaded Qwen3TTSModel instance.
+            model: An optional preloaded Qwen3TTSModel instance.
                    If None, the model is loaded based on model_size.
+            verbose: If True, prints the model ID and device during loading.
+                     Defaults to False.
         """
         if model is None:
             model_id: str = QWEN_MODEL_SIZES.get(model_size.lower(), QWEN_MODEL_SIZES['0.6b'])
             # Determine attention implementation: use flash_attention_2 if available, fall back to sdpa.
             attn_impl: str = 'sdpa'
             try:
+                # noinspection PyPackageRequirements
                 import flash_attn  # noqa: F401
                 attn_impl = 'flash_attention_2'
             except ImportError:
                 pass
             device: str = 'cuda:0' if torch.cuda.is_available() else 'cpu'
-            print(f"Loading Qwen3-TTS model: {model_id} (device: {device}, attention: {attn_impl})")
+            vprint(verbose, f"Loading Qwen3-TTS model: {model_id} (device: {device}, attention: {attn_impl})")
             model = Qwen3TTSModel.from_pretrained(
                 model_id,
                 device_map=device,
@@ -72,6 +79,7 @@ class QwenCustomVoiceEngine(TTSEngine):
         self._speaker: str = speaker
         self._language: str = language
         self._instruct: str | None = instruct
+        self._verbose: bool = verbose
         self._sample_rate: int = 24000  # Will be confirmed on first generate call.
 
     @property

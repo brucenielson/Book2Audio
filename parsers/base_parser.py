@@ -1,5 +1,9 @@
+"""Abstract base class for Book2Audio document parsers."""
+
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
-from typing import List, Dict, Tuple
+
 from text_cleaner import TextCleaner
 
 
@@ -8,7 +12,7 @@ class BaseParser(ABC):
 
     # noinspection PyUnusedLocal
     @abstractmethod
-    def __init__(self, source,
+    def __init__(self, source: object,
                  include_footnotes: bool = False,
                  meta_data: dict[str, str] | None = None,
                  min_paragraph_size: int = 5,
@@ -32,7 +36,7 @@ class BaseParser(ABC):
         pass
 
     @abstractmethod
-    def run(self, generate_text_file: bool = False) -> Tuple[List[str], List[Dict[str, str]]]:
+    def run(self, generate_text_file: bool = False) -> tuple[list[str], list[dict[str, str]]]:
         """Parse the document and return paragraphs and metadata.
 
         Returns:

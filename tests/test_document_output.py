@@ -106,7 +106,7 @@ def process_all_documents_with_cleaner():
         pytest.skip("No PDF or EPUB files found in test_documents/")
 
     TEST_DOCUMENTS_LLM.mkdir(exist_ok=True)
-    cleaner = TextCleaner()
+    cleaner = TextCleaner(temperature=0)
 
     for pdf_path in pdf_files:
         parser = DoclingParser(source=pdf_path, meta_data={"source": pdf_path.name},

@@ -8,11 +8,15 @@ Converts PDF books, EPUB files, and text files to audio using text-to-speech (TT
 
 - Python 3.10+
 - GPU recommended for faster TTS (CUDA-compatible)
-- Dependencies: `docling`, `kokoro`, `nltk`, `torch`, `ebooklib`, `beautifulsoup4`
+- Dependencies: `docling`, `kokoro`, `nltk`, `torch`, `ebooklib`, `beautifulsoup4`, `ollama` (optional, for LLM-based cleaning)
 
 Install dependencies:
 
     pip install -r requirements.txt
+
+For LLM-based cleaning, install and run [Ollama](https://ollama.com) with a supported model:
+
+    ollama pull llama3.1:8b
 
 ---
 
@@ -99,6 +103,19 @@ Generate debug text files alongside the source document:
     converter = BookToAudio(AudioGenerator(), dry_run=True)
     converter.convert_to_audio(Path('documents/my_book.pdf'), generate_text_file=True)
 
+### LLM-based cleaning
+
+Pass a `TextCleaner` instance to the parser to enable LLM-based paragraph cleaning and classification. The cleaner uses a local Ollama model to fix OCR errors, remove stray footnote markers, and classify each paragraph as body text, a footnote, or content to drop (table of contents, index, etc.).
+
+    from text_cleaner import TextCleaner
+    from parsers.docling_parser import DoclingParser
+
+    cleaner = TextCleaner(model='llama3.1:8b')
+    parser = DoclingParser('documents/my_book.pdf', llm_cleaner=cleaner)
+    paragraphs, meta = parser.run()
+
+Without a cleaner, the parser uses rule-based cleaning only, which is faster but less accurate on noisy PDFs.
+
 ---
 
 ## Debug Files
@@ -143,20 +160,26 @@ On first conversion, the parsed PDF is saved as a JSON file alongside the source
     book_to_audio.py        # CLI entry point
     book_converter.py       # BookToAudio — orchestrates conversion
     audio_generator.py      # AudioGenerator — TTS and WAV output
-    engines.py              # KokoroEngine, QwenCustomVoiceEngine
-    word_validator.py       # WordValidator — hyphen resolution using NLTK
+    engines/
+        base.py             # TTSEngine abstract base class
+        kokoro.py           # KokoroEngine
+        qwen.py             # QwenCustomVoiceEngine
+    text_cleaner.py         # TextCleaner — LLM-based paragraph cleaning and classification
+    text_processor.py       # TextProcessor — paragraph accumulation and processing
     text_chunk.py           # RawChunk, ParsedChunk dataclasses
-    text_processor.py       # TextProcessor — paragraph accumulation
+    word_validator.py       # WordValidator — NLTK-based word validation
     parsers/
         docling_parser.py   # DoclingParser — PDF parsing
         epub_parser.py      # EpubParser — EPUB parsing
     utils/
         general_utils.py    # Shared text cleaning and utility functions
-        docling_utils.py    # DocItem inspection helpers and PDF-specific cleaning
+        docling_utils.py    # DocItem inspection helpers and PDF-specific utilities
+        logging_utils.py    # vprint — verbose-aware print utility
     tests/
         test_book_to_audio.py
         test_docling_parser.py
         test_epub_parser.py
+        test_text_cleaner.py
         test_text_processor.py
         test_docling_utils.py
         test_general_utils.py

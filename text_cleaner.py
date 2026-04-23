@@ -1,13 +1,21 @@
+"""LLM-based text cleaner and classifier for book-to-audio conversion."""
+
+from __future__ import annotations
+
 import difflib
 import json
 import re
+from typing import Literal, TypeAlias
+
 import ollama
-from typing import Literal
+
+from utils.logging_utils import vprint
 from word_validator import word_validator
 
-ClassificationType = Literal['body', 'footnote', 'drop']
+ClassificationType: TypeAlias = Literal['body', 'footnote', 'drop']
 
-SYSTEM_PROMPT = """You are a text cleaning assistant for a book-to-audio conversion system.
+# noinspection SpellCheckingInspection
+SYSTEM_PROMPT: str = """You are a text cleaning assistant for a book-to-audio conversion system.
 You will be given a paragraph of text extracted from a PDF or EPUB book, along with the
 full text of the page it came from for context.
 
@@ -47,9 +55,13 @@ Response format:
 }"""
 
 
-_DROP_HINTS = ('index', 'bibliograph', 'reference', 'encyclop', 'glossar', 'appendix', 'contents', 'header', 'footer', 'caption', 'table')
-_FOOTNOTE_HINTS = ('footnote', 'endnote', 'note')
-_BODY_HINTS = ('body', 'main', 'prose', 'content', 'paragraph', 'text')
+# noinspection SpellCheckingInspection
+_DROP_HINTS: tuple[str, ...] = (
+    'index', 'bibliograph', 'reference', 'encyclop', 'glossar',
+    'appendix', 'contents', 'header', 'footer', 'caption', 'table',
+)
+_FOOTNOTE_HINTS: tuple[str, ...] = ('footnote', 'endnote', 'note')
+_BODY_HINTS: tuple[str, ...] = ('body', 'main', 'prose', 'content', 'paragraph', 'text')
 
 
 def _coerce_classification(raw: str) -> ClassificationType | None:
@@ -101,15 +113,23 @@ class TextCleaner:
         _max_retries: Maximum number of retries if the response is malformed.
     """
 
-    def __init__(self, model: str = 'llama3.1:8b', max_retries: int = 3) -> None:
+    def __init__(self, model: str = 'llama3.1:8b', max_retries: int = 3,
+                 temperature: float | None = None,
+                 verbose: bool = False) -> None:
         """Initialise TextCleaner.
 
         Args:
             model: The Ollama model to use. Defaults to 'llama3.1:8b'.
             max_retries: Maximum number of retries on malformed responses. Defaults to 3.
+            temperature: Sampling temperature passed to Ollama. Set to 0 for
+                deterministic output (useful in tests). Defaults to None,
+                which uses Ollama's built-in default.
+            verbose: If True, prints LLM responses for debugging. Defaults to False.
         """
         self._model: str = model
         self._max_retries: int = max_retries
+        self._temperature: float | None = temperature
+        self._verbose: bool = verbose
 
     def clean(self, paragraph: str, page_context: str = "") -> tuple[str, ClassificationType]:
         """Clean and classify a paragraph of text.
@@ -133,18 +153,21 @@ class TextCleaner:
         else:
             user_content = f"Paragraph to clean and classify:\n{paragraph}"
 
-        cleaned: str = ""
         for attempt in range(self._max_retries):
             try:
+                options: dict[str, float] = {}
+                if self._temperature is not None:
+                    options['temperature'] = self._temperature
                 response = ollama.chat(
                     model=self._model,
+                    options=options or None,
                     messages=[
                         {'role': 'system', 'content': SYSTEM_PROMPT},
                         {'role': 'user', 'content': user_content}
                     ]
                 )
                 content: str = response['message']['content'].strip()
-                print(f"LLM response: {repr(content)}")  # temporary debug
+                vprint(self._verbose, f"LLM response: {repr(content)}")
                 parsed = json.loads(content)
 
                 cleaned = parsed['cleaned']
@@ -166,7 +189,7 @@ class TextCleaner:
                 cleaned = ' '.join(cleaned.split('\n'))
                 return cleaned, classification
 
-            except (json.JSONDecodeError, KeyError, ValueError) as e:
+            except (json.JSONDecodeError, KeyError, ValueError):
                 continue
 
         return paragraph, 'body'
