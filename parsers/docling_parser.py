@@ -16,7 +16,9 @@ from utils.docling_utils import (is_footnote,
                                  is_too_short,
                                  get_current_page,
                                  load_as_document,
-                                 is_text_bearing)
+                                 is_text_bearing,
+                                 compute_median_height_ratio,
+                                 is_small_text)
 
 
 class DoclingParser(BaseParser):
@@ -186,9 +188,22 @@ class DoclingParser(BaseParser):
     def _get_processed_texts(self) -> tuple[list[TextItem], list[TextItem]]:
         """Separate the document's text items into regular content and footnotes.
 
+        Uses two passes: the first computes the median bbox.height/charspan_length
+        ratio across all TextItems (a proxy for font size); the second classifies
+        each item. Items already labelled as footnotes by Docling are placed in
+        notes. Items with small text (below 75% of the median ratio) that also
+        start with a digit are treated as near-certain unlabelled footnotes and
+        also placed in notes.
+
         Returns:
             A tuple of (regular_texts, notes) where each is a list of TextItems.
         """
+        # First pass: collect all valid TextItems for median computation
+        all_text_items: list[TextItem] = [
+            item for item in self._doc.texts if is_text_bearing(item)
+        ]
+        median_ratio: float = compute_median_height_ratio(all_text_items)
+
         regular_texts: list[TextItem] = []
         notes: list[TextItem] = []
         processed_pages: set[int] = set()  # Keep track of processed pages
@@ -202,16 +217,16 @@ class DoclingParser(BaseParser):
             page_number: int = text_item.prov[0].page_no
 
             if page_number not in processed_pages:
-                # # On new page, so get all items on the current page
-                # # noinspection PyTypeHints
-                # same_page_items: List[DocItem] = [
-                #     item for item in self._doc.texts if item.prov[0].page_no == page_number
-                # ]
                 processed_pages.add(page_number)  # Mark the page as processed
 
             if is_too_short(text_item):
                 continue
             elif is_footnote(text_item):
+                notes.append(text_item)
+            elif (text_item.text
+                  and text_item.text[0].isdigit()
+                  and is_small_text(text_item, median_ratio)):
+                # Small text starting with a digit is a near-certain unlabelled footnote
                 notes.append(text_item)
             else:
                 regular_texts.append(text_item)

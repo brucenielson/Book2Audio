@@ -15,7 +15,12 @@ def make_doc_item(spec, label: str, text: str, page_no: int = 1) -> MagicMock:
     item = MagicMock(spec=spec)
     item.label = label
     item.text = text
-    item.prov = [MagicMock(page_no=page_no)]
+    prov = MagicMock()
+    prov.page_no = page_no
+    prov.bbox = MagicMock()
+    prov.bbox.height = 10.0
+    prov.charspan = (0, 10)
+    item.prov = [prov]
     return item
 
 

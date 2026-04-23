@@ -6,7 +6,8 @@ from utils.docling_utils import (
     is_section_header, is_page_footer, is_page_header, is_footnote,
     is_list_item, is_text_break, is_page_not_text, is_page_text,
     is_too_short, is_text_item, get_next_text,
-    get_current_page, should_skip_element
+    get_current_page, should_skip_element,
+    compute_median_height_ratio, is_small_text,
 )
 from utils.general_utils import clean_text
 
@@ -323,3 +324,106 @@ class TestCleanText:
 
     def test_preserves_regular_hyphen(self) -> None:
         assert clean_text("well-known") == "well-known"
+
+
+# --- Helpers for bbox/charspan mocks ---
+
+def make_text_item_with_bbox(height: float, charspan_start: int, charspan_end: int) -> MagicMock:
+    """Create a mock TextItem with bbox height and charspan attributes."""
+    item = MagicMock(spec=TextItem)
+    prov = MagicMock()
+    prov.bbox = MagicMock()
+    prov.bbox.height = height
+    prov.charspan = (charspan_start, charspan_end)
+    item.prov = [prov]
+    return item
+
+
+# --- compute_median_height_ratio ---
+
+class TestComputeMedianHeightRatio:
+    def test_single_item(self) -> None:
+        item = make_text_item_with_bbox(height=10.0, charspan_start=0, charspan_end=5)
+        assert compute_median_height_ratio([item]) == 2.0
+
+    def test_returns_median_of_odd_count(self) -> None:
+        # Ratios: 1.0, 2.0, 3.0 — median is 2.0
+        items = [
+            make_text_item_with_bbox(height=10.0, charspan_start=0, charspan_end=10),
+            make_text_item_with_bbox(height=10.0, charspan_start=0, charspan_end=5),
+            make_text_item_with_bbox(height=9.0, charspan_start=0, charspan_end=3),
+        ]
+        assert compute_median_height_ratio(items) == 2.0
+
+    def test_returns_median_of_even_count(self) -> None:
+        # Ratios: 1.0, 2.0, 3.0, 4.0 — median index len//2 = 2 → 3.0
+        items = [
+            make_text_item_with_bbox(height=10.0, charspan_start=0, charspan_end=10),
+            make_text_item_with_bbox(height=10.0, charspan_start=0, charspan_end=5),
+            make_text_item_with_bbox(height=9.0, charspan_start=0, charspan_end=3),
+            make_text_item_with_bbox(height=8.0, charspan_start=0, charspan_end=2),
+        ]
+        assert compute_median_height_ratio(items) == 3.0
+
+    def test_skips_item_with_no_prov(self) -> None:
+        item = MagicMock(spec=TextItem)
+        item.prov = []
+        assert compute_median_height_ratio([item]) == 0.0
+
+    def test_skips_item_with_none_bbox(self) -> None:
+        item = MagicMock(spec=TextItem)
+        prov = MagicMock()
+        prov.bbox = None
+        item.prov = [prov]
+        assert compute_median_height_ratio([item]) == 0.0
+
+    def test_skips_item_with_zero_charspan(self) -> None:
+        item = make_text_item_with_bbox(height=10.0, charspan_start=5, charspan_end=5)
+        assert compute_median_height_ratio([item]) == 0.0
+
+    def test_returns_zero_for_empty_list(self) -> None:
+        assert compute_median_height_ratio([]) == 0.0
+
+
+# --- is_small_text ---
+
+class TestIsSmallText:
+    def test_returns_true_when_ratio_below_threshold(self) -> None:
+        # ratio = 10/20 = 0.5; median = 1.0; threshold = 0.75 → 0.5 < 0.75
+        item = make_text_item_with_bbox(height=10.0, charspan_start=0, charspan_end=20)
+        assert is_small_text(item, median_ratio=1.0) is True
+
+    def test_returns_false_when_ratio_at_threshold(self) -> None:
+        # ratio = 7.5/10 = 0.75; median = 1.0; threshold = 0.75 → 0.75 is NOT < 0.75
+        item = make_text_item_with_bbox(height=7.5, charspan_start=0, charspan_end=10)
+        assert is_small_text(item, median_ratio=1.0) is False
+
+    def test_returns_false_when_ratio_above_threshold(self) -> None:
+        # ratio = 9/10 = 0.9; median = 1.0; threshold = 0.75 → 0.9 >= 0.75
+        item = make_text_item_with_bbox(height=9.0, charspan_start=0, charspan_end=10)
+        assert is_small_text(item, median_ratio=1.0) is False
+
+    def test_returns_false_when_median_is_zero(self) -> None:
+        item = make_text_item_with_bbox(height=5.0, charspan_start=0, charspan_end=10)
+        assert is_small_text(item, median_ratio=0.0) is False
+
+    def test_returns_false_when_no_prov(self) -> None:
+        item = MagicMock(spec=TextItem)
+        item.prov = []
+        assert is_small_text(item, median_ratio=1.0) is False
+
+    def test_returns_false_when_bbox_is_none(self) -> None:
+        item = MagicMock(spec=TextItem)
+        prov = MagicMock()
+        prov.bbox = None
+        item.prov = [prov]
+        assert is_small_text(item, median_ratio=1.0) is False
+
+    def test_returns_false_when_charspan_zero_length(self) -> None:
+        item = make_text_item_with_bbox(height=5.0, charspan_start=3, charspan_end=3)
+        assert is_small_text(item, median_ratio=1.0) is False
+
+    def test_custom_threshold(self) -> None:
+        # ratio = 0.5; median = 1.0; threshold = 0.4 → 0.5 is NOT < 0.4
+        item = make_text_item_with_bbox(height=5.0, charspan_start=0, charspan_end=10)
+        assert is_small_text(item, median_ratio=1.0, threshold=0.4) is False

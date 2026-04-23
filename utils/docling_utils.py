@@ -252,6 +252,66 @@ def get_current_page(text: DocItem,
     return text.prov[0].page_no if current_page is None or combined_paragraph == "" else current_page
 
 
+def compute_median_height_ratio(items: list[TextItem]) -> float:
+    """Compute the median bbox.height / charspan_length ratio across a list of TextItems.
+
+    This ratio is a proxy for font size. Because more characters fit per line at
+    smaller font sizes (for the same column width), smaller fonts produce a
+    consistently lower ratio than body text.
+
+    Args:
+        items: The TextItems to analyse.
+
+    Returns:
+        The median ratio, or 0.0 if no valid items are found.
+    """
+    ratios: list[float] = []
+    for item in items:
+        if not item.prov:
+            continue
+        prov = item.prov[0]
+        if prov.bbox is None:
+            continue
+        charspan_length: int = prov.charspan[1] - prov.charspan[0]
+        if charspan_length <= 0:
+            continue
+        ratios.append(prov.bbox.height / charspan_length)
+    if not ratios:
+        return 0.0
+    ratios.sort()
+    return ratios[len(ratios) // 2]
+
+
+def is_small_text(item: TextItem, median_ratio: float, threshold: float = 0.75) -> bool:
+    """Return True if a TextItem's font size is significantly below the document median.
+
+    Uses bbox.height / charspan_length as a proxy for font size. Footnotes
+    consistently produce a lower ratio than body text because smaller fonts
+    fit more characters per line at the same column width, making the
+    height-per-character ratio scale roughly with font_size².
+
+    Args:
+        item: The TextItem to check.
+        median_ratio: The median height/charspan ratio for the document, from
+                      compute_median_height_ratio().
+        threshold: Items below this fraction of the median are considered small
+                   text. Defaults to 0.75.
+
+    Returns:
+        True if the item's ratio is below median_ratio * threshold.
+    """
+    if not item.prov or median_ratio <= 0:
+        return False
+    prov = item.prov[0]
+    if prov.bbox is None:
+        return False
+    charspan_length: int = prov.charspan[1] - prov.charspan[0]
+    if charspan_length <= 0:
+        return False
+    ratio: float = prov.bbox.height / charspan_length
+    return ratio < median_ratio * threshold
+
+
 def should_skip_element(text: DocItem) -> bool:
     """Check if a DocItem should be skipped during paragraph processing.
 
