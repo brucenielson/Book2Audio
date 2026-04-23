@@ -90,7 +90,7 @@ class DoclingParser(BaseParser):
             A tuple of (docs, meta) where docs is a list of paragraph strings
             and meta is a list of metadata dicts, one per paragraph.
         """
-        raw_chunks: List[RawChunk] = self._extract_chunks()
+        raw_chunks: list[RawChunk] = self._extract_chunks()
 
         output_path: Path | None = None
         if generate_text_file and self._file_path is not None:
@@ -102,7 +102,7 @@ class DoclingParser(BaseParser):
             cleaner=self._cleaner
         )
 
-        parsed_chunks: List[ParsedChunk] = processor.process(
+        parsed_chunks: list[ParsedChunk] = processor.process(
             chunks=raw_chunks,
             output_path=output_path,
             generate_text_file=generate_text_file

@@ -12,9 +12,11 @@ QWEN_MODEL_SIZES = {
 }
 
 # Default speakers available in CustomVoice models.
+# noinspection SpellCheckingInspection
 QWEN_SPEAKERS = ['aiden', 'dylan', 'eric', 'ono_anna', 'ryan', 'serena', 'sohee', 'uncle_fu', 'vivian']
 
 
+# noinspection SpellCheckingInspection
 class QwenCustomVoiceEngine(TTSEngine):
     """TTS engine wrapping Qwen3-TTS CustomVoice models.
 
@@ -50,7 +52,7 @@ class QwenCustomVoiceEngine(TTSEngine):
                       instruction (neutral delivery).
             model_size: The model size to use: '0.6b' or '1.7b'.
                         Defaults to '0.6b'.
-            model: An optional pre-loaded Qwen3TTSModel instance.
+            model: An optional preloaded Qwen3TTSModel instance.
                    If None, the model is loaded based on model_size.
             verbose: If True, prints the model ID and device during loading.
                      Defaults to False.
@@ -60,6 +62,7 @@ class QwenCustomVoiceEngine(TTSEngine):
             # Determine attention implementation: use flash_attention_2 if available, fall back to sdpa.
             attn_impl: str = 'sdpa'
             try:
+                # noinspection PyPackageRequirements
                 import flash_attn  # noqa: F401
                 attn_impl = 'flash_attention_2'
             except ImportError:

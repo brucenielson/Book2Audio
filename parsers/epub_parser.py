@@ -9,7 +9,7 @@ from typing import Iterator
 from bs4 import BeautifulSoup, Tag
 from ebooklib import ITEM_DOCUMENT, epub
 
-from utils.general_utils import enhance_title, clean_text
+from utils.general_utils import enhance_title
 from utils.logging_utils import vprint
 from text_chunk import RawChunk
 from text_cleaner import TextCleaner
@@ -42,7 +42,7 @@ def is_title(tag: Tag) -> bool:
 
 
 def is_header1_title(paragraph: Tag, h1_count: int) -> bool:
-    """Check if a tag is an h1 being used as a chapter title."""
+    """Check if a tag is a chapter-level h1 title."""
     header_level: int | None = get_header_level(paragraph)
     if header_level == 1 and h1_count == 1:
         return True
@@ -144,7 +144,7 @@ def get_chapter_info(tags: list[Tag],
     Also removes title tags from the list in-place so they are not processed again.
 
     Args:
-        tags: All leaf tags extracted from an HTML section.
+        tags: All leaf tags extracted from the HTML section.
         h1_tags: All h1 tags found in the section.
         h2_tags: All h2 tags found in the section.
         h3_tags: All h3 tags found in the section.
@@ -294,7 +294,7 @@ class EpubParser(BaseParser):
 
         return all_docs, all_meta
 
-    def _save_text_files(self, docs: List[str], meta: List[Dict[str, str]]) -> None:
+    def _save_text_files(self, docs: list[str], meta: list[dict[str, str]]) -> None:
         """Save processed paragraphs and metadata to text files alongside the source EPUB.
 
         Args:
