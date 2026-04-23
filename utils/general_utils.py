@@ -34,7 +34,7 @@ def _print_hierarchy(data: dict[str, Any], level: int, verbose: bool = True) -> 
 
     Args:
         data: The dict to print.
-        level: The current nesting level, used for labelling output lines.
+        level: The current nesting level, used for labeling output lines.
         verbose: If False, nothing is printed. Defaults to True.
     """
     for key, value in data.items():
@@ -112,6 +112,7 @@ def load_sections_to_skip(csv_path: Path, verbose: bool = False) -> dict[str, se
 
 
 def is_roman_numeral(s: str) -> bool:
+    # noinspection SpellCheckingInspection
     """Check if a string is a Roman numeral.
 
     The check is case-insensitive and matches standard Roman numerals
@@ -180,6 +181,7 @@ def normalize_whitespace(p_str: str) -> str:
 
 
 def normalize_hyphens(p_str: str) -> str:
+    # noinspection SpellCheckingInspection
     """Remove soft hyphens (SHY, U+00AD) from a string.
 
     Soft hyphens are invisible line-break hints inserted by typesetters.

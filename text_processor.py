@@ -226,7 +226,8 @@ class TextProcessor:
                 label=chunk.label
             ))
 
-    def _build_page_contexts(self, chunks: list[RawChunk]) -> dict[str, str]:
+    @staticmethod
+    def _build_page_contexts(chunks: list[RawChunk]) -> dict[str, str]:
         """Build a mapping of page number to full page text.
 
         Args:

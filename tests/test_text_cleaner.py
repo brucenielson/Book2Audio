@@ -11,7 +11,7 @@ patch_llm_chat: str = 'text_cleaner.ollama.chat'
 
 def make_cleaner(model: str = 'llama3.1:8b', max_retries: int = 3) -> TextCleaner:
     """Create a TextCleaner instance."""
-    return TextCleaner(model=model, max_retries=max_retries)
+    return TextCleaner(model=model, max_retries=max_retries, temperature=0)
 
 
 def make_response(cleaned: str, classification: str) -> dict:
@@ -219,7 +219,8 @@ class TestSanityCheck:
     def test_rejects_valid_word_replaced_with_invalid_word(self) -> None:
         """LLM introducing an invalid word where a valid one existed should trigger fallback."""
         cleaner = make_cleaner(max_retries=3)
-        # "endeavoured" is valid — "endeavourd" is not
+        # LLM drops a letter from a valid word, producing an invalid replacement
+        # noinspection SpellCheckingInspection
         bad_response = make_response("He has endeavourd to bring on the inhabitants.", "body")
         with patch(patch_llm_chat, return_value=bad_response):
             cleaned, _ = cleaner.clean("He has endeavoured to bring on the inhabitants.")

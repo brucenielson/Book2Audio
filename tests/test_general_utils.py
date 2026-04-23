@@ -177,12 +177,15 @@ class TestNormalizeLigatures:
         assert normalize_ligatures("ﬂoor") == "floor"
 
     def test_normalizes_ff_ligature(self) -> None:
+        # noinspection SpellCheckingInspection
         assert normalize_ligatures("ﬀect") == "ffect"
 
     def test_normalizes_ffi_ligature(self) -> None:
+        # noinspection SpellCheckingInspection
         assert normalize_ligatures("ﬃcient") == "fficient"
 
     def test_normalizes_ffl_ligature(self) -> None:
+        # noinspection SpellCheckingInspection
         assert normalize_ligatures("ﬄuent") == "ffluent"
 
     def test_normalizes_st_ligature(self) -> None:
@@ -193,6 +196,7 @@ class TestNormalizeLigatures:
 
 class TestFixEncodingArtifacts:
     def test_fixes_left_double_quote(self) -> None:
+        # noinspection SpellCheckingInspection
         assert fix_encoding_artifacts("Òhello") == '"hello'
 
     def test_fixes_right_double_quote(self) -> None:
@@ -202,6 +206,7 @@ class TestFixEncodingArtifacts:
         assert fix_encoding_artifacts("todayÕs") == "today's"
 
     def test_fixes_em_dash(self) -> None:
+        # noinspection SpellCheckingInspection
         assert fix_encoding_artifacts("helloÑworld") == "hello—world"
 
     def test_fixes_en_dash(self) -> None:

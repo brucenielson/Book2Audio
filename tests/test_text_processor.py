@@ -1,8 +1,7 @@
 """Tests for the TextProcessor class and _all_words_valid helper."""
 
-import pytest
-from unittest.mock import MagicMock, patch
-from text_chunk import RawChunk, ParsedChunk
+from unittest.mock import MagicMock
+from text_chunk import RawChunk
 from text_processor import TextProcessor, _all_words_valid
 
 
@@ -322,6 +321,7 @@ class TestSkipCleanerWhenAllWordsValid:
         """Cleaner should be called when the paragraph contains an invalid word."""
         cleaner = make_cleaner(classification='body')
         processor = TextProcessor(cleaner=cleaner)
+        # noinspection SpellCheckingInspection
         processor.process([make_chunk("The dog ran qukckly.")])
         cleaner.clean.assert_called_once()
 

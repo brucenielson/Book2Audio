@@ -14,6 +14,7 @@ from word_validator import word_validator
 
 ClassificationType: TypeAlias = Literal['body', 'footnote', 'drop']
 
+# noinspection SpellCheckingInspection
 SYSTEM_PROMPT: str = """You are a text cleaning assistant for a book-to-audio conversion system.
 You will be given a paragraph of text extracted from a PDF or EPUB book, along with the
 full text of the page it came from for context.
@@ -54,6 +55,7 @@ Response format:
 }"""
 
 
+# noinspection SpellCheckingInspection
 _DROP_HINTS: tuple[str, ...] = (
     'index', 'bibliograph', 'reference', 'encyclop', 'glossar',
     'appendix', 'contents', 'header', 'footer', 'caption', 'table',
@@ -187,7 +189,7 @@ class TextCleaner:
                 cleaned = ' '.join(cleaned.split('\n'))
                 return cleaned, classification
 
-            except (json.JSONDecodeError, KeyError, ValueError) as e:
+            except (json.JSONDecodeError, KeyError, ValueError):
                 continue
 
         return paragraph, 'body'

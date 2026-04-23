@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import TypeGuard
 
 from docling_core.types.doc.document import (TextItem,
                                              DocItem,
@@ -36,10 +37,12 @@ def load_as_document(file_path: str | Path) -> DoclingDocument:
     return book
 
 
-def is_text_bearing(item: DocItem | None) -> bool:
+def is_text_bearing(item: DocItem | None) -> TypeGuard[TextItem]:
     """Check if a DocItem is a text-bearing subclass (i.e. TextItem).
 
     Note that SectionHeaderItem and ListItem are inherited from TextItem.
+    Acts as a TypeGuard — callers that branch on this function have their
+    item narrowed to TextItem in the True branch.
 
     Args:
         item: The DocItem to check, or None.
@@ -253,7 +256,7 @@ def should_skip_element(text: DocItem) -> bool:
     """Check if a DocItem should be skipped during paragraph processing.
 
     Skips page footers, page headers, Roman numerals, and any DocItem
-    that is not a recognised text subclass.
+    that is not a recognized text subclass.
 
     Args:
         text: The DocItem to check.

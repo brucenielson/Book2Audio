@@ -308,6 +308,7 @@ class TestCleanText:
         assert clean_text("ﬂoor") == "floor"
 
     def test_normalizes_ff_ligature(self) -> None:
+        # noinspection SpellCheckingInspection
         assert clean_text("ﬀect") == "ffect"
 
     def test_normalizes_left_double_quote(self) -> None:
@@ -319,11 +320,6 @@ class TestCleanText:
     def test_normalizes_right_single_quote_possessive(self) -> None:
         assert clean_text("dog\u2019s") == "dog's"
 
-    # def test_removes_soft_hyphen(self):
-    #     assert clean_text("explo\u00adration") == "exploration"
-    #
-    # def test_removes_soft_hyphen_at_word_boundary(self):
-    #     assert clean_text("some\u00ad thing") == "some thing"
 
     def test_preserves_regular_hyphen(self) -> None:
         assert clean_text("well-known") == "well-known"

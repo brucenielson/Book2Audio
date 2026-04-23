@@ -83,6 +83,7 @@ class TestKokoroEngine:
         """generate() should return a numpy array."""
         mock_pipeline = MagicMock()
         audio = np.ones(24000, dtype=np.float32)
+        # noinspection SpellCheckingInspection
         mock_pipeline.return_value = [("hello world", "həloʊ wɜrld", audio)]
         engine = KokoroEngine(voice='af_heart', pipeline=mock_pipeline)
         result = engine.generate("Hello world.")
@@ -93,6 +94,7 @@ class TestKokoroEngine:
         mock_pipeline = MagicMock()
         segment1 = np.ones(100, dtype=np.float32)
         segment2 = np.ones(200, dtype=np.float32)
+        # noinspection SpellCheckingInspection
         mock_pipeline.return_value = [
             ("hello", "həloʊ", segment1),
             ("world", "wɜrld", segment2),
@@ -105,6 +107,7 @@ class TestKokoroEngine:
         """generate() should call the pipeline with the correct voice and split pattern."""
         mock_pipeline = MagicMock()
         audio = np.ones(24000, dtype=np.float32)
+        # noinspection SpellCheckingInspection
         mock_pipeline.return_value = [("test", "tɛst", audio)]
         engine = KokoroEngine(voice='af_heart', pipeline=mock_pipeline)
         engine.generate("Test text.")
@@ -120,17 +123,17 @@ class TestKokoroEngine:
 
     def test_creates_pipeline_if_none(self) -> None:
         """KokoroEngine should create its own pipeline if none is provided."""
-        with patch('engines.kokoro.KPipeline') as mock_kpipeline:
+        with patch('engines.kokoro.KPipeline') as mock_pipeline_cls:
             with patch('engines.kokoro.torch.cuda.is_available', return_value=False):
-                engine = KokoroEngine()
-                mock_kpipeline.assert_called_once_with(lang_code='a', device='cpu')
+                KokoroEngine()
+                mock_pipeline_cls.assert_called_once_with(lang_code='a', device='cpu')
 
     def test_uses_cuda_if_available(self) -> None:
         """KokoroEngine should use CUDA device if available."""
-        with patch('engines.kokoro.KPipeline') as mock_kpipeline:
+        with patch('engines.kokoro.KPipeline') as mock_pipeline_cls:
             with patch('engines.kokoro.torch.cuda.is_available', return_value=True):
-                engine = KokoroEngine()
-                mock_kpipeline.assert_called_once_with(lang_code='a', device='cuda')
+                KokoroEngine()
+                mock_pipeline_cls.assert_called_once_with(lang_code='a', device='cuda')
 
 
 # --- BookToAudio tests ---

@@ -122,6 +122,7 @@ def main(file_path: str | None = None,
                                    sections_to_skip=args.sections_to_skip)
 
 
+# noinspection ALL
 if __name__ == "__main__":
     main(r"documents\The Myth of the Closed Mind.pdf",
          start_page=129, end_page=129, dry_run=False, generate_text_file=True)

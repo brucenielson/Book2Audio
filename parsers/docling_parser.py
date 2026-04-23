@@ -183,18 +183,21 @@ class DoclingParser(BaseParser):
                 # noinspection PyTypeHints
                 f.write(f"{text.prov[0].page_no if text.prov else 'N/A'}: {text.label}: {text_content}\n")
 
-    def _get_processed_texts(self) -> tuple[list[DocItem], list[DocItem]]:
+    def _get_processed_texts(self) -> tuple[list[TextItem], list[TextItem]]:
         """Separate the document's text items into regular content and footnotes.
 
         Returns:
-            A tuple of (regular_texts, notes) where each is a list of DocItems.
+            A tuple of (regular_texts, notes) where each is a list of TextItems.
         """
-        regular_texts: list[DocItem] = []
-        notes: list[DocItem] = []
+        regular_texts: list[TextItem] = []
+        notes: list[TextItem] = []
         processed_pages: set[int] = set()  # Keep track of processed pages
 
         text_item: DocItem
         for text_item in self._doc.texts:
+            if not is_text_bearing(text_item):
+                continue
+
             # noinspection PyTypeHints
             page_number: int = text_item.prov[0].page_no
 

@@ -26,7 +26,6 @@ def make_epub_book(title: str, items: list) -> MagicMock:
 def make_parser(book: MagicMock | None = None,
                 meta_data: dict | None = None,
                 min_paragraph_size: int = 0,
-                remove_footnotes: bool = True,
                 sections_to_skip: list | None = None) -> EpubParser:
     """Create an EpubParser with a mock EpubBook."""
     if book is None:
@@ -77,7 +76,7 @@ class TestParseSection:
         assert any("New Section" in d for d in docs)
 
     def test_removes_footnotes(self) -> None:
-        parser = make_parser(remove_footnotes=True)
+        parser = make_parser()
         html = "<p>Main text.<sup>1</sup></p>"
         docs, meta = parser._parse_section(html, {})
         assert "1" not in docs[0]
