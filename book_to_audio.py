@@ -3,12 +3,12 @@
 # python book_to_audio.py "documents/BookTitle.pdf" --engine qwen --speaker vivian --language English
 # python book_to_audio.py --text "Hello world" --engine qwen --speaker ryan
 from pathlib import Path
-from typing import List
 import argparse
 
 from engines import KokoroEngine, QwenCustomVoiceEngine, QWEN_SPEAKERS
 from audio_generator import AudioGenerator
 from book_converter import BookToAudio
+from text_cleaner import TextCleaner
 
 
 def _create_engine(args: argparse.Namespace):
@@ -44,7 +44,10 @@ def main(file_path: str | None = None,
          language: str | None = None,
          instruct: str | None = None,
          model_size: str | None = None,
-         sections_to_skip: List[str] | None = None) -> None:
+         sections_to_skip: list[str] | None = None,
+         llm_cleaner: bool = False,
+         llm_model: str = 'llama3.1:8b',
+         verbose: bool = False) -> None:
     """Entry point for the book-to-audio conversion tool.
 
     Parses command line arguments (falling back to the provided parameter
@@ -66,6 +69,9 @@ def main(file_path: str | None = None,
         instruct: Qwen style instruction (e.g. 'speak calmly'). Defaults to None.
         model_size: Qwen model size: '0.6b' or '1.7b'. Defaults to '0.6b'.
         sections_to_skip: Optional list of EPUB section IDs to skip. EPUB only.
+        llm_cleaner: If True, enables LLM-based paragraph cleaning. Defaults to False.
+        llm_model: Ollama model to use for LLM cleaning. Defaults to 'llama3.1:8b'.
+        verbose: If True, prints progress and LLM responses during conversion. Defaults to False.
     """
     parser: argparse.ArgumentParser = argparse.ArgumentParser(
         description='Convert text or documents to audio using Kokoro or Qwen3-TTS.')
@@ -79,6 +85,14 @@ def main(file_path: str | None = None,
     parser.add_argument('--dry-run', action='store_true', default=dry_run)
     parser.add_argument('--generate-text-file', action='store_true', default=generate_text_file)
     parser.add_argument('--sections-to-skip', nargs='*', default=sections_to_skip)
+
+    # LLM cleaner arguments
+    parser.add_argument('--llm-cleaner', action='store_true', default=llm_cleaner,
+                        help='Enable LLM-based paragraph cleaning via Ollama (default: off)')
+    parser.add_argument('--llm-model', default=llm_model,
+                        help='Ollama model to use for LLM cleaning (default: llama3.1:8b)')
+    parser.add_argument('--verbose', action='store_true', default=verbose,
+                        help='Print progress and LLM responses during conversion (default: off)')
 
     # Engine selection
     parser.add_argument('--engine', choices=['kokoro', 'qwen'], default=engine or 'kokoro',
@@ -100,11 +114,16 @@ def main(file_path: str | None = None,
 
     args: argparse.Namespace = parser.parse_args()
 
+    cleaner: TextCleaner | None = (
+        TextCleaner(model=args.llm_model, verbose=args.verbose) if args.llm_cleaner else None
+    )
+
     engine = _create_engine(args)
     audio_gen: AudioGenerator = AudioGenerator(engine)
-    converter: BookToAudio = BookToAudio(audio_gen, dry_run=args.dry_run)
+    converter: BookToAudio = BookToAudio(audio_gen, dry_run=args.dry_run,
+                                         llm_cleaner=cleaner, verbose=args.verbose)
 
-    supported_file_types: List[str] = ['.pdf', '.epub', '.txt']
+    supported_file_types: list[str] = ['.pdf', '.epub', '.txt']
     if args.text is not None:
         converter.convert_to_audio(args.text, args.output_file)
     elif args.file_path is None:
