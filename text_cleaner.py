@@ -9,6 +9,7 @@ from typing import Literal, TypeAlias
 
 import ollama
 
+from utils.logging_utils import vprint
 from word_validator import word_validator
 
 ClassificationType: TypeAlias = Literal['body', 'footnote', 'drop']
@@ -111,7 +112,8 @@ class TextCleaner:
     """
 
     def __init__(self, model: str = 'llama3.1:8b', max_retries: int = 3,
-                 temperature: float | None = None) -> None:
+                 temperature: float | None = None,
+                 verbose: bool = False) -> None:
         """Initialise TextCleaner.
 
         Args:
@@ -120,10 +122,12 @@ class TextCleaner:
             temperature: Sampling temperature passed to Ollama. Set to 0 for
                 deterministic output (useful in tests). Defaults to None,
                 which uses Ollama's built-in default.
+            verbose: If True, prints LLM responses for debugging. Defaults to False.
         """
         self._model: str = model
         self._max_retries: int = max_retries
         self._temperature: float | None = temperature
+        self._verbose: bool = verbose
 
     def clean(self, paragraph: str, page_context: str = "") -> tuple[str, ClassificationType]:
         """Clean and classify a paragraph of text.
@@ -147,7 +151,6 @@ class TextCleaner:
         else:
             user_content = f"Paragraph to clean and classify:\n{paragraph}"
 
-        cleaned: str = ""
         for attempt in range(self._max_retries):
             try:
                 options: dict[str, float] = {}
@@ -162,7 +165,7 @@ class TextCleaner:
                     ]
                 )
                 content: str = response['message']['content'].strip()
-                print(f"LLM response: {repr(content)}")  # temporary debug
+                vprint(self._verbose, f"LLM response: {repr(content)}")
                 parsed = json.loads(content)
 
                 cleaned = parsed['cleaned']

@@ -3,6 +3,7 @@ import torch
 from qwen_tts import Qwen3TTSModel
 
 from .base import TTSEngine
+from utils.logging_utils import vprint
 
 # Map short model size names to full Hugging Face model identifiers.
 QWEN_MODEL_SIZES = {
@@ -34,7 +35,8 @@ class QwenCustomVoiceEngine(TTSEngine):
                  language: str = 'Auto',
                  instruct: str | None = None,
                  model_size: str = '0.6b',
-                 model: Qwen3TTSModel | None = None) -> None:
+                 model: Qwen3TTSModel | None = None,
+                 verbose: bool = False) -> None:
         """Initialize the Qwen CustomVoice engine.
 
         Args:
@@ -50,6 +52,8 @@ class QwenCustomVoiceEngine(TTSEngine):
                         Defaults to '0.6b'.
             model: An optional pre-loaded Qwen3TTSModel instance.
                    If None, the model is loaded based on model_size.
+            verbose: If True, prints the model ID and device during loading.
+                     Defaults to False.
         """
         if model is None:
             model_id: str = QWEN_MODEL_SIZES.get(model_size.lower(), QWEN_MODEL_SIZES['0.6b'])
@@ -61,7 +65,7 @@ class QwenCustomVoiceEngine(TTSEngine):
             except ImportError:
                 pass
             device: str = 'cuda:0' if torch.cuda.is_available() else 'cpu'
-            print(f"Loading Qwen3-TTS model: {model_id} (device: {device}, attention: {attn_impl})")
+            vprint(verbose, f"Loading Qwen3-TTS model: {model_id} (device: {device}, attention: {attn_impl})")
             model = Qwen3TTSModel.from_pretrained(
                 model_id,
                 device_map=device,
@@ -72,6 +76,7 @@ class QwenCustomVoiceEngine(TTSEngine):
         self._speaker: str = speaker
         self._language: str = language
         self._instruct: str | None = instruct
+        self._verbose: bool = verbose
         self._sample_rate: int = 24000  # Will be confirmed on first generate call.
 
     @property

@@ -161,14 +161,15 @@ class TestBookToAudio:
             assert mock_audio_generator.generate.call_count == 2
             mock_audio_generator.save.assert_called_once()
 
-    def test_document_to_audio_prints_when_no_paragraphs(self, book_to_audio, capsys) -> None:
+    def test_document_to_audio_prints_when_no_paragraphs(self, mock_audio_generator, capsys) -> None:
         """document_to_audio() should print a message if no paragraphs are extracted."""
+        converter = BookToAudio(audio_generator=mock_audio_generator, verbose=True)
         with patch('book_converter.DoclingParser') as mock_parser_cls:
             mock_parser = MagicMock()
             mock_parser.run.return_value = ([], [])
             mock_parser_cls.return_value = mock_parser
 
-            book_to_audio.convert_to_audio(Path("test.pdf"))
+            converter.convert_to_audio(Path("test.pdf"))
 
         captured = capsys.readouterr()
         assert "No paragraphs extracted" in captured.out

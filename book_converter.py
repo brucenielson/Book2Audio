@@ -5,6 +5,7 @@ import numpy as np
 from audio_generator import AudioGenerator
 from parsers.docling_parser import DoclingParser
 from parsers.epub_parser import EpubParser
+from utils.logging_utils import vprint
 
 
 class BookToAudio:
@@ -18,15 +19,18 @@ class BookToAudio:
         _dry_run: If True, processes the document but skips audio generation.
     """
 
-    def __init__(self, audio_generator: AudioGenerator, dry_run: bool = False) -> None:
+    def __init__(self, audio_generator: AudioGenerator, dry_run: bool = False,
+                 verbose: bool = False) -> None:
         """Initialise BookToAudio.
 
         Args:
             audio_generator: The AudioGenerator instance to use.
             dry_run: If True, processes the document but skips audio generation.
+            verbose: If True, prints progress messages during conversion. Defaults to False.
         """
         self._audio_generator: AudioGenerator = audio_generator
         self._dry_run: bool = dry_run
+        self._verbose: bool = verbose
 
     def convert_to_audio(self, source: str | Path,
                          output_file: str | None = None,
@@ -62,7 +66,7 @@ class BookToAudio:
                 audio: np.ndarray = self._audio_generator.generate(source)
                 self._audio_generator.save(audio, output_file or 'output.wav')
             else:
-                print("Dry run: Did not generate audio.")
+                vprint(self._verbose, "Dry run: Did not generate audio.")
             return
 
         # File path — dispatch by extension
@@ -79,15 +83,15 @@ class BookToAudio:
             raise ValueError(f"Unsupported file type: '{suffix}'. Supported types: .pdf, .epub, .txt")
 
         if self._dry_run:
-            print("Dry run: Did not generate audio.")
+            vprint(self._verbose, "Dry run: Did not generate audio.")
             return
         elif not paragraphs:
-            print("No paragraphs extracted from the document.")
+            vprint(self._verbose, "No paragraphs extracted from the document.")
             return
 
         audio_segments: List[np.ndarray] = []
         for i, paragraph in enumerate(paragraphs):
-            print(f"Generating audio for paragraph {i + 1}/{len(paragraphs)}")
+            vprint(self._verbose, f"Generating audio for paragraph {i + 1}/{len(paragraphs)}")
             audio_segments.append(self._audio_generator.generate(paragraph))
         output_file = output_file or str(source.with_suffix('.wav'))
         self._audio_generator.save(np.concatenate(audio_segments), output_file)

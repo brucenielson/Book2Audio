@@ -7,6 +7,8 @@ import re
 from pathlib import Path
 from typing import Any
 
+from utils.logging_utils import vprint
+
 
 def print_debug_results(results: dict[str, Any],
                         include_outputs_from: set[str] | None = None,
@@ -22,33 +24,34 @@ def print_debug_results(results: dict[str, Any],
     if verbose and include_outputs_from is not None:
         results_filtered = {k: v for k, v in results.items() if k in include_outputs_from}
         if results_filtered:
-            print()
-            print("Debug Results:")
-            _print_hierarchy(results_filtered, level)
+            vprint(verbose)
+            vprint(verbose, "Debug Results:")
+            _print_hierarchy(results_filtered, level, verbose)
 
 
-def _print_hierarchy(data: dict[str, Any], level: int) -> None:
+def _print_hierarchy(data: dict[str, Any], level: int, verbose: bool = True) -> None:
     """Recursively print a nested dict structure with level indentation.
 
     Args:
         data: The dict to print.
         level: The current nesting level, used for labelling output lines.
+        verbose: If False, nothing is printed. Defaults to True.
     """
     for key, value in data.items():
         if level == 1:
-            print()
-        print(f"Level {level}: {key}")
+            vprint(verbose)
+        vprint(verbose, f"Level {level}: {key}")
         if isinstance(value, dict):
-            _print_hierarchy(value, level + 1)
+            _print_hierarchy(value, level + 1, verbose)
         elif isinstance(value, list):
             for index, item in enumerate(value):
-                print(f"Level {level + 1}: Item {index + 1}")
+                vprint(verbose, f"Level {level + 1}: Item {index + 1}")
                 if isinstance(item, dict):
-                    _print_hierarchy(item, level + 2)
+                    _print_hierarchy(item, level + 2, verbose)
                 else:
-                    print(item)
+                    vprint(verbose, item)
         else:
-            print(value)
+            vprint(verbose, value)
 
 
 def load_valid_pages(skip_file: str) -> dict[str, tuple[int, int]]:
@@ -77,13 +80,14 @@ def load_valid_pages(skip_file: str) -> dict[str, tuple[int, int]]:
     return book_pages
 
 
-def load_sections_to_skip(csv_path: Path) -> dict[str, set[str]]:
+def load_sections_to_skip(csv_path: Path, verbose: bool = False) -> dict[str, set[str]]:
     """Load a CSV file listing book sections to skip during parsing.
 
     The CSV file must have columns 'Book Title' and 'Section Title'.
 
     Args:
         csv_path: Path to the CSV file.
+        verbose: If True, prints a summary of what was loaded. Defaults to False.
 
     Returns:
         A dict mapping book titles to sets of section IDs to skip.
@@ -101,9 +105,9 @@ def load_sections_to_skip(csv_path: Path) -> dict[str, set[str]]:
                         sections_to_skip[book_title] = set()
                     sections_to_skip[book_title].add(section_title)
         skip_count: int = sum(len(sections) for sections in sections_to_skip.values())
-        print(f"Loaded {skip_count} sections to skip.")
+        vprint(verbose, f"Loaded {skip_count} sections to skip.")
     else:
-        print("No sections_to_skip.csv file found. Processing all sections.")
+        vprint(verbose, "No sections_to_skip.csv file found. Processing all sections.")
     return sections_to_skip
 
 

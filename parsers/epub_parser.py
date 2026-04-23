@@ -10,6 +10,7 @@ from bs4 import BeautifulSoup, Tag
 from ebooklib import ITEM_DOCUMENT, epub
 
 from utils.general_utils import enhance_title, clean_text
+from utils.logging_utils import vprint
 from text_chunk import RawChunk
 from text_cleaner import TextCleaner
 from text_processor import TextProcessor
@@ -211,8 +212,9 @@ class EpubParser(BaseParser):
                  include_footnotes: bool = False,
                  meta_data: dict[str, str] | None = None,
                  min_paragraph_size: int = 5,
-                 sections_to_skip: List[str] | None = None,
-                 llm_cleaner: str | TextCleaner | None = None) -> None:
+                 sections_to_skip: list[str] | None = None,
+                 llm_cleaner: str | TextCleaner | None = None,
+                 verbose: bool = False) -> None:
         """Initialise EpubParser.
 
         Args:
@@ -230,6 +232,7 @@ class EpubParser(BaseParser):
                               load section IDs from a CSV file.
             llm_cleaner: Optional TextCleaner for LLM-based cleaning and
                      classification. Defaults to None (rule-based only).
+            verbose: If True, prints progress messages during parsing. Defaults to False.
         """
         if isinstance(source, epub.EpubBook):
             self._book: epub.EpubBook = source
@@ -245,6 +248,7 @@ class EpubParser(BaseParser):
         self._min_paragraph_size: int = min_paragraph_size
         self._remove_footnotes: bool = True
         self._cleaner: str | TextCleaner | None = llm_cleaner
+        self._verbose: bool = verbose
         self._sections_to_skip: dict[str, set[str]] = {}
         if sections_to_skip:
             self._sections_to_skip[self._book.title] = set(sections_to_skip)
@@ -261,7 +265,7 @@ class EpubParser(BaseParser):
             and meta is a list of metadata dicts, one per paragraph.
         """
         book: epub.EpubBook = self._book
-        print(f"Loaded Book: {book.title}")
+        vprint(self._verbose, f"Loaded Book: {book.title}")
 
         all_docs: list[str] = []
         all_meta: list[dict[str, str]] = []
@@ -270,7 +274,7 @@ class EpubParser(BaseParser):
         item: epub.EpubHtml
         for item in book.get_items_of_type(ITEM_DOCUMENT):
             if item.id in self._sections_to_skip.get(book.title, set()):
-                print(f"Skipping section: {item.id}")
+                vprint(self._verbose, f"Skipping section: {item.id}")
                 continue
 
             section_num += 1

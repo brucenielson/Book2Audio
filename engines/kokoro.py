@@ -4,6 +4,7 @@ from kokoro import KPipeline
 from typing import List
 
 from .base import TTSEngine
+from utils.logging_utils import vprint
 
 
 class KokoroEngine(TTSEngine):
@@ -22,7 +23,8 @@ class KokoroEngine(TTSEngine):
     def __init__(self,
                  voice: str = 'af_heart',
                  speed: float = 1.0,
-                 pipeline: KPipeline | None = None) -> None:
+                 pipeline: KPipeline | None = None,
+                 verbose: bool = False) -> None:
         """Initialize the Kokoro engine.
 
         Args:
@@ -31,6 +33,7 @@ class KokoroEngine(TTSEngine):
             pipeline: An optional pre-constructed KPipeline instance.
                       If None, a new pipeline is created automatically,
                       using CUDA if available.
+            verbose: If True, prints segment details during generation. Defaults to False.
         """
         if pipeline is None:
             device: str = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -38,6 +41,7 @@ class KokoroEngine(TTSEngine):
         self._pipeline: KPipeline = pipeline
         self._voice: str = voice
         self._speed: float = speed
+        self._verbose: bool = verbose
         self._sample_rate: int = 24000
 
     @property
@@ -59,6 +63,6 @@ class KokoroEngine(TTSEngine):
         audio_segments: List[np.ndarray] = []
         for i, (gs, ps, audio) in enumerate(
                 self._pipeline(text, voice=self._voice, speed=self._speed, split_pattern=r'\n+')):
-            print(f"  Segment {i}: Graphemes: {gs} | Phonemes: {ps}")
+            vprint(self._verbose, f"  Segment {i}: Graphemes: {gs} | Phonemes: {ps}")
             audio_segments.append(audio)
         return np.concatenate(audio_segments)

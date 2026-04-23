@@ -7,20 +7,25 @@ from pathlib import Path
 from text_chunk import RawChunk, ParsedChunk
 from word_validator import word_validator
 from utils.general_utils import is_sentence_end, build_paragraph, clean_text
+from utils.logging_utils import vprint
 from text_cleaner import TextCleaner
 
 
-def _all_words_valid(text: str) -> bool:
+def _all_words_valid(text: str, verbose: bool = False) -> bool:
     """Return True if every token in text is a known English word.
 
     Only common sentence punctuation is stripped before checking (commas,
     periods, colons, etc.). Tokens containing digits or any other non-letter
     characters are treated as potential artifacts and return False immediately.
+
+    Args:
+        text: The paragraph text to validate.
+        verbose: If True, prints each token that fails validation. Defaults to False.
     """
     for token in text.split():
         stripped = re.sub(r"[,;:.!?()'\"—–]", '', token.lower())
         if not stripped or not word_validator.is_valid_word(stripped):
-            # print(f"  [FAIL TOKEN] {token!r} -> {stripped!r}")
+            vprint(verbose, f"  [FAIL TOKEN] {token!r} -> {stripped!r}")
             return False
     return True
 
@@ -39,7 +44,8 @@ class TextProcessor:
 
     def __init__(self, min_paragraph_size: int = 0,
                  include_footnotes: bool = False,
-                 cleaner: str | TextCleaner | None = None) -> None:
+                 cleaner: str | TextCleaner | None = None,
+                 verbose: bool = False) -> None:
         """Initialise TextProcessor.
 
         Args:
@@ -48,9 +54,12 @@ class TextProcessor:
             cleaner: Optional LLM model name (str), TextCleaner instance, or None.
                      A string is interpreted as an Ollama model name and used to
                      create a TextCleaner automatically. Defaults to None.
+            verbose: If True, prints per-paragraph skip/LLM decisions and timing
+                     summary. Defaults to False.
         """
         self._min_paragraph_size: int = min_paragraph_size
         self._include_footnotes: bool = include_footnotes
+        self._verbose: bool = verbose
         if isinstance(cleaner, str):
             self._cleaner: TextCleaner | None = TextCleaner(model=cleaner)
         else:
@@ -139,13 +148,12 @@ class TextProcessor:
         if generate_text_file and output_path is not None:
             self._save_paragraphs_file(output_path)
 
-        # if self._cleaner:
-        #     total = self._t_validation + self._t_llm
-        #     print(
-        #         f"\n[TIMING] validation={self._t_validation:.2f}s ({self._n_skipped} skipped) | "
-        #         f"llm={self._t_llm:.2f}s ({self._n_llm_calls} calls) | "
-        #         f"total_timed={total:.2f}s"
-        #     )
+        if self._cleaner and self._verbose:
+            total = self._t_validation + self._t_llm
+            vprint(self._verbose,
+                   f"\n[TIMING] validation={self._t_validation:.2f}s ({self._n_skipped} skipped) | "
+                   f"llm={self._t_llm:.2f}s ({self._n_llm_calls} calls) | "
+                   f"total_timed={total:.2f}s")
 
         result = self._result
         self._clear_state()
@@ -257,10 +265,10 @@ class TextProcessor:
 
         if self._cleaner:
             t0 = time.perf_counter()
-            _skip = _all_words_valid(p_str)
+            _skip = _all_words_valid(p_str, verbose=self._verbose)
             self._t_validation += time.perf_counter() - t0
 
-            # print(f"{'[SKIP]' if _skip else '[LLM ] '} {p_str[:100]!r}")
+            vprint(self._verbose, f"{'[SKIP]' if _skip else '[LLM ] '} {p_str[:100]!r}")
             if not _skip:
                 self._n_llm_calls += 1
                 page_context = self._page_contexts.get(meta.get('page_#', ''), '')
