@@ -110,15 +110,20 @@ class TextCleaner:
         _max_retries: Maximum number of retries if the response is malformed.
     """
 
-    def __init__(self, model: str = 'llama3.1:8b', max_retries: int = 3) -> None:
+    def __init__(self, model: str = 'llama3.1:8b', max_retries: int = 3,
+                 temperature: float | None = None) -> None:
         """Initialise TextCleaner.
 
         Args:
             model: The Ollama model to use. Defaults to 'llama3.1:8b'.
             max_retries: Maximum number of retries on malformed responses. Defaults to 3.
+            temperature: Sampling temperature passed to Ollama. Set to 0 for
+                deterministic output (useful in tests). Defaults to None,
+                which uses Ollama's built-in default.
         """
         self._model: str = model
         self._max_retries: int = max_retries
+        self._temperature: float | None = temperature
 
     def clean(self, paragraph: str, page_context: str = "") -> tuple[str, ClassificationType]:
         """Clean and classify a paragraph of text.
@@ -145,8 +150,12 @@ class TextCleaner:
         cleaned: str = ""
         for attempt in range(self._max_retries):
             try:
+                options: dict[str, float] = {}
+                if self._temperature is not None:
+                    options['temperature'] = self._temperature
                 response = ollama.chat(
                     model=self._model,
+                    options=options or None,
                     messages=[
                         {'role': 'system', 'content': SYSTEM_PROMPT},
                         {'role': 'user', 'content': user_content}
