@@ -1,13 +1,14 @@
 """Tests for utils.docling_utils helper functions."""
 
 from unittest.mock import MagicMock
+from docling_core.types import DoclingDocument
 from docling_core.types.doc.document import SectionHeaderItem, ListItem, TextItem, DocItem, DocItemLabel
 from utils.docling_utils import (
     is_section_header, is_page_footer, is_page_header, is_footnote,
     is_list_item, is_text_break, is_page_not_text, is_page_text,
     is_too_short, is_text_item, get_next_text,
     get_current_page, should_skip_element,
-    compute_median_height_ratio, is_small_text,
+    compute_single_line_height, compute_median_chars_per_line, is_small_text,
 )
 from utils.general_utils import clean_text
 
@@ -328,9 +329,11 @@ class TestCleanText:
 
 # --- Helpers for bbox/charspan mocks ---
 
-def make_text_item_with_bbox(height: float, charspan_start: int, charspan_end: int) -> MagicMock:
-    """Create a mock TextItem with bbox height and charspan attributes."""
+def make_text_item_with_bbox(label: str, height: float,
+                              charspan_start: int, charspan_end: int) -> MagicMock:
+    """Create a mock TextItem with label, bbox height, and charspan attributes."""
     item = MagicMock(spec=TextItem)
+    item.label = label
     prov = MagicMock()
     prov.bbox = MagicMock()
     prov.bbox.height = height
@@ -339,91 +342,145 @@ def make_text_item_with_bbox(height: float, charspan_start: int, charspan_end: i
     return item
 
 
-# --- compute_median_height_ratio ---
+def make_doc_with_texts(items: list) -> MagicMock:
+    """Create a mock DoclingDocument with the given texts list."""
+    doc = MagicMock(spec=DoclingDocument)
+    doc.texts = items
+    return doc
 
-class TestComputeMedianHeightRatio:
+
+# --- compute_single_line_height ---
+
+class TestComputeSingleLineHeight:
+    def test_returns_median_of_page_headers(self) -> None:
+        items = [
+            make_text_item_with_bbox(DocItemLabel.PAGE_HEADER.value, height=12.0, charspan_start=0, charspan_end=10),
+            make_text_item_with_bbox(DocItemLabel.PAGE_HEADER.value, height=14.0, charspan_start=0, charspan_end=10),
+            make_text_item_with_bbox(DocItemLabel.PAGE_HEADER.value, height=13.0, charspan_start=0, charspan_end=10),
+        ]
+        doc = make_doc_with_texts(items)
+        assert compute_single_line_height(doc) == 13.0
+
+    def test_includes_page_footers(self) -> None:
+        items = [
+            make_text_item_with_bbox(DocItemLabel.PAGE_FOOTER.value, height=11.0, charspan_start=0, charspan_end=10),
+        ]
+        doc = make_doc_with_texts(items)
+        assert compute_single_line_height(doc) == 11.0
+
+    def test_ignores_body_text(self) -> None:
+        items = [
+            make_text_item_with_bbox(DocItemLabel.TEXT.value, height=50.0, charspan_start=0, charspan_end=200),
+        ]
+        doc = make_doc_with_texts(items)
+        assert compute_single_line_height(doc) == 0.0
+
+    def test_returns_zero_for_empty_doc(self) -> None:
+        doc = make_doc_with_texts([])
+        assert compute_single_line_height(doc) == 0.0
+
+    def test_skips_item_with_no_prov(self) -> None:
+        item = MagicMock(spec=TextItem)
+        item.label = DocItemLabel.PAGE_HEADER.value
+        item.prov = []
+        doc = make_doc_with_texts([item])
+        assert compute_single_line_height(doc) == 0.0
+
+    def test_skips_item_with_none_bbox(self) -> None:
+        item = MagicMock(spec=TextItem)
+        item.label = DocItemLabel.PAGE_HEADER.value
+        prov = MagicMock()
+        prov.bbox = None
+        item.prov = [prov]
+        doc = make_doc_with_texts([item])
+        assert compute_single_line_height(doc) == 0.0
+
+
+# --- compute_median_chars_per_line ---
+
+class TestComputeMedianCharsPerLine:
     def test_single_item(self) -> None:
-        item = make_text_item_with_bbox(height=10.0, charspan_start=0, charspan_end=5)
-        assert compute_median_height_ratio([item]) == 2.0
+        # single_line_height=10, bbox.height=20 → estimated_lines=2, charspan=100 → 50 chars/line
+        item = make_text_item_with_bbox(DocItemLabel.TEXT.value, height=20.0, charspan_start=0, charspan_end=100)
+        assert compute_median_chars_per_line([item], single_line_height=10.0) == 50.0
 
-    def test_returns_median_of_odd_count(self) -> None:
-        # Ratios: 1.0, 2.0, 3.0 — median is 2.0
+    def test_returns_median_of_multiple_items(self) -> None:
+        # chars/line: 50, 100, 75 → sorted: 50, 75, 100 → median = 75
         items = [
-            make_text_item_with_bbox(height=10.0, charspan_start=0, charspan_end=10),
-            make_text_item_with_bbox(height=10.0, charspan_start=0, charspan_end=5),
-            make_text_item_with_bbox(height=9.0, charspan_start=0, charspan_end=3),
+            make_text_item_with_bbox(DocItemLabel.TEXT.value, height=20.0, charspan_start=0, charspan_end=100),
+            make_text_item_with_bbox(DocItemLabel.TEXT.value, height=20.0, charspan_start=0, charspan_end=200),
+            make_text_item_with_bbox(DocItemLabel.TEXT.value, height=20.0, charspan_start=0, charspan_end=150),
         ]
-        assert compute_median_height_ratio(items) == 2.0
+        assert compute_median_chars_per_line(items, single_line_height=10.0) == 75.0
 
-    def test_returns_median_of_even_count(self) -> None:
-        # Ratios: 1.0, 2.0, 3.0, 4.0 — median index len//2 = 2 → 3.0
-        items = [
-            make_text_item_with_bbox(height=10.0, charspan_start=0, charspan_end=10),
-            make_text_item_with_bbox(height=10.0, charspan_start=0, charspan_end=5),
-            make_text_item_with_bbox(height=9.0, charspan_start=0, charspan_end=3),
-            make_text_item_with_bbox(height=8.0, charspan_start=0, charspan_end=2),
-        ]
-        assert compute_median_height_ratio(items) == 3.0
+    def test_returns_zero_when_single_line_height_is_zero(self) -> None:
+        item = make_text_item_with_bbox(DocItemLabel.TEXT.value, height=20.0, charspan_start=0, charspan_end=100)
+        assert compute_median_chars_per_line([item], single_line_height=0.0) == 0.0
+
+    def test_returns_zero_for_empty_list(self) -> None:
+        assert compute_median_chars_per_line([], single_line_height=10.0) == 0.0
 
     def test_skips_item_with_no_prov(self) -> None:
         item = MagicMock(spec=TextItem)
         item.prov = []
-        assert compute_median_height_ratio([item]) == 0.0
+        assert compute_median_chars_per_line([item], single_line_height=10.0) == 0.0
 
     def test_skips_item_with_none_bbox(self) -> None:
         item = MagicMock(spec=TextItem)
         prov = MagicMock()
         prov.bbox = None
         item.prov = [prov]
-        assert compute_median_height_ratio([item]) == 0.0
+        assert compute_median_chars_per_line([item], single_line_height=10.0) == 0.0
 
     def test_skips_item_with_zero_charspan(self) -> None:
-        item = make_text_item_with_bbox(height=10.0, charspan_start=5, charspan_end=5)
-        assert compute_median_height_ratio([item]) == 0.0
-
-    def test_returns_zero_for_empty_list(self) -> None:
-        assert compute_median_height_ratio([]) == 0.0
+        item = make_text_item_with_bbox(DocItemLabel.TEXT.value, height=20.0, charspan_start=5, charspan_end=5)
+        assert compute_median_chars_per_line([item], single_line_height=10.0) == 0.0
 
 
 # --- is_small_text ---
 
 class TestIsSmallText:
-    def test_returns_true_when_ratio_below_threshold(self) -> None:
-        # ratio = 10/20 = 0.5; median = 1.0; threshold = 0.75 → 0.5 < 0.75
-        item = make_text_item_with_bbox(height=10.0, charspan_start=0, charspan_end=20)
-        assert is_small_text(item, median_ratio=1.0) is True
+    def test_returns_true_when_chars_per_line_above_threshold(self) -> None:
+        # single_line_height=10, bbox.height=10 → estimated_lines=1, charspan=200 → 200 chars/line
+        # median=100, threshold=1.25 → 200 > 125 → True
+        item = make_text_item_with_bbox(DocItemLabel.TEXT.value, height=10.0, charspan_start=0, charspan_end=200)
+        assert is_small_text(item, single_line_height=10.0, median_chars_per_line=100.0) is True
 
-    def test_returns_false_when_ratio_at_threshold(self) -> None:
-        # ratio = 7.5/10 = 0.75; median = 1.0; threshold = 0.75 → 0.75 is NOT < 0.75
-        item = make_text_item_with_bbox(height=7.5, charspan_start=0, charspan_end=10)
-        assert is_small_text(item, median_ratio=1.0) is False
+    def test_returns_false_when_chars_per_line_at_threshold(self) -> None:
+        # chars/line = 125; median=100; threshold=1.25 → 125 is NOT > 125
+        item = make_text_item_with_bbox(DocItemLabel.TEXT.value, height=10.0, charspan_start=0, charspan_end=125)
+        assert is_small_text(item, single_line_height=10.0, median_chars_per_line=100.0) is False
 
-    def test_returns_false_when_ratio_above_threshold(self) -> None:
-        # ratio = 9/10 = 0.9; median = 1.0; threshold = 0.75 → 0.9 >= 0.75
-        item = make_text_item_with_bbox(height=9.0, charspan_start=0, charspan_end=10)
-        assert is_small_text(item, median_ratio=1.0) is False
+    def test_returns_false_when_chars_per_line_below_threshold(self) -> None:
+        # chars/line = 80; median=100; threshold=1.25 → 80 < 125 → False
+        item = make_text_item_with_bbox(DocItemLabel.TEXT.value, height=10.0, charspan_start=0, charspan_end=80)
+        assert is_small_text(item, single_line_height=10.0, median_chars_per_line=100.0) is False
+
+    def test_returns_false_when_single_line_height_is_zero(self) -> None:
+        item = make_text_item_with_bbox(DocItemLabel.TEXT.value, height=10.0, charspan_start=0, charspan_end=200)
+        assert is_small_text(item, single_line_height=0.0, median_chars_per_line=100.0) is False
 
     def test_returns_false_when_median_is_zero(self) -> None:
-        item = make_text_item_with_bbox(height=5.0, charspan_start=0, charspan_end=10)
-        assert is_small_text(item, median_ratio=0.0) is False
+        item = make_text_item_with_bbox(DocItemLabel.TEXT.value, height=10.0, charspan_start=0, charspan_end=200)
+        assert is_small_text(item, single_line_height=10.0, median_chars_per_line=0.0) is False
 
     def test_returns_false_when_no_prov(self) -> None:
         item = MagicMock(spec=TextItem)
         item.prov = []
-        assert is_small_text(item, median_ratio=1.0) is False
+        assert is_small_text(item, single_line_height=10.0, median_chars_per_line=100.0) is False
 
     def test_returns_false_when_bbox_is_none(self) -> None:
         item = MagicMock(spec=TextItem)
         prov = MagicMock()
         prov.bbox = None
         item.prov = [prov]
-        assert is_small_text(item, median_ratio=1.0) is False
+        assert is_small_text(item, single_line_height=10.0, median_chars_per_line=100.0) is False
 
     def test_returns_false_when_charspan_zero_length(self) -> None:
-        item = make_text_item_with_bbox(height=5.0, charspan_start=3, charspan_end=3)
-        assert is_small_text(item, median_ratio=1.0) is False
+        item = make_text_item_with_bbox(DocItemLabel.TEXT.value, height=10.0, charspan_start=5, charspan_end=5)
+        assert is_small_text(item, single_line_height=10.0, median_chars_per_line=100.0) is False
 
     def test_custom_threshold(self) -> None:
-        # ratio = 0.5; median = 1.0; threshold = 0.4 → 0.5 is NOT < 0.4
-        item = make_text_item_with_bbox(height=5.0, charspan_start=0, charspan_end=10)
-        assert is_small_text(item, median_ratio=1.0, threshold=0.4) is False
+        # chars/line=200, median=100, threshold=2.5 → 200 is NOT > 250 → False
+        item = make_text_item_with_bbox(DocItemLabel.TEXT.value, height=10.0, charspan_start=0, charspan_end=200)
+        assert is_small_text(item, single_line_height=10.0, median_chars_per_line=100.0, threshold=2.5) is False

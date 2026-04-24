@@ -252,19 +252,52 @@ def get_current_page(text: DocItem,
     return text.prov[0].page_no if current_page is None or combined_paragraph == "" else current_page
 
 
-def compute_median_height_ratio(items: list[TextItem]) -> float:
-    """Compute the median bbox.height / charspan_length ratio across a list of TextItems.
+def compute_single_line_height(doc: DoclingDocument) -> float:
+    """Compute the median bbox.height of page header and footer items.
 
-    This ratio is a proxy for font size. Because more characters fit per line at
-    smaller font sizes (for the same column width), smaller fonts produce a
-    consistently lower ratio than body text.
+    Page headers and footers are reliably single-line items, making their
+    bbox.height a good baseline for the height of one line of text.
+
+    Args:
+        doc: The DoclingDocument to analyse.
+
+    Returns:
+        The median bbox.height of page headers and footers, or 0.0 if none found.
+    """
+    heights: list[float] = []
+    for item in doc.texts:
+        if not is_text_bearing(item):
+            continue
+        if not (is_page_header(item) or is_page_footer(item)):
+            continue
+        if not item.prov:
+            continue
+        prov = item.prov[0]
+        if prov.bbox is None:
+            continue
+        heights.append(prov.bbox.height)
+    if not heights:
+        return 0.0
+    heights.sort()
+    return heights[len(heights) // 2]
+
+
+def compute_median_chars_per_line(items: list[TextItem], single_line_height: float) -> float:
+    """Compute the median characters-per-estimated-line across a list of TextItems.
+
+    For each item, estimates the number of lines as bbox.height / single_line_height,
+    then divides charspan_length by that estimate. The median of this value across
+    all body text items represents normal characters per line for the document.
 
     Args:
         items: The TextItems to analyse.
+        single_line_height: The height of a single line, from compute_single_line_height().
 
     Returns:
-        The median ratio, or 0.0 if no valid items are found.
+        The median chars-per-estimated-line, or 0.0 if no valid items are found.
     """
+    if single_line_height <= 0:
+        return 0.0
     ratios: list[float] = []
     for item in items:
         if not item.prov:
@@ -272,44 +305,52 @@ def compute_median_height_ratio(items: list[TextItem]) -> float:
         prov = item.prov[0]
         if prov.bbox is None:
             continue
+        if prov.bbox.height <= 0:
+            continue
         charspan_length: int = prov.charspan[1] - prov.charspan[0]
         if charspan_length <= 0:
             continue
-        ratios.append(prov.bbox.height / charspan_length)
+        estimated_lines: float = prov.bbox.height / single_line_height
+        ratios.append(charspan_length / estimated_lines)
     if not ratios:
         return 0.0
     ratios.sort()
     return ratios[len(ratios) // 2]
 
 
-def is_small_text(item: TextItem, median_ratio: float, threshold: float = 0.75) -> bool:
-    """Return True if a TextItem's font size is significantly below the document median.
+def is_small_text(item: TextItem, single_line_height: float,
+                  median_chars_per_line: float, threshold: float = 1.25) -> bool:
+    """Return True if a TextItem's font is significantly smaller than the document norm.
 
-    Uses bbox.height / charspan_length as a proxy for font size. Footnotes
-    consistently produce a lower ratio than body text because smaller fonts
-    fit more characters per line at the same column width, making the
-    height-per-character ratio scale roughly with font_size².
+    Uses characters-per-estimated-line as a proxy for font size. Smaller fonts
+    pack more characters into each estimated line, so items with significantly
+    more chars per estimated line than the document median are likely in smaller
+    text. This approach works for both short and long footnotes.
 
     Args:
         item: The TextItem to check.
-        median_ratio: The median height/charspan ratio for the document, from
-                      compute_median_height_ratio().
-        threshold: Items below this fraction of the median are considered small
-                   text. Defaults to 0.75.
+        single_line_height: The height of a single line, from compute_single_line_height().
+        median_chars_per_line: The median chars-per-estimated-line for the document,
+                               from compute_median_chars_per_line().
+        threshold: Items above this multiple of the median are considered small
+                   text. Defaults to 1.25.
 
     Returns:
-        True if the item's ratio is below median_ratio * threshold.
+        True if the item's chars-per-estimated-line exceeds median_chars_per_line * threshold.
     """
-    if not item.prov or median_ratio <= 0:
+    if not item.prov or single_line_height <= 0 or median_chars_per_line <= 0:
         return False
     prov = item.prov[0]
     if prov.bbox is None:
         return False
+    if prov.bbox.height <= 0:
+        return False
     charspan_length: int = prov.charspan[1] - prov.charspan[0]
     if charspan_length <= 0:
         return False
-    ratio: float = prov.bbox.height / charspan_length
-    return ratio < median_ratio * threshold
+    estimated_lines: float = prov.bbox.height / single_line_height
+    chars_per_line: float = charspan_length / estimated_lines
+    return chars_per_line > median_chars_per_line * threshold
 
 
 def should_skip_element(text: DocItem) -> bool:

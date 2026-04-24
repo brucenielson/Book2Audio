@@ -17,7 +17,8 @@ from utils.docling_utils import (is_footnote,
                                  get_current_page,
                                  load_as_document,
                                  is_text_bearing,
-                                 compute_median_height_ratio,
+                                 compute_single_line_height,
+                                 compute_median_chars_per_line,
                                  is_small_text)
 
 
@@ -198,11 +199,12 @@ class DoclingParser(BaseParser):
         Returns:
             A tuple of (regular_texts, notes) where each is a list of TextItems.
         """
-        # First pass: collect all valid TextItems for median computation
+        # First pass: collect all valid TextItems and compute font-size baselines
         all_text_items: list[TextItem] = [
             item for item in self._doc.texts if is_text_bearing(item)
         ]
-        median_ratio: float = compute_median_height_ratio(all_text_items)
+        single_line_height: float = compute_single_line_height(self._doc)
+        median_chars_per_line: float = compute_median_chars_per_line(all_text_items, single_line_height)
 
         regular_texts: list[TextItem] = []
         notes: list[TextItem] = []
@@ -225,7 +227,7 @@ class DoclingParser(BaseParser):
                 notes.append(text_item)
             elif (text_item.text
                   and text_item.text[0].isdigit()
-                  and is_small_text(text_item, median_ratio)):
+                  and is_small_text(text_item, single_line_height, median_chars_per_line)):
                 # Small text starting with a digit is a near-certain unlabelled footnote
                 notes.append(text_item)
             else:
