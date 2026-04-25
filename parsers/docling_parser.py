@@ -258,8 +258,9 @@ class DoclingParser(BaseParser):
                   and not is_sentence_end(last_regular_text.text)):
                 # Body text starting with a digit, containing real text, immediately following
                 # substantial body text that doesn't end with sentence punctuation, is a
-                # near-certain unlabelled footnote. The alpha check excludes pure number/
+                # near-certain unlabeled footnote. The alpha check excludes pure number/
                 # punctuation continuations like "183-84" from index entries.
+                text_item.label = DocItemLabel.FOOTNOTE
                 notes.append(text_item)
             elif (text_item.label == DocItemLabel.TEXT.value
                   and text_item.text
@@ -269,6 +270,7 @@ class DoclingParser(BaseParser):
                   and is_small_text(text_item, single_line_height, median_chars_per_line)):
                 # Small body text starting with a digit, preceded by text on the same page,
                 # is a near-certain unlabeled footnote
+                text_item.label = DocItemLabel.FOOTNOTE
                 notes.append(text_item)
             else:
                 regular_texts.append(text_item)
