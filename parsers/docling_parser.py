@@ -236,9 +236,10 @@ class DoclingParser(BaseParser):
         notes: list[TextItem] = []
         text_seen_this_page: bool = False    # Has body text been seen on the current page?
         found_note_this_page: bool = False   # Has a footnote been seen on the current page?
-        carry_over: bool = False             # last_regular_text intentionally kept from previous page
+        carry_over: bool = False             # prev_text_* intentionally kept from previous page
         current_page: int | None = None
-        last_regular_text: TextItem | None = None
+        prev_text_long: bool = False         # last TEXT body item had >= threshold chars
+        prev_text_no_end: bool = False       # last TEXT body item had no sentence end
 
         text_item: TextItem
         for text_item in all_text_items:
@@ -247,10 +248,10 @@ class DoclingParser(BaseParser):
             if page_number != current_page:
                 text_seen_this_page = False
                 found_note_this_page = False
-                if last_regular_text is not None and not is_sentence_end(last_regular_text.text):
-                    carry_over = True   # keep last_regular_text visible for exactly one item
+                if prev_text_no_end:
+                    carry_over = True   # keep prev_text_* visible for exactly one TEXT item
                 else:
-                    last_regular_text = None
+                    prev_text_long = False
                 current_page = page_number
 
             if is_too_short(text_item):
@@ -262,9 +263,8 @@ class DoclingParser(BaseParser):
                   and text_item.text
                   and text_item.text[0].isdigit()
                   and any(c.isalpha() for c in text_item.text)
-                  and last_regular_text is not None
-                  and len(last_regular_text.text) >= self._short_text_threshold
-                  and not is_sentence_end(last_regular_text.text)):
+                  and prev_text_long
+                  and prev_text_no_end):
                 # Body text starting with a digit, containing real text, immediately following
                 # substantial body text that doesn't end with sentence punctuation, is a
                 # near-certain unlabeled footnote. The alpha check excludes pure number/
@@ -294,15 +294,14 @@ class DoclingParser(BaseParser):
                 notes.append(text_item)
             else:
                 regular_texts.append(text_item)
-                last_regular_text = text_item if text_item.label == DocItemLabel.TEXT else last_regular_text
+                if text_item.label == DocItemLabel.TEXT:
+                    prev_text_long = len(text_item.text) >= self._short_text_threshold
+                    prev_text_no_end = not is_sentence_end(text_item.text)
 
             if carry_over and text_item.label == DocItemLabel.TEXT:
+                # label is still TEXT → item went to else (notes branches mutate to FOOTNOTE)
+                # → prev_text_* were already updated by the else branch above
                 carry_over = False
-                # Consume the carry: if this item updated last_regular_text (went to regular
-                # texts as a TEXT item), keep the new value. Otherwise reset to None so the
-                # carried value doesn't bleed into subsequent TEXT items on this page.
-                if last_regular_text is not text_item:
-                    last_regular_text = None
 
             if text_item.label == DocItemLabel.TEXT:
                 text_seen_this_page = True
