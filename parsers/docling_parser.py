@@ -257,7 +257,7 @@ class DoclingParser(BaseParser):
             elif is_footnote(text_item):
                 found_note_this_page = True
                 notes.append(text_item)
-            elif (text_item.label == DocItemLabel.TEXT.value
+            elif (text_item.label == DocItemLabel.TEXT
                   and text_item.text
                   and text_item.text[0].isdigit()
                   and any(c.isalpha() for c in text_item.text)
@@ -271,7 +271,7 @@ class DoclingParser(BaseParser):
                 text_item.label = DocItemLabel.FOOTNOTE
                 found_note_this_page = True
                 notes.append(text_item)
-            elif (text_item.label == DocItemLabel.TEXT.value
+            elif (text_item.label == DocItemLabel.TEXT
                   and text_item.text
                   and text_item.text[0].isdigit()
                   and len(text_item.text) >= self._short_text_threshold
@@ -282,7 +282,7 @@ class DoclingParser(BaseParser):
                 text_item.label = DocItemLabel.FOOTNOTE
                 found_note_this_page = True
                 notes.append(text_item)
-            elif (text_item.label == DocItemLabel.TEXT.value
+            elif (text_item.label == DocItemLabel.TEXT
                   and text_item.text
                   and text_item.text[0].isdigit()
                   and any(c.isalpha() for c in text_item.text)
@@ -293,9 +293,9 @@ class DoclingParser(BaseParser):
                 notes.append(text_item)
             else:
                 regular_texts.append(text_item)
-                last_regular_text = text_item if text_item.label == DocItemLabel.TEXT.value else last_regular_text
+                last_regular_text = text_item if text_item.label == DocItemLabel.TEXT else last_regular_text
 
-            if text_item.label == DocItemLabel.TEXT.value:
+            if text_item.label == DocItemLabel.TEXT:
                 text_seen_this_page = True
 
         return regular_texts, notes
