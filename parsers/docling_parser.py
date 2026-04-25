@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import dataclasses
 from pathlib import Path
 
 from docling_core.types import DoclingDocument
@@ -21,6 +22,22 @@ from utils.docling_utils import (is_footnote,
                                  compute_median_chars_per_line,
                                  is_small_text)
 from utils.general_utils import is_sentence_end
+
+
+@dataclasses.dataclass
+class _FootnoteContext:
+    """Transient classification state passed to the footnote detector.
+
+    Holds both the per-iteration loop state (which changes as we walk the
+    document) and the document-level metrics (computed once before the loop).
+    Bundled here so _is_footnote() receives everything it needs in one argument
+    rather than five.
+    """
+    prev_text_candidate: bool       # last TEXT item was long with no sentence end
+    text_seen_this_page: bool       # body text has been seen on the current page
+    found_note_this_page: bool      # a footnote has been seen on the current page
+    single_line_height: float       # median height of one line (from headers/footers)
+    median_chars_per_line: float    # median chars-per-estimated-line for the document
 
 
 class DoclingParser(BaseParser):
@@ -210,15 +227,54 @@ class DoclingParser(BaseParser):
                 # noinspection PyTypeHints
                 f.write(f"{text.prov[0].page_no if text.prov else 'N/A'}: {text.label}: {text_content}\n")
 
+    def _is_footnote(self, text_item: TextItem, ctx: _FootnoteContext) -> bool:
+        """Return True if text_item should be classified as a footnote.
+
+        Checks Docling's own FOOTNOTE label first, then applies three
+        unlabelled-footnote heuristics for TEXT items that start with a digit:
+
+        1. Sentence-end heuristic: the preceding TEXT item was substantial and
+           ended mid-sentence, making a digit-start continuation a near-certain
+           footnote reference.
+        2. Small-text heuristic: the item is noticeably smaller than the document's
+           body text (more chars per estimated line than the median).
+        3. Propagation heuristic: a footnote has already been seen on this page,
+           so subsequent digit+alpha items are treated as continuations.
+
+        Args:
+            text_item: The item to classify.
+            ctx: Current classification context (page state and document metrics).
+
+        Returns:
+            True if the item is or should be classified as a footnote.
+        """
+        if is_footnote(text_item):
+            return True
+        if not (text_item.label == DocItemLabel.TEXT
+                and text_item.text
+                and text_item.text[0].isdigit()):
+            return False
+        has_alpha: bool = any(c.isalpha() for c in text_item.text)
+        # Heuristic 1: digit+alpha immediately after substantial mid-sentence body text.
+        # The alpha check excludes pure number/punctuation continuations like "183-84".
+        if has_alpha and ctx.prev_text_candidate:
+            return True
+        # Heuristic 2: small text starting with a digit, preceded by body text on this page.
+        if (len(text_item.text) >= self._short_text_threshold
+                and ctx.text_seen_this_page
+                and is_small_text(text_item, ctx.single_line_height, ctx.median_chars_per_line)):
+            return True
+        # Heuristic 3: a footnote already seen on this page — propagate until page boundary.
+        if has_alpha and ctx.found_note_this_page:
+            return True
+        return False
+
     def _get_processed_texts(self) -> tuple[list[TextItem], list[TextItem]]:
         """Separate the document's text items into regular content and footnotes.
 
         Uses two passes: the first computes the median bbox.height/charspan_length
         ratio across all TextItems (a proxy for font size); the second classifies
-        each item. Items already labeled as footnotes by Docling are placed in
-        notes. Items with small text (below 75% of the median ratio) that also
-        start with a digit are treated as near-certain unlabelled footnotes and
-        also placed in notes.
+        each item using _is_footnote().
 
         Returns:
             A tuple of (regular_texts, notes) where each is a list of TextItems.
@@ -234,64 +290,40 @@ class DoclingParser(BaseParser):
 
         regular_texts: list[TextItem] = []
         notes: list[TextItem] = []
-        text_seen_this_page: bool = False    # Has body text been seen on the current page?
-        found_note_this_page: bool = False   # Has a footnote been seen on the current page?
-        carry_over: bool = False              # prev_text_candidate intentionally kept from previous page
+        carry_over: bool = False             # prev_text_candidate intentionally kept from previous page
         current_page: int | None = None
-        prev_text_candidate: bool = False    # last TEXT body item was long and had no sentence end
+        ctx: _FootnoteContext = _FootnoteContext(
+            prev_text_candidate=False,
+            text_seen_this_page=False,
+            found_note_this_page=False,
+            single_line_height=single_line_height,
+            median_chars_per_line=median_chars_per_line,
+        )
 
         text_item: TextItem
         for text_item in all_text_items:
             page_number: int = text_item.prov[0].page_no
 
             if page_number != current_page:
-                text_seen_this_page = False
-                found_note_this_page = False
-                if prev_text_candidate:
+                ctx.text_seen_this_page = False
+                ctx.found_note_this_page = False
+                if ctx.prev_text_candidate:
                     carry_over = True   # keep prev_text_candidate visible for exactly one TEXT item
                 else:
-                    prev_text_candidate = False  # redundant but explicit reset for clarity
+                    ctx.prev_text_candidate = False  # redundant but explicit reset for clarity
                 current_page = page_number
 
             if is_too_short(text_item):
                 continue
-            elif is_footnote(text_item):
-                found_note_this_page = True
+            elif self._is_footnote(text_item, ctx):
+                text_item.label = DocItemLabel.FOOTNOTE
+                ctx.found_note_this_page = True
                 notes.append(text_item)
-            elif (text_item.label == DocItemLabel.TEXT
-                  and text_item.text
-                  and text_item.text[0].isdigit()):
-                has_alpha: bool = any(c.isalpha() for c in text_item.text)
-                if has_alpha and prev_text_candidate:
-                    # Body text starting with a digit, containing real text, immediately following
-                    # substantial body text that doesn't end with sentence punctuation, is a
-                    # near-certain unlabeled footnote. The alpha check excludes pure number/
-                    # punctuation continuations like "183-84" from index entries.
-                    text_item.label = DocItemLabel.FOOTNOTE
-                    found_note_this_page = True
-                    notes.append(text_item)
-                elif (len(text_item.text) >= self._short_text_threshold
-                      and text_seen_this_page
-                      and is_small_text(text_item, single_line_height, median_chars_per_line)):
-                    # Small body text starting with a digit, preceded by text on the same page,
-                    # is a near-certain unlabeled footnote.
-                    text_item.label = DocItemLabel.FOOTNOTE
-                    found_note_this_page = True
-                    notes.append(text_item)
-                elif has_alpha and found_note_this_page:
-                    # A footnote has already been seen on this page — subsequent digit+alpha
-                    # items are propagated as footnotes until the page boundary.
-                    text_item.label = DocItemLabel.FOOTNOTE
-                    notes.append(text_item)
-                else:
-                    regular_texts.append(text_item)
-                    prev_text_candidate = (len(text_item.text) >= self._short_text_threshold
-                                           and not is_sentence_end(text_item.text))
             else:
                 regular_texts.append(text_item)
                 if text_item.label == DocItemLabel.TEXT:
-                    prev_text_candidate = (len(text_item.text) >= self._short_text_threshold
-                                           and not is_sentence_end(text_item.text))
+                    ctx.prev_text_candidate = (len(text_item.text) >= self._short_text_threshold
+                                               and not is_sentence_end(text_item.text))
 
             if carry_over and text_item.label == DocItemLabel.TEXT:
                 # label is still TEXT → item went to else (notes branches mutate to FOOTNOTE)
@@ -299,6 +331,6 @@ class DoclingParser(BaseParser):
                 carry_over = False
 
             if text_item.label == DocItemLabel.TEXT:
-                text_seen_this_page = True
+                ctx.text_seen_this_page = True
 
         return regular_texts, notes
