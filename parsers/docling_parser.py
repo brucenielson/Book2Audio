@@ -124,7 +124,7 @@ class DoclingParser(BaseParser):
 
         if generate_text_file and self._file_path is not None:
             regular_texts, notes = self._extract_all_texts()
-            self._save_text_files(regular_texts + notes)
+            self._save_text_files(regular_texts, notes)
 
         docs: list[str] = [chunk.text for chunk in parsed_chunks]
         meta: list[dict[str, str]] = [chunk.meta for chunk in parsed_chunks]
@@ -182,11 +182,14 @@ class DoclingParser(BaseParser):
         """
         return self._get_processed_texts()
 
-    def _save_text_files(self, texts: list[DocItem]) -> None:
+    def _save_text_files(self, regular_texts: list[DocItem], notes: list[DocItem]) -> None:
         """Write per-item debug text to a file alongside the source document.
 
+        Body text is written first, followed by a separator line, then footnotes.
+
         Args:
-            texts: The list of DocItems to write.
+            regular_texts: Body text DocItems to write.
+            notes: Footnote DocItems to write after the separator.
 
         Raises:
             ValueError: If no file path is available (document was passed directly).
@@ -197,8 +200,13 @@ class DoclingParser(BaseParser):
         base_path: Path = self._file_path.parent / self._doc.name
 
         with open(f"{base_path}_processed_texts.txt", "w", encoding="utf-8") as f:
-            for text in texts:
+            for text in regular_texts:
                 text_content: str = text.text if is_text_bearing(text) else 'N/A' # noqa
+                # noinspection PyTypeHints
+                f.write(f"{text.prov[0].page_no if text.prov else 'N/A'}: {text.label}: {text_content}\n")
+            f.write("--- FOOTNOTES ---\n")
+            for text in notes:
+                text_content = text.text if is_text_bearing(text) else 'N/A' # noqa
                 # noinspection PyTypeHints
                 f.write(f"{text.prov[0].page_no if text.prov else 'N/A'}: {text.label}: {text_content}\n")
 
