@@ -55,14 +55,15 @@ def make_parser(texts: list,
                 start_page: int | None = None,
                 end_page: int | None = None,
                 include_notes: bool = True,
-                cleaner: TextCleaner | None = None) -> DoclingParser:
+                cleaner: TextCleaner | None = None,
+                min_footnote_chars: int = 100) -> DoclingParser:
     """Create a DoclingParser with a mocked DoclingDocument."""
     doc = MagicMock(spec=DoclingDocument)
     doc.name = "test_doc"
     doc.texts = texts
     return DoclingParser(source=doc, meta_data=meta_data or {}, min_paragraph_size=min_paragraph_size,
                          start_page=start_page, end_page=end_page, include_footnotes=include_notes,
-                         llm_cleaner=cleaner)
+                         llm_cleaner=cleaner, min_footnote_chars=min_footnote_chars)
 
 
 # --- TestGetProcessedTexts ---
@@ -175,6 +176,40 @@ class TestRun:
         parser = make_parser(texts, include_notes=False)
         docs, meta = parser.run()
         assert all("Footnote content." not in d for d in docs)
+
+    def test_digit_start_after_incomplete_sentence_classified_as_note(self) -> None:
+        # Preceding text is long and doesn't end with punctuation → footnote heuristic fires
+        preceding = "A" * 100
+        texts = [
+            make_text_item(preceding),
+            make_text_item("1 This is an unlabelled footnote reference."),
+        ]
+        parser = make_parser(texts, include_notes=False, min_footnote_chars=100)
+        docs, meta = parser.run()
+        assert all("unlabelled footnote" not in d for d in docs)
+
+    def test_digit_start_after_short_text_not_classified_as_note(self) -> None:
+        # Preceding text is too short (below min_footnote_chars) → heuristic must not fire
+        short_preceding = "Button Gwinnett Lyman Hall"  # name list, no punctuation, but short
+        texts = [
+            make_text_item(short_preceding),
+            make_text_item("6 The Declaration of Independence of The United States of America"),
+        ]
+        parser = make_parser(texts, include_notes=False, min_footnote_chars=100)
+        docs, meta = parser.run()
+        assert any("Declaration of Independence" in d for d in docs)
+
+    def test_digit_start_with_no_alpha_not_classified_as_note(self) -> None:
+        # Pure number/punctuation continuation (e.g. "183-84" from an index entry)
+        # has no alphabetic content → must never be classified as a footnote
+        long_no_punct = "Jehovah's Witnesses, 1, 48, 50, 160-61, 221 justificationism, xvi, 60, 124-28, 130,"
+        texts = [
+            make_text_item(long_no_punct),
+            make_text_item("183-84"),
+        ]
+        parser = make_parser(texts, include_notes=False, min_footnote_chars=100)
+        docs, meta = parser.run()
+        assert any("183-84" in d for d in docs)
 
     def test_start_page_filters_early_pages(self) -> None:
         texts = [

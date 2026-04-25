@@ -20,6 +20,7 @@ from utils.docling_utils import (is_footnote,
                                  compute_single_line_height,
                                  compute_median_chars_per_line,
                                  is_small_text)
+from utils.general_utils import is_sentence_end
 
 
 class DoclingParser(BaseParser):
@@ -31,7 +32,8 @@ class DoclingParser(BaseParser):
                  min_paragraph_size: int = 5,
                  start_page: int | None = None,
                  end_page: int | None = None,
-                 llm_cleaner: str | TextCleaner | None = None) -> None:
+                 llm_cleaner: str | TextCleaner | None = None,
+                 min_footnote_chars: int = 100) -> None:
         """Initialise DoclingParser.
 
         Args:
@@ -52,6 +54,14 @@ class DoclingParser(BaseParser):
                       skipped. Defaults to None (read to end).
             llm_cleaner: Optional TextCleaner for LLM-based cleaning and classification.
                      Defaults to None (rule-based cleaning only).
+            min_footnote_chars: Minimum character count applied across unlabelled
+                                footnote detection. Controls the minimum length of
+                                a preceding body-text item for the sentence-end
+                                heuristic to fire, the minimum length of a
+                                candidate item for the small-text heuristic, and
+                                the minimum charspan used when computing the
+                                document's median characters-per-line baseline.
+                                Defaults to 100.
         """
         if isinstance(source, DoclingDocument):
             self._doc: DoclingDocument = source
@@ -66,6 +76,7 @@ class DoclingParser(BaseParser):
         self._end_page: int | None = end_page
         self._include_notes: bool = include_footnotes
         self._cleaner: str | TextCleaner | None = llm_cleaner
+        self._short_text_threshold: int = min_footnote_chars
 
     def _is_in_page_range(self, page_no: int | None) -> bool:
         """Check whether a page number falls within the configured page range.
@@ -209,11 +220,14 @@ class DoclingParser(BaseParser):
             item for item in self._doc.texts if is_text_bearing(item)
         ]
         single_line_height: float = compute_single_line_height(self._doc)
-        median_chars_per_line: float = compute_median_chars_per_line(all_text_items, single_line_height)
+        median_chars_per_line: float = compute_median_chars_per_line(
+            all_text_items, single_line_height, min_charspan=self._short_text_threshold
+        )
 
         regular_texts: list[TextItem] = []
         notes: list[TextItem] = []
         pages_with_text: set[int] = set()  # Pages where at least one text item has been seen
+        last_regular_text: TextItem | None = None
 
         text_item: DocItem
         for text_item in self._doc.texts:
@@ -230,14 +244,27 @@ class DoclingParser(BaseParser):
             elif (text_item.label == DocItemLabel.TEXT.value
                   and text_item.text
                   and text_item.text[0].isdigit()
-                  and len(text_item.text) >= 100
+                  and any(c.isalpha() for c in text_item.text)
+                  and last_regular_text is not None
+                  and len(last_regular_text.text) >= self._short_text_threshold
+                  and not is_sentence_end(last_regular_text.text)):
+                # Body text starting with a digit, containing real text, immediately following
+                # substantial body text that doesn't end with sentence punctuation, is a
+                # near-certain unlabelled footnote. The alpha check excludes pure number/
+                # punctuation continuations like "183-84" from index entries.
+                notes.append(text_item)
+            elif (text_item.label == DocItemLabel.TEXT.value
+                  and text_item.text
+                  and text_item.text[0].isdigit()
+                  and len(text_item.text) >= self._short_text_threshold
                   and page_number in pages_with_text
                   and is_small_text(text_item, single_line_height, median_chars_per_line)):
                 # Small body text starting with a digit, preceded by text on the same page,
-                # is a near-certain unlabelled footnote
+                # is a near-certain unlabeled footnote
                 notes.append(text_item)
             else:
                 regular_texts.append(text_item)
+                last_regular_text = text_item if text_item.label == DocItemLabel.TEXT.value else last_regular_text
 
             if text_item.label == DocItemLabel.TEXT.value:
                 pages_with_text.add(page_number)
