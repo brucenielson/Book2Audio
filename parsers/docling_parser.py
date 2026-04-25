@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from docling_core.types import DoclingDocument
-from docling_core.types.doc.document import DocItem, TextItem
+from docling_core.types.doc.document import DocItem, TextItem, DocItemLabel
 
 from text_chunk import RawChunk, ParsedChunk
 from text_processor import TextProcessor
@@ -112,7 +112,8 @@ class DoclingParser(BaseParser):
         )
 
         if generate_text_file and self._file_path is not None:
-            self._save_text_files(self._extract_all_texts())
+            regular_texts, notes = self._extract_all_texts()
+            self._save_text_files(regular_texts + notes)
 
         docs: list[str] = [chunk.text for chunk in parsed_chunks]
         meta: list[dict[str, str]] = [chunk.meta for chunk in parsed_chunks]
@@ -161,10 +162,14 @@ class DoclingParser(BaseParser):
 
         return chunks
 
-    def _extract_all_texts(self) -> list[DocItem]:
-        """Return all DocItems for debug file writing."""
-        regular_texts, notes = self._get_processed_texts()
-        return regular_texts + (notes if self._include_notes else [])
+    def _extract_all_texts(self) -> tuple[list[TextItem], list[TextItem]]:
+        """Return all classified DocItems for debug file writing.
+
+        Returns:
+            A tuple of (regular_texts, notes) containing all classified items.
+            The caller decides whether to include notes.
+        """
+        return self._get_processed_texts()
 
     def _save_text_files(self, texts: list[DocItem]) -> None:
         """Write per-item debug text to a file alongside the source document.
@@ -191,7 +196,7 @@ class DoclingParser(BaseParser):
 
         Uses two passes: the first computes the median bbox.height/charspan_length
         ratio across all TextItems (a proxy for font size); the second classifies
-        each item. Items already labelled as footnotes by Docling are placed in
+        each item. Items already labeled as footnotes by Docling are placed in
         notes. Items with small text (below 75% of the median ratio) that also
         start with a digit are treated as near-certain unlabelled footnotes and
         also placed in notes.
@@ -208,7 +213,7 @@ class DoclingParser(BaseParser):
 
         regular_texts: list[TextItem] = []
         notes: list[TextItem] = []
-        processed_pages: set[int] = set()  # Keep track of processed pages
+        pages_with_text: set[int] = set()  # Pages where at least one text item has been seen
 
         text_item: DocItem
         for text_item in self._doc.texts:
@@ -218,19 +223,23 @@ class DoclingParser(BaseParser):
             # noinspection PyTypeHints
             page_number: int = text_item.prov[0].page_no
 
-            if page_number not in processed_pages:
-                processed_pages.add(page_number)  # Mark the page as processed
-
             if is_too_short(text_item):
                 continue
             elif is_footnote(text_item):
                 notes.append(text_item)
-            elif (text_item.text
+            elif (text_item.label == DocItemLabel.TEXT.value
+                  and text_item.text
                   and text_item.text[0].isdigit()
+                  and len(text_item.text) >= 100
+                  and page_number in pages_with_text
                   and is_small_text(text_item, single_line_height, median_chars_per_line)):
-                # Small text starting with a digit is a near-certain unlabelled footnote
+                # Small body text starting with a digit, preceded by text on the same page,
+                # is a near-certain unlabelled footnote
                 notes.append(text_item)
             else:
                 regular_texts.append(text_item)
+
+            if text_item.label == DocItemLabel.TEXT.value:
+                pages_with_text.add(page_number)
 
         return regular_texts, notes

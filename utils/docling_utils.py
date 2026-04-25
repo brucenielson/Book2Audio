@@ -282,16 +282,23 @@ def compute_single_line_height(doc: DoclingDocument) -> float:
     return heights[len(heights) // 2]
 
 
-def compute_median_chars_per_line(items: list[TextItem], single_line_height: float) -> float:
+def compute_median_chars_per_line(items: list[TextItem], single_line_height: float,
+                                   min_charspan: int = 100) -> float:
     """Compute the median characters-per-estimated-line across a list of TextItems.
 
     For each item, estimates the number of lines as bbox.height / single_line_height,
     then divides charspan_length by that estimate. The median of this value across
     all body text items represents normal characters per line for the document.
 
+    Only items with a charspan of at least min_charspan are included, so that short
+    items (headings, list items, page numbers etc.) do not drag the median down and
+    make the threshold comparison unreliable.
+
     Args:
         items: The TextItems to analyse.
         single_line_height: The height of a single line, from compute_single_line_height().
+        min_charspan: Minimum charspan length to include in the median calculation.
+                      Defaults to 100.
 
     Returns:
         The median chars-per-estimated-line, or 0.0 if no valid items are found.
@@ -308,7 +315,7 @@ def compute_median_chars_per_line(items: list[TextItem], single_line_height: flo
         if prov.bbox.height <= 0:
             continue
         charspan_length: int = prov.charspan[1] - prov.charspan[0]
-        if charspan_length <= 0:
+        if charspan_length < min_charspan:
             continue
         estimated_lines: float = prov.bbox.height / single_line_height
         ratios.append(charspan_length / estimated_lines)
