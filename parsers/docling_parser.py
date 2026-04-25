@@ -260,36 +260,33 @@ class DoclingParser(BaseParser):
                 notes.append(text_item)
             elif (text_item.label == DocItemLabel.TEXT
                   and text_item.text
-                  and text_item.text[0].isdigit()
-                  and any(c.isalpha() for c in text_item.text)
-                  and prev_text_candidate):
-                # Body text starting with a digit, containing real text, immediately following
-                # substantial body text that doesn't end with sentence punctuation, is a
-                # near-certain unlabeled footnote. The alpha check excludes pure number/
-                # punctuation continuations like "183-84" from index entries.
-                text_item.label = DocItemLabel.FOOTNOTE
-                found_note_this_page = True
-                notes.append(text_item)
-            elif (text_item.label == DocItemLabel.TEXT
-                  and text_item.text
-                  and text_item.text[0].isdigit()
-                  and len(text_item.text) >= self._short_text_threshold
-                  and text_seen_this_page
-                  and is_small_text(text_item, single_line_height, median_chars_per_line)):
-                # Small body text starting with a digit, preceded by text on the same page,
-                # is a near-certain unlabeled footnote
-                text_item.label = DocItemLabel.FOOTNOTE
-                found_note_this_page = True
-                notes.append(text_item)
-            elif (text_item.label == DocItemLabel.TEXT
-                  and text_item.text
-                  and text_item.text[0].isdigit()
-                  and any(c.isalpha() for c in text_item.text)
-                  and found_note_this_page):
-                # A footnote has already been seen on this page — subsequent digit+alpha
-                # items are propagated as footnotes until the page boundary.
-                text_item.label = DocItemLabel.FOOTNOTE
-                notes.append(text_item)
+                  and text_item.text[0].isdigit()):
+                has_alpha: bool = any(c.isalpha() for c in text_item.text)
+                if has_alpha and prev_text_candidate:
+                    # Body text starting with a digit, containing real text, immediately following
+                    # substantial body text that doesn't end with sentence punctuation, is a
+                    # near-certain unlabeled footnote. The alpha check excludes pure number/
+                    # punctuation continuations like "183-84" from index entries.
+                    text_item.label = DocItemLabel.FOOTNOTE
+                    found_note_this_page = True
+                    notes.append(text_item)
+                elif (len(text_item.text) >= self._short_text_threshold
+                      and text_seen_this_page
+                      and is_small_text(text_item, single_line_height, median_chars_per_line)):
+                    # Small body text starting with a digit, preceded by text on the same page,
+                    # is a near-certain unlabeled footnote.
+                    text_item.label = DocItemLabel.FOOTNOTE
+                    found_note_this_page = True
+                    notes.append(text_item)
+                elif has_alpha and found_note_this_page:
+                    # A footnote has already been seen on this page — subsequent digit+alpha
+                    # items are propagated as footnotes until the page boundary.
+                    text_item.label = DocItemLabel.FOOTNOTE
+                    notes.append(text_item)
+                else:
+                    regular_texts.append(text_item)
+                    prev_text_candidate = (len(text_item.text) >= self._short_text_threshold
+                                           and not is_sentence_end(text_item.text))
             else:
                 regular_texts.append(text_item)
                 if text_item.label == DocItemLabel.TEXT:
