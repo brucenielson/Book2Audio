@@ -236,6 +236,7 @@ class DoclingParser(BaseParser):
         notes: list[TextItem] = []
         text_seen_this_page: bool = False    # Has body text been seen on the current page?
         found_note_this_page: bool = False   # Has a footnote been seen on the current page?
+        carry_over: bool = False             # last_regular_text intentionally kept from previous page
         current_page: int | None = None
         last_regular_text: TextItem | None = None
 
@@ -246,6 +247,10 @@ class DoclingParser(BaseParser):
             if page_number != current_page:
                 text_seen_this_page = False
                 found_note_this_page = False
+                if last_regular_text is not None and not is_sentence_end(last_regular_text.text):
+                    carry_over = True   # keep last_regular_text visible for exactly one item
+                else:
+                    last_regular_text = None
                 current_page = page_number
 
             if is_too_short(text_item):
@@ -290,6 +295,14 @@ class DoclingParser(BaseParser):
             else:
                 regular_texts.append(text_item)
                 last_regular_text = text_item if text_item.label == DocItemLabel.TEXT else last_regular_text
+
+            if carry_over and text_item.label == DocItemLabel.TEXT:
+                carry_over = False
+                # Consume the carry: if this item updated last_regular_text (went to regular
+                # texts as a TEXT item), keep the new value. Otherwise reset to None so the
+                # carried value doesn't bleed into subsequent TEXT items on this page.
+                if last_regular_text is not text_item:
+                    last_regular_text = None
 
             if text_item.label == DocItemLabel.TEXT:
                 text_seen_this_page = True
