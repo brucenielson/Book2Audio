@@ -64,7 +64,7 @@ def is_section_header(text: DocItem | None) -> bool:
     """
     if not is_text_bearing(text):
         return False
-    return text.label == DocItemLabel.SECTION_HEADER.value
+    return text.label == DocItemLabel.SECTION_HEADER
 
 
 def is_page_footer(text: DocItem | None) -> bool:
@@ -78,7 +78,7 @@ def is_page_footer(text: DocItem | None) -> bool:
     """
     if not is_text_bearing(text):
         return False
-    return text.label == DocItemLabel.PAGE_FOOTER.value
+    return text.label == DocItemLabel.PAGE_FOOTER
 
 
 def is_page_header(text: DocItem | None) -> bool:
@@ -92,7 +92,7 @@ def is_page_header(text: DocItem | None) -> bool:
     """
     if not is_text_bearing(text):
         return False
-    return text.label == DocItemLabel.PAGE_HEADER.value
+    return text.label == DocItemLabel.PAGE_HEADER
 
 
 def is_footnote(text: DocItem | None) -> bool:
@@ -106,7 +106,7 @@ def is_footnote(text: DocItem | None) -> bool:
     """
     if not is_text_bearing(text):
         return False
-    return text.label == DocItemLabel.FOOTNOTE.value
+    return text.label == DocItemLabel.FOOTNOTE
 
 
 def is_list_item(text: DocItem | None) -> bool:
@@ -120,7 +120,7 @@ def is_list_item(text: DocItem | None) -> bool:
     """
     if not is_text_bearing(text):
         return False
-    return text.label == DocItemLabel.LIST_ITEM.value
+    return text.label == DocItemLabel.LIST_ITEM
 
 
 # TODO: Check if is_text_break is still needed or can be removed
@@ -155,7 +155,7 @@ def is_page_not_text(text: DocItem | None) -> bool:
     """
     if not is_text_bearing(text):
         return True
-    return text.label not in [DocItemLabel.TEXT.value, DocItemLabel.LIST_ITEM.value, DocItemLabel.FORMULA.value]
+    return text.label not in [DocItemLabel.TEXT, DocItemLabel.LIST_ITEM, DocItemLabel.FORMULA]
 
 
 def is_page_text(text: DocItem | None) -> bool:
