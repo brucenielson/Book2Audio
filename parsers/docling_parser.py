@@ -235,6 +235,8 @@ class DoclingParser(BaseParser):
         regular_texts: list[TextItem] = []
         notes: list[TextItem] = []
         pages_with_text: set[int] = set()  # Pages where at least one text item has been seen
+        first_note_this_page: TextItem | None = None  # First footnote seen on the current page
+        current_page: int | None = None
         last_regular_text: TextItem | None = None
 
         text_item: DocItem
@@ -245,9 +247,15 @@ class DoclingParser(BaseParser):
             # noinspection PyTypeHints
             page_number: int = text_item.prov[0].page_no
 
+            if page_number != current_page:
+                first_note_this_page = None
+                current_page = page_number
+
             if is_too_short(text_item):
                 continue
             elif is_footnote(text_item):
+                if first_note_this_page is None:
+                    first_note_this_page = text_item
                 notes.append(text_item)
             elif (text_item.label == DocItemLabel.TEXT.value
                   and text_item.text
@@ -261,6 +269,8 @@ class DoclingParser(BaseParser):
                 # near-certain unlabeled footnote. The alpha check excludes pure number/
                 # punctuation continuations like "183-84" from index entries.
                 text_item.label = DocItemLabel.FOOTNOTE
+                if first_note_this_page is None:
+                    first_note_this_page = text_item
                 notes.append(text_item)
             elif (text_item.label == DocItemLabel.TEXT.value
                   and text_item.text
@@ -270,6 +280,17 @@ class DoclingParser(BaseParser):
                   and is_small_text(text_item, single_line_height, median_chars_per_line)):
                 # Small body text starting with a digit, preceded by text on the same page,
                 # is a near-certain unlabeled footnote
+                text_item.label = DocItemLabel.FOOTNOTE
+                if first_note_this_page is None:
+                    first_note_this_page = text_item
+                notes.append(text_item)
+            elif (text_item.label == DocItemLabel.TEXT.value
+                  and text_item.text
+                  and text_item.text[0].isdigit()
+                  and any(c.isalpha() for c in text_item.text)
+                  and first_note_this_page is not None):
+                # A footnote has already been seen on this page — subsequent digit+alpha
+                # items are propagated as footnotes until the page boundary.
                 text_item.label = DocItemLabel.FOOTNOTE
                 notes.append(text_item)
             else:
