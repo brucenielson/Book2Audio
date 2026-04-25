@@ -239,12 +239,8 @@ class DoclingParser(BaseParser):
         current_page: int | None = None
         last_regular_text: TextItem | None = None
 
-        text_item: DocItem
-        for text_item in self._doc.texts:
-            if not is_text_bearing(text_item):
-                continue
-
-            # noinspection PyTypeHints
+        text_item: TextItem
+        for text_item in all_text_items:
             page_number: int = text_item.prov[0].page_no
 
             if page_number != current_page:
