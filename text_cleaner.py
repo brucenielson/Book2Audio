@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import difflib
 import json
-import re
 from typing import Literal, TypeAlias
 
 import ollama
@@ -92,15 +91,15 @@ def _has_suspicious_substitutions(original: str, cleaned: str) -> bool:
         if tag != 'replace' or (i2 - i1) != (j2 - j1):
             continue
         for orig_word, new_word in zip(original_words[i1:i2], cleaned_words[j1:j2]):
-            orig_clean = re.sub(r'[^a-z]', '', orig_word)
-            new_clean = re.sub(r'[^a-z]', '', new_word)
+            orig_clean = orig_word.strip('.,;:!?"\'()-[]')
+            new_clean = new_word.strip('.,;:!?"\'()-[]')
             if orig_clean == new_clean:
                 continue
             if word_validator.is_valid_word(orig_clean):
-                # Original was valid — any substitution is suspicious
+                # Original was a clean valid word — any substitution is suspicious
                 return True
             if not word_validator.is_valid_word(new_clean):
-                # Original was invalid (OCR artifact) but replacement is also invalid
+                # Original was an OCR artifact but replacement is also invalid
                 return True
     return False
 
@@ -154,6 +153,7 @@ class TextCleaner:
             user_content = f"Paragraph to clean and classify:\n{paragraph}"
 
         for attempt in range(self._max_retries):
+            cleaned_candidate: str | None = None
             try:
                 options: dict[str, float] = {}
                 if self._temperature is not None:
@@ -170,8 +170,8 @@ class TextCleaner:
                 vprint(self._verbose, f"LLM response: {repr(content)}")
                 parsed = json.loads(content)
 
-                cleaned = parsed['cleaned']
-                classification: ClassificationType  = parsed['classification']
+                cleaned_candidate = parsed['cleaned']
+                classification: ClassificationType = parsed['classification']
 
                 if classification not in ('body', 'footnote', 'drop'):
                     coerced = _coerce_classification(classification)
@@ -179,17 +179,21 @@ class TextCleaner:
                         raise ValueError(f"Invalid classification: '{classification}'")
                     classification = coerced
 
-                if paragraph and abs(len(cleaned) - len(paragraph)) / len(paragraph) > 0.10:
+                if paragraph and abs(len(cleaned_candidate) - len(paragraph)) / len(paragraph) > 0.10:
                     raise ValueError(f"Cleaned text size differs by more than 10% "
-                                     f"(original={len(paragraph)}, cleaned={len(cleaned)})")
+                                     f"(original={len(paragraph)}, cleaned={len(cleaned_candidate)})")
 
-                if _has_suspicious_substitutions(paragraph, cleaned):
+                if _has_suspicious_substitutions(paragraph, cleaned_candidate):
                     raise ValueError("LLM replaced valid English words — possible hallucination")
 
-                cleaned = ' '.join(cleaned.split('\n'))
-                return cleaned, classification
+                cleaned_candidate = ' '.join(cleaned_candidate.split('\n'))
+                return cleaned_candidate, classification
 
-            except (json.JSONDecodeError, KeyError, ValueError):
+            except (json.JSONDecodeError, KeyError, ValueError) as e:
+                vprint(self._verbose, f"  → attempt {attempt + 1} rejected: {e}")
+                if cleaned_candidate is not None:
+                    vprint(self._verbose, f"  original: {paragraph}")
+                    vprint(self._verbose, f"  cleaned:  {cleaned_candidate}")
                 continue
 
         return paragraph, 'body'
