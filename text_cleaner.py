@@ -179,9 +179,11 @@ class TextCleaner:
                         raise ValueError(f"Invalid classification: '{classification}'")
                     classification = coerced
 
-                if paragraph and abs(len(cleaned_candidate) - len(paragraph)) / len(paragraph) > 0.10:
-                    raise ValueError(f"Cleaned text size differs by more than 10% "
-                                     f"(original={len(paragraph)}, cleaned={len(cleaned_candidate)})")
+                if classification != 'drop':
+                    printable_len: int = sum(1 for c in paragraph if c.isprintable())
+                    if printable_len and abs(len(cleaned_candidate) - printable_len) / printable_len > 0.10:
+                        raise ValueError(f"Cleaned text size differs by more than 10% "
+                                         f"(original printable={printable_len}, cleaned={len(cleaned_candidate)})")
 
                 if _has_suspicious_substitutions(paragraph, cleaned_candidate):
                     raise ValueError("LLM replaced valid English words — possible hallucination")
