@@ -4,7 +4,7 @@ import pytest
 from unittest.mock import MagicMock
 from docling_core.types.doc.document import SectionHeaderItem, TextItem, DocItemLabel
 from docling_core.types import DoclingDocument
-from parsers.docling_parser import DoclingParser
+from parsers.docling_parser import DoclingParser, _FootnoteContext
 from text_cleaner import TextCleaner
 
 
@@ -64,6 +64,190 @@ def make_parser(texts: list,
     return DoclingParser(source=doc, meta_data=meta_data or {}, min_paragraph_size=min_paragraph_size,
                          start_page=start_page, end_page=end_page, include_footnotes=include_notes,
                          llm_cleaner=cleaner, min_footnote_chars=min_footnote_chars)
+
+
+def make_ctx(
+    prev_text_candidate: bool = False,
+    text_seen_this_page: bool = False,
+    found_note_this_page: bool = False,
+    single_line_height: float = 10.0,
+    median_chars_per_line: float = 50.0,
+) -> _FootnoteContext:
+    """Create a _FootnoteContext with sensible defaults for unit testing."""
+    return _FootnoteContext(
+        prev_text_candidate=prev_text_candidate,
+        text_seen_this_page=text_seen_this_page,
+        found_note_this_page=found_note_this_page,
+        single_line_height=single_line_height,
+        median_chars_per_line=median_chars_per_line,
+    )
+
+
+def make_sized_text_item(text: str, page_no: int = 1,
+                         charspan_length: int = 10,
+                         bbox_height: float = 10.0) -> MagicMock:
+    """Create a TEXT item with configurable charspan and bbox height for H2 testing."""
+    item = make_doc_item(TextItem, DocItemLabel.TEXT.value, text, page_no)
+    item.prov[0].charspan = (0, charspan_length)
+    item.prov[0].bbox.height = bbox_height
+    return item
+
+
+# --- TestIsFootnote ---
+
+class TestIsFootnote:
+
+    # --- Already-labeled FOOTNOTE ---
+
+    def test_labeled_footnote_returns_true(self) -> None:
+        """Items Docling already labeled as FOOTNOTE must always return True."""
+        parser = make_parser([])
+        assert parser._is_footnote(make_footnote("1 Already labeled."), make_ctx()) is True
+
+    def test_labeled_footnote_ignores_ctx(self) -> None:
+        """FOOTNOTE label is sufficient on its own — context state is irrelevant."""
+        parser = make_parser([])
+        ctx = make_ctx(prev_text_candidate=False, text_seen_this_page=False,
+                       found_note_this_page=False)
+        assert parser._is_footnote(make_footnote("1 Already labeled."), ctx) is True
+
+    # --- Guard: label is not FOOTNOTE and item is not digit-start TEXT ---
+
+    def test_text_starting_with_letter_returns_false(self) -> None:
+        parser = make_parser([])
+        assert parser._is_footnote(make_text_item("Regular body text."), make_ctx()) is False
+
+    def test_section_header_with_digit_start_returns_false(self) -> None:
+        """SECTION_HEADER label must fail the guard even when text starts with a digit."""
+        parser = make_parser([])
+        ctx = make_ctx(prev_text_candidate=True, found_note_this_page=True)
+        assert parser._is_footnote(make_section_header("1. Introduction"), ctx) is False
+
+    def test_page_header_returns_false(self) -> None:
+        parser = make_parser([])
+        assert parser._is_footnote(make_page_header("1 Page Header"), make_ctx()) is False
+
+    def test_page_footer_returns_false(self) -> None:
+        parser = make_parser([])
+        assert parser._is_footnote(make_page_footer("1 Page Footer"), make_ctx()) is False
+
+    def test_list_item_returns_false(self) -> None:
+        """LIST_ITEM label must fail the guard even with digit-start text."""
+        item = make_doc_item(TextItem, DocItemLabel.LIST_ITEM.value, "1 list entry")
+        parser = make_parser([])
+        assert parser._is_footnote(item, make_ctx(prev_text_candidate=True)) is False
+
+    def test_empty_text_returns_false(self) -> None:
+        """Empty string is falsy — guard bails before any heuristic is checked."""
+        parser = make_parser([])
+        assert parser._is_footnote(make_text_item(""), make_ctx()) is False
+
+    def test_text_starting_with_space_returns_false(self) -> None:
+        """A leading space before a digit is not a digit-start — guard must not pass."""
+        parser = make_parser([])
+        ctx = make_ctx(prev_text_candidate=True)
+        assert parser._is_footnote(make_text_item(" 1 Leading space."), ctx) is False
+
+    # --- H1: digit-start TEXT following mid-sentence body text ---
+
+    def test_h1_digit_alpha_after_mid_sentence_returns_true(self) -> None:
+        parser = make_parser([])
+        item = make_text_item("1 This is an unlabelled footnote.")
+        assert parser._is_footnote(item, make_ctx(prev_text_candidate=True)) is True
+
+    def test_h1_pure_number_with_prev_candidate_returns_false(self) -> None:
+        """Index entries like '183-84' contain no alpha — H1 must not fire."""
+        parser = make_parser([])
+        item = make_text_item("183-84")
+        assert parser._is_footnote(item, make_ctx(prev_text_candidate=True)) is False
+
+    def test_h1_alpha_without_prev_candidate_returns_false(self) -> None:
+        """Alpha alone is not enough — H1 also requires prev_text_candidate."""
+        parser = make_parser([])
+        item = make_text_item("1 Some text.")
+        assert parser._is_footnote(item, make_ctx(prev_text_candidate=False)) is False
+
+    # --- H2: small font, preceded by body text on this page ---
+    # is_small_text: chars_per_line = charspan / (height / single_line_height)
+    # Fires when chars_per_line > median * 1.25
+    # Setup: charspan=200, height=10, single_line_height=5 → chars_per_line=100
+    #   small:     median=50  → 100 > 62.5  → True
+    #   not small: median=200 → 100 > 250   → False
+
+    def test_h2_small_text_with_body_seen_returns_true(self) -> None:
+        """Long digit-start item in small font, preceded by body text → H2 fires."""
+        text = "1" + "a" * 99   # len=100, digit-start, has alpha
+        item = make_sized_text_item(text, charspan_length=200, bbox_height=10.0)
+        parser = make_parser([], min_footnote_chars=100)
+        ctx = make_ctx(text_seen_this_page=True, single_line_height=5.0,
+                       median_chars_per_line=50.0)
+        assert parser._is_footnote(item, ctx) is True
+
+    def test_h2_fires_without_alpha(self) -> None:
+        """H2 has no alpha requirement — a long digit-only small-font item qualifies."""
+        text = "1" + "0" * 99   # len=100, digit-start, no alpha
+        item = make_sized_text_item(text, charspan_length=200, bbox_height=10.0)
+        parser = make_parser([], min_footnote_chars=100)
+        ctx = make_ctx(text_seen_this_page=True, single_line_height=5.0,
+                       median_chars_per_line=50.0)
+        assert parser._is_footnote(item, ctx) is True
+
+    def test_h2_text_below_threshold_returns_false(self) -> None:
+        """Text shorter than min_footnote_chars must not trigger H2."""
+        text = "1 short"   # len < 100
+        item = make_sized_text_item(text, charspan_length=200, bbox_height=10.0)
+        parser = make_parser([], min_footnote_chars=100)
+        ctx = make_ctx(text_seen_this_page=True, single_line_height=5.0,
+                       median_chars_per_line=50.0)
+        assert parser._is_footnote(item, ctx) is False
+
+    def test_h2_no_body_text_seen_returns_false(self) -> None:
+        """H2 must not fire if no body text has appeared yet on this page."""
+        text = "1" + "a" * 99
+        item = make_sized_text_item(text, charspan_length=200, bbox_height=10.0)
+        parser = make_parser([], min_footnote_chars=100)
+        ctx = make_ctx(text_seen_this_page=False, single_line_height=5.0,
+                       median_chars_per_line=50.0)
+        assert parser._is_footnote(item, ctx) is False
+
+    def test_h2_normal_font_size_returns_false(self) -> None:
+        """H2 must not fire when the item's font size matches the document norm."""
+        text = "1" + "a" * 99
+        item = make_sized_text_item(text, charspan_length=200, bbox_height=10.0)
+        parser = make_parser([], min_footnote_chars=100)
+        ctx = make_ctx(text_seen_this_page=True, single_line_height=5.0,
+                       median_chars_per_line=200.0)  # high median → not small
+        assert parser._is_footnote(item, ctx) is False
+
+    # --- H3: propagation after a footnote has been seen on this page ---
+
+    def test_h3_digit_alpha_after_note_on_page_returns_true(self) -> None:
+        parser = make_parser([])
+        item = make_text_item("2 Continuation of a footnote.")
+        assert parser._is_footnote(item, make_ctx(found_note_this_page=True)) is True
+
+    def test_h3_pure_number_after_note_returns_false(self) -> None:
+        """No alpha — H3 must not fire even when a note has been seen on the page."""
+        parser = make_parser([])
+        item = make_text_item("2")
+        assert parser._is_footnote(item, make_ctx(found_note_this_page=True)) is False
+
+    def test_h3_alpha_no_prior_note_returns_false(self) -> None:
+        """Alpha alone is not enough — H3 also requires found_note_this_page."""
+        parser = make_parser([])
+        item = make_text_item("2 Some text.")
+        assert parser._is_footnote(item, make_ctx(found_note_this_page=False)) is False
+
+    # --- No heuristic fires ---
+
+    def test_digit_only_text_all_ctx_false_returns_false(self) -> None:
+        parser = make_parser([])
+        assert parser._is_footnote(make_text_item("42"), make_ctx()) is False
+
+    def test_digit_alpha_text_all_ctx_false_returns_false(self) -> None:
+        """Has alpha and digit-start but no context conditions met — must return False."""
+        parser = make_parser([])
+        assert parser._is_footnote(make_text_item("1 Some text."), make_ctx()) is False
 
 
 # --- TestGetProcessedTexts ---
