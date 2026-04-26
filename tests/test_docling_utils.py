@@ -5,7 +5,7 @@ from docling_core.types import DoclingDocument
 from docling_core.types.doc.document import SectionHeaderItem, ListItem, TextItem, DocItem, DocItemLabel
 from utils.docling_utils import (
     is_section_header, is_page_footer, is_page_header, is_footnote,
-    is_list_item, is_text_break, is_page_not_text, is_page_text,
+    is_list_item, is_text_break, is_body_text,
     is_too_short, is_text_item, get_next_text,
     get_current_page, should_skip_element,
     compute_single_line_height, compute_median_chars_per_line, is_small_text,
@@ -129,33 +129,29 @@ class TestIsTextBreak:
         assert is_text_break(None) is False
 
 
-# --- is_page_not_text ---
+# --- is_body_text ---
 
-class TestIsPageNotText:
-    def test_returns_false_for_text(self) -> None:
-        assert is_page_not_text(make_text_item(DocItemLabel.TEXT.value)) is False
-
-    def test_returns_false_for_list_item(self) -> None:
-        assert is_page_not_text(make_list_item()) is False
-
-    def test_returns_true_for_page_header(self) -> None:
-        assert is_page_not_text(make_text_item(DocItemLabel.PAGE_HEADER.value)) is True
-
-    def test_returns_true_for_none(self) -> None:
-        assert is_page_not_text(None) is True
-
-
-# --- is_page_text ---
-
-class TestIsPageText:
+class TestIsBodyText:
     def test_returns_true_for_text(self) -> None:
-        assert is_page_text(make_text_item(DocItemLabel.TEXT.value)) is True
+        assert is_body_text(make_text_item(DocItemLabel.TEXT.value)) is True
+
+    def test_returns_true_for_list_item(self) -> None:
+        assert is_body_text(make_list_item()) is True
+
+    def test_returns_true_for_formula(self) -> None:
+        assert is_body_text(make_text_item(DocItemLabel.FORMULA.value)) is True
 
     def test_returns_false_for_page_header(self) -> None:
-        assert is_page_text(make_text_item(DocItemLabel.PAGE_HEADER.value)) is False
+        assert is_body_text(make_text_item(DocItemLabel.PAGE_HEADER.value)) is False
+
+    def test_returns_false_for_section_header(self) -> None:
+        assert is_body_text(make_text_item(DocItemLabel.SECTION_HEADER.value)) is False
+
+    def test_returns_false_for_footnote(self) -> None:
+        assert is_body_text(make_text_item(DocItemLabel.FOOTNOTE.value)) is False
 
     def test_returns_false_for_none(self) -> None:
-        assert is_page_text(None) is False
+        assert is_body_text(None) is False
 
 
 # --- is_too_short ---

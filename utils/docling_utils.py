@@ -141,24 +141,12 @@ def is_text_break(text: DocItem | None) -> bool:
     return is_page_header(text) or is_section_header(text) or is_footnote(text)
 
 
-def is_page_not_text(text: DocItem | None) -> bool:
-    """Check if a DocItem is not a body text element.
-
-    Returns True for items that are not regular text, list items, or formulas.
-    Also returns True for None or non-text DocItem subclasses.
-
-    Args:
-        text: The DocItem to check, or None.
-
-    Returns:
-        True if the item is not a body text element, False otherwise.
-    """
-    if not is_text_bearing(text):
-        return True
-    return text.label not in [DocItemLabel.TEXT, DocItemLabel.LIST_ITEM, DocItemLabel.FORMULA]
+_BODY_TEXT_LABELS: frozenset[DocItemLabel] = frozenset({
+    DocItemLabel.TEXT, DocItemLabel.LIST_ITEM, DocItemLabel.FORMULA
+})
 
 
-def is_page_text(text: DocItem | None) -> bool:
+def is_body_text(text: DocItem | None) -> bool:
     """Check if a DocItem is a body text element.
 
     Returns True for items that are regular text, list items, or formulas.
@@ -169,9 +157,7 @@ def is_page_text(text: DocItem | None) -> bool:
     Returns:
         True if the item is a body text element, False otherwise.
     """
-    if not is_text_bearing(text):
-        return False
-    return not is_page_not_text(text)
+    return is_text_bearing(text) and text.label in _BODY_TEXT_LABELS
 
 
 def is_too_short(doc_item: DocItem, threshold: int = 2) -> bool:
@@ -188,7 +174,6 @@ def is_too_short(doc_item: DocItem, threshold: int = 2) -> bool:
     """
     if not is_text_bearing(doc_item):
         return False
-    assert isinstance(doc_item, TextItem)
     return len(doc_item.text) <= threshold
 
 
@@ -221,8 +206,6 @@ def get_next_text(texts: list[DocItem], i: int) -> DocItem | None:
     Returns:
         The next DocItem that passes is_text_item, or None if not found.
     """
-    # Seek through the list of texts to find the next text item using is_text_item
-    # Should return None if no more text items are found
     for j in range(i + 1, len(texts)):
         if is_text_item(texts[j]):
             return texts[j]
@@ -248,8 +231,9 @@ def get_current_page(text: DocItem,
     """
     if not is_text_bearing(text):
         return current_page
-    # noinspection PyTypeHints
-    return text.prov[0].page_no if current_page is None or combined_paragraph == "" else current_page
+    if current_page is None or combined_paragraph == "":
+        return text.prov[0].page_no
+    return current_page
 
 
 def compute_single_line_height(doc: DoclingDocument) -> float:
@@ -266,16 +250,13 @@ def compute_single_line_height(doc: DoclingDocument) -> float:
     """
     heights: list[float] = []
     for item in doc.texts:
-        if not is_text_bearing(item):
-            continue
         if not (is_page_header(item) or is_page_footer(item)):
             continue
         if not item.prov:
             continue
-        prov = item.prov[0]
-        if prov.bbox is None:
-            continue
-        heights.append(prov.bbox.height)
+        bbox = item.prov[0].bbox
+        if bbox is not None:
+            heights.append(bbox.height)
     if not heights:
         return 0.0
     heights.sort()
@@ -397,8 +378,4 @@ def should_skip_element(text: DocItem) -> bool:
     """
     if not is_text_bearing(text):
         return True
-    assert isinstance(text, TextItem)
-    return any([
-        is_page_footer(text),
-        is_page_header(text)
-    ])
+    return is_page_footer(text) or is_page_header(text)
