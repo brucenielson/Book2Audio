@@ -34,6 +34,7 @@ class _FootnoteContext:
     rather than five.
     """
     prev_text_candidate: bool       # last TEXT item was long with no sentence end
+    prev_ends_mid_sentence: bool    # last body TEXT item ended with alpha or non-terminal punct
     text_seen_this_page: bool       # body text has been seen on the current page
     found_note_this_page: bool      # a footnote has been seen on the current page
     single_line_height: float       # median height of one line (from headers/footers)
@@ -238,6 +239,71 @@ class DoclingParser(BaseParser):
             or (has_alpha and ctx.found_note_this_page)
         )
 
+    @staticmethod
+    def _compute_boundary_indices(items: list[TextItem]) -> set[int]:
+        """Return the indices of the first and last item on each page.
+
+        Running page headers/footers mislabeled as section headers always appear
+        at the first or last position on their page.
+
+        Args:
+            items: All text items in document order.
+
+        Returns:
+            A set of indices that are the first or last item on their page.
+        """
+        page_first: dict[int, int] = {}
+        page_last: dict[int, int] = {}
+        for i, item in enumerate(items):
+            pno: int = item.prov[0].page_no
+            if pno not in page_first:
+                page_first[pno] = i
+            page_last[pno] = i
+        return set(page_first.values()) | set(page_last.values())
+
+    def _is_running_head(self, i: int, text_item: TextItem,
+                         boundary_indices: set[int], ctx: _FootnoteContext) -> bool:
+        """Return True if this section header looks like a mislabeled running page header.
+
+        A genuine running head is always: labeled SECTION_HEADER, at the top or
+        bottom of a page, preceded by long mid-sentence body text, and single-line.
+        All four conditions must hold before the item is suppressed.
+
+        Args:
+            i: Index of text_item in all_text_items.
+            text_item: The item to evaluate.
+            boundary_indices: Indices that are first or last on their page.
+            ctx: Current classification context.
+
+        Returns:
+            True if the item should be suppressed as a running page header.
+        """
+        return (text_item.label == DocItemLabel.SECTION_HEADER
+                and i in boundary_indices
+                and ctx.prev_text_candidate
+                and ctx.prev_ends_mid_sentence
+                and is_single_line(text_item, ctx.single_line_height))
+
+    def _update_text_state(self, text_item: TextItem, ctx: _FootnoteContext) -> None:
+        """Update tracking state after an item is routed to regular body text.
+
+        For TEXT items, refreshes prev_text_candidate (used by the footnote H1
+        heuristic) and prev_ends_mid_sentence (used by the running-head guard).
+        Non-TEXT items reset prev_ends_mid_sentence so subsequent section headers
+        are not incorrectly suppressed.
+
+        Args:
+            text_item: The item just routed to regular_texts.
+            ctx: The context to update in place.
+        """
+        if text_item.label == DocItemLabel.TEXT:
+            ctx.prev_text_candidate = (len(text_item.text) >= self._short_text_threshold
+                                       and not is_sentence_end(text_item.text))
+            last_char: str = text_item.text.rstrip()[-1] if text_item.text.rstrip() else ''
+            ctx.prev_ends_mid_sentence = last_char.isalpha() or last_char in (',', ':', ';')
+        else:
+            ctx.prev_ends_mid_sentence = False
+
     def _get_processed_texts(self) -> tuple[list[TextItem], list[TextItem]]:
         """Separate the document's text items into regular content and footnotes.
 
@@ -260,25 +326,15 @@ class DoclingParser(BaseParser):
             all_text_items, single_line_height, min_charspan=self._short_text_threshold
         )
 
-        # Precompute which indices in all_text_items are the first or last item on
-        # their page. Running page headers/footers mislabeled as section headers
-        # always appear at the top or bottom of a page.
-        page_first: dict[int, int] = {}
-        page_last: dict[int, int] = {}
-        for _i, _item in enumerate(all_text_items):
-            _pno: int = _item.prov[0].page_no
-            if _pno not in page_first:
-                page_first[_pno] = _i
-            page_last[_pno] = _i
-        boundary_indices: set[int] = set(page_first.values()) | set(page_last.values())
+        boundary_indices: set[int] = self._compute_boundary_indices(all_text_items)
 
         regular_texts: list[TextItem] = []
         notes: list[TextItem] = []
-        carry_over: bool = False             # prev_text_candidate intentionally kept from previous page
-        prev_ends_mid_sentence: bool = False # last body TEXT item ended with alpha or non-terminal punct
+        carry_over: bool = False  # prev_text_candidate intentionally kept from previous page
         current_page: int | None = None
         ctx: _FootnoteContext = _FootnoteContext(
             prev_text_candidate=False,
+            prev_ends_mid_sentence=False,
             text_seen_this_page=False,
             found_note_this_page=False,
             single_line_height=single_line_height,
@@ -293,23 +349,12 @@ class DoclingParser(BaseParser):
                 ctx.found_note_this_page = False
                 if ctx.prev_text_candidate:
                     carry_over = True   # keep prev_text_candidate visible for exactly one TEXT item
-                else:
-                    ctx.prev_text_candidate = False  # redundant but explicit reset for clarity
                 current_page = page_number
 
             if is_too_short(text_item):
                 continue
 
-            # A section header at the top or bottom of a page (first or last item on
-            # that page) that follows long mid-sentence body text and spans only a
-            # single line is almost certainly a mislabeled running page header — skip
-            # it to preserve paragraph continuity. Genuine section headers that are
-            # multi-line, mid-page, or preceded by complete sentences are always kept.
-            if (text_item.label == DocItemLabel.SECTION_HEADER
-                    and i in boundary_indices
-                    and ctx.prev_text_candidate
-                    and prev_ends_mid_sentence
-                    and is_single_line(text_item, ctx.single_line_height)):
+            if self._is_running_head(i, text_item, boundary_indices, ctx):
                 continue
 
             went_to_notes: bool = self._is_footnote(text_item, ctx)
@@ -318,16 +363,7 @@ class DoclingParser(BaseParser):
                 notes.append(text_item)
             else:
                 regular_texts.append(text_item)
-                if text_item.label == DocItemLabel.TEXT:
-                    ctx.prev_text_candidate = (len(text_item.text) >= self._short_text_threshold
-                                               and not is_sentence_end(text_item.text))
-                    last_char: str = text_item.text.rstrip()[-1] if text_item.text.rstrip() else ''
-                    prev_ends_mid_sentence = last_char.isalpha() or last_char in (',', ':', ';')
-                else:
-                    # A non-TEXT item (list, table, legitimate section header, …) reaching
-                    # regular_texts resets the mid-sentence signal so subsequent section
-                    # headers are not incorrectly suppressed.
-                    prev_ends_mid_sentence = False
+                self._update_text_state(text_item, ctx)
 
             if carry_over and not went_to_notes and text_item.label == DocItemLabel.TEXT:
                 carry_over = False  # consumed by the first body TEXT item on the new page

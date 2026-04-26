@@ -68,6 +68,7 @@ def make_parser(texts: list,
 
 def make_ctx(
     prev_text_candidate: bool = False,
+    prev_ends_mid_sentence: bool = False,
     text_seen_this_page: bool = False,
     found_note_this_page: bool = False,
     single_line_height: float = 10.0,
@@ -76,6 +77,7 @@ def make_ctx(
     """Create a _FootnoteContext with sensible defaults for unit testing."""
     return _FootnoteContext(
         prev_text_candidate=prev_text_candidate,
+        prev_ends_mid_sentence=prev_ends_mid_sentence,
         text_seen_this_page=text_seen_this_page,
         found_note_this_page=found_note_this_page,
         single_line_height=single_line_height,
@@ -329,6 +331,143 @@ class TestExtractChunks:
         parser = make_parser([])
         chunks = parser._extract_chunks(texts, [])
         assert chunks[0].label == DocItemLabel.TEXT
+
+
+# --- TestComputeBoundaryIndices ---
+
+class TestComputeBoundaryIndices:
+    def test_single_page_first_and_last_are_boundary(self) -> None:
+        items = [make_text_item("A"), make_text_item("B"), make_text_item("C")]
+        result = DoclingParser._compute_boundary_indices(items)
+        assert 0 in result   # first on page 1
+        assert 2 in result   # last on page 1
+
+    def test_middle_item_not_boundary(self) -> None:
+        items = [make_text_item("A"), make_text_item("B"), make_text_item("C")]
+        result = DoclingParser._compute_boundary_indices(items)
+        assert 1 not in result
+
+    def test_two_pages_each_contributes_boundaries(self) -> None:
+        items = [
+            make_text_item("A", page_no=1),
+            make_text_item("B", page_no=1),
+            make_text_item("C", page_no=2),
+            make_text_item("D", page_no=2),
+        ]
+        result = DoclingParser._compute_boundary_indices(items)
+        assert result == {0, 1, 2, 3}
+
+    def test_single_item_page_is_both_first_and_last(self) -> None:
+        items = [
+            make_text_item("A", page_no=1),
+            make_text_item("B", page_no=2),
+        ]
+        result = DoclingParser._compute_boundary_indices(items)
+        assert result == {0, 1}
+
+    def test_empty_list_returns_empty_set(self) -> None:
+        assert DoclingParser._compute_boundary_indices([]) == set()
+
+
+# --- TestIsRunningHead ---
+
+class TestIsRunningHead:
+    def test_all_conditions_met_returns_true(self) -> None:
+        header = make_section_header("Running Head")
+        parser = make_parser([])
+        ctx = make_ctx(prev_text_candidate=True, prev_ends_mid_sentence=True, single_line_height=10.0)
+        assert parser._is_running_head(0, header, {0}, ctx) is True
+
+    def test_not_section_header_returns_false(self) -> None:
+        text = make_text_item("Some text")
+        parser = make_parser([])
+        ctx = make_ctx(prev_text_candidate=True, prev_ends_mid_sentence=True)
+        assert parser._is_running_head(0, text, {0}, ctx) is False
+
+    def test_not_at_boundary_returns_false(self) -> None:
+        header = make_section_header("Chapter One")
+        parser = make_parser([])
+        ctx = make_ctx(prev_text_candidate=True, prev_ends_mid_sentence=True)
+        assert parser._is_running_head(1, header, {0, 2}, ctx) is False
+
+    def test_prev_text_candidate_false_returns_false(self) -> None:
+        header = make_section_header("Running Head")
+        parser = make_parser([])
+        ctx = make_ctx(prev_text_candidate=False, prev_ends_mid_sentence=True)
+        assert parser._is_running_head(0, header, {0}, ctx) is False
+
+    def test_prev_ends_mid_sentence_false_returns_false(self) -> None:
+        header = make_section_header("Running Head")
+        parser = make_parser([])
+        ctx = make_ctx(prev_text_candidate=True, prev_ends_mid_sentence=False)
+        assert parser._is_running_head(0, header, {0}, ctx) is False
+
+    def test_multi_line_header_returns_false(self) -> None:
+        header = make_section_header("Running Head")
+        header.prov[0].bbox.height = 30.0  # too tall for single-line (10.0 * 1.3 = 13.0)
+        parser = make_parser([])
+        ctx = make_ctx(prev_text_candidate=True, prev_ends_mid_sentence=True, single_line_height=10.0)
+        assert parser._is_running_head(0, header, {0}, ctx) is False
+
+
+# --- TestUpdateTextState ---
+
+class TestUpdateTextState:
+    def test_long_mid_sentence_text_sets_prev_text_candidate(self) -> None:
+        text = make_text_item("A" * 100)   # long, no sentence-ending punctuation
+        parser = make_parser([], min_footnote_chars=100)
+        ctx = make_ctx()
+        parser._update_text_state(text, ctx)
+        assert ctx.prev_text_candidate is True
+
+    def test_short_text_clears_prev_text_candidate(self) -> None:
+        text = make_text_item("Short text")
+        parser = make_parser([], min_footnote_chars=100)
+        ctx = make_ctx(prev_text_candidate=True)
+        parser._update_text_state(text, ctx)
+        assert ctx.prev_text_candidate is False
+
+    def test_sentence_ending_text_clears_prev_text_candidate(self) -> None:
+        text = make_text_item("A" * 100 + ".")
+        parser = make_parser([], min_footnote_chars=100)
+        ctx = make_ctx()
+        parser._update_text_state(text, ctx)
+        assert ctx.prev_text_candidate is False
+
+    def test_alpha_ending_sets_prev_ends_mid_sentence(self) -> None:
+        text = make_text_item("ends with alpha")
+        parser = make_parser([])
+        ctx = make_ctx()
+        parser._update_text_state(text, ctx)
+        assert ctx.prev_ends_mid_sentence is True
+
+    def test_comma_ending_sets_prev_ends_mid_sentence(self) -> None:
+        text = make_text_item("ends with comma,")
+        parser = make_parser([])
+        ctx = make_ctx()
+        parser._update_text_state(text, ctx)
+        assert ctx.prev_ends_mid_sentence is True
+
+    def test_period_ending_clears_prev_ends_mid_sentence(self) -> None:
+        text = make_text_item("ends with period.")
+        parser = make_parser([])
+        ctx = make_ctx(prev_ends_mid_sentence=True)
+        parser._update_text_state(text, ctx)
+        assert ctx.prev_ends_mid_sentence is False
+
+    def test_non_text_label_clears_prev_ends_mid_sentence(self) -> None:
+        header = make_section_header("A Chapter")
+        parser = make_parser([])
+        ctx = make_ctx(prev_ends_mid_sentence=True)
+        parser._update_text_state(header, ctx)
+        assert ctx.prev_ends_mid_sentence is False
+
+    def test_non_text_label_does_not_change_prev_text_candidate(self) -> None:
+        header = make_section_header("A Chapter")
+        parser = make_parser([])
+        ctx = make_ctx(prev_text_candidate=True)
+        parser._update_text_state(header, ctx)
+        assert ctx.prev_text_candidate is True
 
 
 # --- TestGetProcessedTexts ---
