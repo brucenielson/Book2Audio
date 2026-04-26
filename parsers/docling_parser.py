@@ -156,26 +156,18 @@ class DoclingParser(BaseParser):
         Returns:
             A list of RawChunks ready for the text processor.
         """
+        all_items: list[TextItem] = regular_texts + (notes if self._include_notes else [])
+
         chunks: list[RawChunk] = []
-
-        # Notes items may have been reclassified from TEXT without label mutation,
-        # so we pair each item with the label it should carry into the pipeline.
-        items: list[tuple[TextItem, DocItemLabel]] = (
-            [(t, t.label) for t in regular_texts] +
-            ([(t, DocItemLabel.FOOTNOTE) for t in notes] if self._include_notes else [])
-        )
-
-        for text, label in items:
+        for text in all_items:
             page_no: int = text.prov[0].page_no
             if not self._is_in_page_range(page_no):
                 continue
-
-            meta: dict[str, str] = {
-                **self._meta_data,
-                "section_name": "",
-                "page_#": str(page_no)
-            }
-            chunks.append(RawChunk(text=text.text, meta=meta, label=label))
+            chunks.append(RawChunk(
+                text=text.text,
+                meta={**self._meta_data, "section_name": "", "page_#": str(page_no)},
+                label=text.label
+            ))
 
         return chunks
 
