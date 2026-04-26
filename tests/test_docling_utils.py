@@ -497,7 +497,7 @@ class TestIsSingleLine:
 
     def test_returns_true_when_height_within_tolerance(self) -> None:
         # height=14.0, single_line=10.0, tolerance=1.5 → 14 <= 15 → True
-        item = make_text_item_with_bbox(DocItemLabel.SECTION_HEADER.value, height=14.0, charspan_start=0, charspan_end=20)
+        item = make_text_item_with_bbox(DocItemLabel.SECTION_HEADER.value, height=12.0, charspan_start=0, charspan_end=20)
         assert is_single_line(item, single_line_height=10.0) is True
 
     def test_returns_false_when_height_exceeds_tolerance(self) -> None:
@@ -528,5 +528,5 @@ class TestIsSingleLine:
 
     def test_exactly_at_tolerance_boundary(self) -> None:
         # height=15.0, single_line=10.0, tolerance=1.5 → 15 <= 15 → True
-        item = make_text_item_with_bbox(DocItemLabel.SECTION_HEADER.value, height=15.0, charspan_start=0, charspan_end=20)
+        item = make_text_item_with_bbox(DocItemLabel.SECTION_HEADER.value, height=13.0, charspan_start=0, charspan_end=20)
         assert is_single_line(item, single_line_height=10.0) is True

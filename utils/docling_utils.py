@@ -360,7 +360,7 @@ def is_small_text(item: TextItem, single_line_height: float,
     return chars_per_line > median_chars_per_line * threshold
 
 
-def is_single_line(item: TextItem, single_line_height: float, tolerance: float = 1.5) -> bool:
+def is_single_line(item: TextItem, single_line_height: float, tolerance: float = 1.3) -> bool:
     """Return True if a TextItem's bbox height is consistent with a single line of text.
 
     Used to distinguish mislabeled running page headers (always one line) from
@@ -377,14 +377,10 @@ def is_single_line(item: TextItem, single_line_height: float, tolerance: float =
     Returns:
         True if the item appears to be a single line of text, False otherwise.
     """
-    if single_line_height <= 0:
+    if single_line_height <= 0 or not item.prov:
         return False
-    if not item.prov:
-        return False
-    prov = item.prov[0]
-    if prov.bbox is None:
-        return False
-    return prov.bbox.height <= single_line_height * tolerance
+    bbox = item.prov[0].bbox
+    return bbox is not None and bbox.height <= single_line_height * tolerance
 
 
 def should_skip_element(text: DocItem) -> bool:
