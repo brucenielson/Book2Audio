@@ -6,16 +6,14 @@ import dataclasses
 from pathlib import Path
 
 from docling_core.types import DoclingDocument
-from docling_core.types.doc.document import DocItem, TextItem, DocItemLabel
+from docling_core.types.doc.document import TextItem, DocItemLabel
 
 from text_chunk import RawChunk, ParsedChunk
 from text_processor import TextProcessor
 from text_cleaner import TextCleaner
 from parsers.base_parser import BaseParser
 from utils.docling_utils import (is_footnote,
-                                 should_skip_element,
                                  is_too_short,
-                                 get_current_page,
                                  load_as_document,
                                  is_text_bearing,
                                  compute_single_line_height,
@@ -121,7 +119,8 @@ class DoclingParser(BaseParser):
             A tuple of (docs, meta) where docs is a list of paragraph strings
             and meta is a list of metadata dicts, one per paragraph.
         """
-        raw_chunks: list[RawChunk] = self._extract_chunks()
+        regular_texts, notes = self._get_processed_texts()
+        raw_chunks: list[RawChunk] = self._extract_chunks(regular_texts, notes)
 
         output_path: Path | None = None
         if generate_text_file and self._file_path is not None:
@@ -140,35 +139,35 @@ class DoclingParser(BaseParser):
         )
 
         if generate_text_file and self._file_path is not None:
-            regular_texts, notes = self._extract_all_texts()
             self._save_text_files(regular_texts, notes)
 
         docs: list[str] = [chunk.text for chunk in parsed_chunks]
         meta: list[dict[str, str]] = [chunk.meta for chunk in parsed_chunks]
         return docs, meta
 
-    def _extract_chunks(self) -> list[RawChunk]:
-        """Extract raw chunks from the document.
+    def _extract_chunks(self, regular_texts: list[TextItem],
+                        notes: list[TextItem]) -> list[RawChunk]:
+        """Build RawChunks from pre-classified text items, filtered to the page range.
+
+        Args:
+            regular_texts: Body text items from _get_processed_texts().
+            notes: Footnote items from _get_processed_texts().
 
         Returns:
-            A list of RawChunks extracted from the document.
+            A list of RawChunks ready for the text processor.
         """
         chunks: list[RawChunk] = []
-        page_no: int | None = None
 
-        regular_texts, notes = self._get_processed_texts()
-        texts: list[DocItem] = regular_texts + (notes if self._include_notes else [])
+        # Notes items may have been reclassified from TEXT without label mutation,
+        # so we pair each item with the label it should carry into the pipeline.
+        items: list[tuple[TextItem, DocItemLabel]] = (
+            [(t, t.label) for t in regular_texts] +
+            ([(t, DocItemLabel.FOOTNOTE) for t in notes] if self._include_notes else [])
+        )
 
-        for i, text in enumerate(texts):
-            if not is_text_bearing(text):
-                continue
-
-            page_no = get_current_page(text, "", page_no)
-
+        for text, label in items:
+            page_no: int = text.prov[0].page_no
             if not self._is_in_page_range(page_no):
-                continue
-
-            if should_skip_element(text):
                 continue
 
             meta: dict[str, str] = {
@@ -176,37 +175,20 @@ class DoclingParser(BaseParser):
                 "section_name": "",
                 "page_#": str(page_no)
             }
-
-            assert isinstance(text, TextItem)
-            p_str: str = text.text
-            if not p_str:
-                continue
-
-            chunks.append(RawChunk(
-                text=p_str,
-                meta=meta,
-                label=text.label
-            ))
+            chunks.append(RawChunk(text=text.text, meta=meta, label=label))
 
         return chunks
 
-    def _extract_all_texts(self) -> tuple[list[TextItem], list[TextItem]]:
-        """Return all classified DocItems for debug file writing.
-
-        Returns:
-            A tuple of (regular_texts, notes) containing all classified items.
-            The caller decides whether to include notes.
-        """
-        return self._get_processed_texts()
-
-    def _save_text_files(self, regular_texts: list[DocItem], notes: list[DocItem]) -> None:
+    def _save_text_files(self, regular_texts: list[TextItem], notes: list[TextItem]) -> None:
         """Write per-item debug text to a file alongside the source document.
 
         Body text is written first, followed by a separator line, then footnotes.
+        Notes items are always written with the 'footnote' label regardless of their
+        original Docling label, since reclassified items are not mutated.
 
         Args:
-            regular_texts: Body text DocItems to write.
-            notes: Footnote DocItems to write after the separator.
+            regular_texts: Body text items from _get_processed_texts().
+            notes: Footnote items from _get_processed_texts().
 
         Raises:
             ValueError: If no file path is available (document was passed directly).
@@ -218,14 +200,10 @@ class DoclingParser(BaseParser):
 
         with open(f"{base_path}_processed_texts.txt", "w", encoding="utf-8") as f:
             for text in regular_texts:
-                text_content: str = text.text if is_text_bearing(text) else 'N/A' # noqa
-                # noinspection PyTypeHints
-                f.write(f"{text.prov[0].page_no if text.prov else 'N/A'}: {text.label}: {text_content}\n")
+                f.write(f"{text.prov[0].page_no if text.prov else 'N/A'}: {text.label}: {text.text}\n")
             f.write("--- FOOTNOTES ---\n")
             for text in notes:
-                text_content = text.text if is_text_bearing(text) else 'N/A' # noqa
-                # noinspection PyTypeHints
-                f.write(f"{text.prov[0].page_no if text.prov else 'N/A'}: {text.label}: {text_content}\n")
+                f.write(f"{text.prov[0].page_no if text.prov else 'N/A'}: {DocItemLabel.FOOTNOTE}: {text.text}\n")
 
     def _is_footnote(self, text_item: TextItem, ctx: _FootnoteContext) -> bool:
         """Return True if text_item should be classified as a footnote.
@@ -312,8 +290,9 @@ class DoclingParser(BaseParser):
 
             if is_too_short(text_item):
                 continue
-            elif self._is_footnote(text_item, ctx):
-                text_item.label = DocItemLabel.FOOTNOTE
+
+            went_to_notes: bool = self._is_footnote(text_item, ctx)
+            if went_to_notes:
                 ctx.found_note_this_page = True
                 notes.append(text_item)
             else:
@@ -322,12 +301,10 @@ class DoclingParser(BaseParser):
                     ctx.prev_text_candidate = (len(text_item.text) >= self._short_text_threshold
                                                and not is_sentence_end(text_item.text))
 
-            if carry_over and text_item.label == DocItemLabel.TEXT:
-                # label is still TEXT → item went to else (notes branches mutate to FOOTNOTE)
-                # → prev_text_candidate was already updated by the else branch above
-                carry_over = False
+            if carry_over and not went_to_notes and text_item.label == DocItemLabel.TEXT:
+                carry_over = False  # consumed by the first body TEXT item on the new page
 
-            if text_item.label == DocItemLabel.TEXT:
+            if not went_to_notes and text_item.label == DocItemLabel.TEXT:
                 ctx.text_seen_this_page = True
 
         return regular_texts, notes
