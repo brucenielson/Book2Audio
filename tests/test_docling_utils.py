@@ -9,6 +9,7 @@ from utils.docling_utils import (
     is_too_short, is_text_item, get_next_text,
     get_current_page, should_skip_element,
     compute_single_line_height, compute_median_chars_per_line, is_small_text,
+    is_single_line,
 )
 from utils.general_utils import clean_text
 
@@ -484,3 +485,48 @@ class TestIsSmallText:
         # chars/line=200, median=100, threshold=2.5 → 200 is NOT > 250 → False
         item = make_text_item_with_bbox(DocItemLabel.TEXT.value, height=10.0, charspan_start=0, charspan_end=200)
         assert is_small_text(item, single_line_height=10.0, median_chars_per_line=100.0, threshold=2.5) is False
+
+
+# --- TestIsSingleLine ---
+
+class TestIsSingleLine:
+
+    def test_returns_true_when_height_equals_single_line(self) -> None:
+        item = make_text_item_with_bbox(DocItemLabel.SECTION_HEADER.value, height=10.0, charspan_start=0, charspan_end=20)
+        assert is_single_line(item, single_line_height=10.0) is True
+
+    def test_returns_true_when_height_within_tolerance(self) -> None:
+        # height=14.0, single_line=10.0, tolerance=1.5 → 14 <= 15 → True
+        item = make_text_item_with_bbox(DocItemLabel.SECTION_HEADER.value, height=14.0, charspan_start=0, charspan_end=20)
+        assert is_single_line(item, single_line_height=10.0) is True
+
+    def test_returns_false_when_height_exceeds_tolerance(self) -> None:
+        # height=16.0, single_line=10.0, tolerance=1.5 → 16 > 15 → False
+        item = make_text_item_with_bbox(DocItemLabel.SECTION_HEADER.value, height=16.0, charspan_start=0, charspan_end=20)
+        assert is_single_line(item, single_line_height=10.0) is False
+
+    def test_returns_false_when_single_line_height_is_zero(self) -> None:
+        item = make_text_item_with_bbox(DocItemLabel.SECTION_HEADER.value, height=10.0, charspan_start=0, charspan_end=20)
+        assert is_single_line(item, single_line_height=0.0) is False
+
+    def test_returns_false_when_prov_is_empty(self) -> None:
+        item = MagicMock(spec=TextItem)
+        item.prov = []
+        assert is_single_line(item, single_line_height=10.0) is False
+
+    def test_returns_false_when_bbox_is_none(self) -> None:
+        item = MagicMock(spec=TextItem)
+        prov = MagicMock()
+        prov.bbox = None
+        item.prov = [prov]
+        assert is_single_line(item, single_line_height=10.0) is False
+
+    def test_custom_tolerance(self) -> None:
+        # height=12.0, single_line=10.0, tolerance=1.1 → 12 > 11 → False
+        item = make_text_item_with_bbox(DocItemLabel.SECTION_HEADER.value, height=12.0, charspan_start=0, charspan_end=20)
+        assert is_single_line(item, single_line_height=10.0, tolerance=1.1) is False
+
+    def test_exactly_at_tolerance_boundary(self) -> None:
+        # height=15.0, single_line=10.0, tolerance=1.5 → 15 <= 15 → True
+        item = make_text_item_with_bbox(DocItemLabel.SECTION_HEADER.value, height=15.0, charspan_start=0, charspan_end=20)
+        assert is_single_line(item, single_line_height=10.0) is True
