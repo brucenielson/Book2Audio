@@ -2,7 +2,7 @@
 
 import pytest
 from unittest.mock import patch
-from text_cleaner import TextCleaner
+from text_cleaner import TextCleaner, _has_suspicious_substitutions
 
 patch_llm_chat: str = 'text_cleaner.ollama.chat'
 
@@ -233,6 +233,83 @@ class TestSanityCheck:
         with patch(patch_llm_chat, return_value=make_response("The movement grew rapidly.", "body")):
             cleaned, _ = cleaner.clean("The movement grew rapidly. 4")
         assert cleaned == "The movement grew rapidly."
+
+
+# --- TestHasSuspiciousSubstitutions ---
+
+class TestHasSuspiciousSubstitutions:
+
+    # --- Not suspicious: OCR artifacts correctly identified ---
+
+    def test_identical_text_not_suspicious(self) -> None:
+        assert _has_suspicious_substitutions("Hello world.", "Hello world.") is False
+
+    def test_embedded_pipe_char_is_artifact_not_suspicious(self) -> None:
+        """Regression: old re.sub stripped 'a|nd' → 'and' (valid), wrongly flagging it.
+        New strip-only approach leaves '|' embedded, keeping it invalid."""
+        assert _has_suspicious_substitutions(
+            "He said a|nd walked away.",
+            "He said and walked away."
+        ) is False
+
+    def test_embedded_angle_bracket_artifact_not_suspicious(self) -> None:
+        """'t<;' has embedded '<' — strip only removes boundary ';', leaving 't<' (invalid)."""
+        assert _has_suspicious_substitutions(
+            "He wishes t<; thank her.",
+            "He wishes to thank her."
+        ) is False
+
+    def test_pure_ocr_garbage_replaced_with_valid_word_not_suspicious(self) -> None:
+        """Unrecognizable OCR token replaced with a valid word is a legitimate fix."""
+        assert _has_suspicious_substitutions(
+            "The xzqpf was undeniable.",
+            "The truth was undeniable."
+        ) is False
+
+    # --- Not suspicious: boundary punctuation handled correctly ---
+
+    def test_boundary_comma_stripped_same_word_not_suspicious(self) -> None:
+        """'council,' and 'council' both strip to 'council' — treated as equal."""
+        assert _has_suspicious_substitutions(
+            "The council, agreed on the plan.",
+            "The council agreed on the plan."
+        ) is False
+
+    def test_boundary_parentheses_stripped_same_word_not_suspicious(self) -> None:
+        """'(word)' strips to 'word' — same as cleaned 'word'."""
+        assert _has_suspicious_substitutions(
+            "The (government) responded.",
+            "The government responded."
+        ) is False
+
+    def test_trailing_period_stripped_same_word_not_suspicious(self) -> None:
+        assert _has_suspicious_substitutions(
+            "She agreed.",
+            "She agreed."
+        ) is False
+
+    # --- Suspicious: valid word replaced ---
+
+    def test_valid_word_swapped_for_different_valid_word_is_suspicious(self) -> None:
+        """'cat' → 'dog': both valid, different — hallucination."""
+        assert _has_suspicious_substitutions(
+            "The cat sat on the mat.",
+            "The dog sat on the mat."
+        ) is True
+
+    def test_valid_word_replaced_with_invalid_word_is_suspicious(self) -> None:
+        """Replacing a valid word with gibberish is suspicious."""
+        assert _has_suspicious_substitutions(
+            "The quick brown fox.",
+            "The quick xzqpf fox."
+        ) is True
+
+    def test_valid_word_with_boundary_punctuation_swapped_is_suspicious(self) -> None:
+        """'running,' and 'walking,' both strip to different valid words — suspicious."""
+        assert _has_suspicious_substitutions(
+            "She was running, quickly.",
+            "She was walking, quickly."
+        ) is True
 
 
 # --- TestIntegration ---
