@@ -250,6 +250,87 @@ class TestIsFootnote:
         assert parser._is_footnote(make_text_item("1 Some text."), make_ctx()) is False
 
 
+# --- TestIsInPageRange ---
+
+class TestIsInPageRange:
+
+    def test_no_range_always_returns_true(self) -> None:
+        parser = make_parser([])
+        assert parser._is_in_page_range(1) is True
+        assert parser._is_in_page_range(999) is True
+
+    def test_none_page_no_always_returns_true(self) -> None:
+        parser = make_parser([], start_page=5, end_page=10)
+        assert parser._is_in_page_range(None) is True
+
+    def test_start_page_filters_earlier_pages(self) -> None:
+        parser = make_parser([], start_page=5)
+        assert parser._is_in_page_range(4) is False
+        assert parser._is_in_page_range(5) is True
+        assert parser._is_in_page_range(6) is True
+
+    def test_end_page_filters_later_pages(self) -> None:
+        parser = make_parser([], end_page=10)
+        assert parser._is_in_page_range(9) is True
+        assert parser._is_in_page_range(10) is True
+        assert parser._is_in_page_range(11) is False
+
+    def test_both_bounds_inclusive(self) -> None:
+        parser = make_parser([], start_page=3, end_page=7)
+        assert parser._is_in_page_range(2) is False
+        assert parser._is_in_page_range(3) is True
+        assert parser._is_in_page_range(5) is True
+        assert parser._is_in_page_range(7) is True
+        assert parser._is_in_page_range(8) is False
+
+
+# --- TestExtractChunks ---
+
+class TestExtractChunks:
+
+    def test_regular_texts_become_chunks(self) -> None:
+        texts = [make_text_item("Body text.")]
+        parser = make_parser([])
+        chunks = parser._extract_chunks(texts, [])
+        assert len(chunks) == 1
+        assert chunks[0].text == "Body text."
+
+    def test_notes_excluded_when_include_notes_false(self) -> None:
+        notes = [make_text_item("Footnote text.")]
+        parser = make_parser([], include_notes=False)
+        chunks = parser._extract_chunks([], notes)
+        assert chunks == []
+
+    def test_notes_included_when_include_notes_true(self) -> None:
+        notes = [make_text_item("Footnote text.")]
+        parser = make_parser([], include_notes=True)
+        chunks = parser._extract_chunks([], notes)
+        assert len(chunks) == 1
+        assert chunks[0].text == "Footnote text."
+
+    def test_page_range_filters_out_of_range_items(self) -> None:
+        texts = [
+            make_text_item("Page 2 text.", page_no=2),
+            make_text_item("Page 5 text.", page_no=5),
+        ]
+        parser = make_parser([], start_page=5, end_page=10)
+        chunks = parser._extract_chunks(texts, [])
+        assert len(chunks) == 1
+        assert chunks[0].text == "Page 5 text."
+
+    def test_chunk_meta_contains_page_number(self) -> None:
+        texts = [make_text_item("Text.", page_no=42)]
+        parser = make_parser([])
+        chunks = parser._extract_chunks(texts, [])
+        assert chunks[0].meta['page_#'] == '42'
+
+    def test_chunk_label_matches_item_label(self) -> None:
+        texts = [make_text_item("Text.")]
+        parser = make_parser([])
+        chunks = parser._extract_chunks(texts, [])
+        assert chunks[0].label == DocItemLabel.TEXT
+
+
 # --- TestGetProcessedTexts ---
 
 class TestGetProcessedTexts:

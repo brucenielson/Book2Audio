@@ -2,7 +2,7 @@
 
 import pytest
 from unittest.mock import patch
-from text_cleaner import TextCleaner, _has_suspicious_substitutions
+from text_cleaner import TextCleaner, _has_suspicious_substitutions, _coerce_classification
 
 patch_llm_chat: str = 'text_cleaner.ollama.chat'
 
@@ -310,6 +310,49 @@ class TestHasSuspiciousSubstitutions:
             "She was running, quickly.",
             "She was walking, quickly."
         ) is True
+
+
+# --- TestCoerceClassification ---
+
+class TestCoerceClassification:
+
+    def test_footnote_hint_returns_footnote(self) -> None:
+        assert _coerce_classification('footnote') == 'footnote'
+
+    def test_endnote_hint_returns_footnote(self) -> None:
+        assert _coerce_classification('endnote') == 'footnote'
+
+    def test_note_hint_returns_footnote(self) -> None:
+        assert _coerce_classification('note') == 'footnote'
+
+    def test_body_hint_returns_body(self) -> None:
+        assert _coerce_classification('body') == 'body'
+
+    def test_main_hint_returns_body(self) -> None:
+        assert _coerce_classification('main content') == 'body'
+
+    def test_prose_hint_returns_body(self) -> None:
+        assert _coerce_classification('prose') == 'body'
+
+    def test_index_hint_returns_drop(self) -> None:
+        assert _coerce_classification('index') == 'drop'
+
+    def test_bibliography_hint_returns_drop(self) -> None:
+        assert _coerce_classification('bibliograph') == 'drop'
+
+    def test_reference_hint_returns_drop(self) -> None:
+        assert _coerce_classification('reference list') == 'drop'
+
+    def test_matching_is_case_insensitive(self) -> None:
+        assert _coerce_classification('FOOTNOTE') == 'footnote'
+        assert _coerce_classification('BODY TEXT') == 'body'
+        assert _coerce_classification('INDEX') == 'drop'
+
+    def test_unknown_label_returns_none(self) -> None:
+        assert _coerce_classification('something_unknown') is None
+
+    def test_empty_string_returns_none(self) -> None:
+        assert _coerce_classification('') is None
 
 
 # --- TestIntegration ---

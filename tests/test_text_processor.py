@@ -331,3 +331,123 @@ class TestSkipCleanerWhenAllWordsValid:
         processor = TextProcessor(cleaner=cleaner)
         processor.process([make_chunk("See footnote 4 for details.")])
         cleaner.clean.assert_called_once()
+
+
+# --- TestShouldAccumulate ---
+
+class TestShouldAccumulate:
+
+    def test_no_next_chunk_returns_false(self) -> None:
+        """End of document — always emit regardless of content."""
+        processor = make_processor()
+        assert processor._should_accumulate("Incomplete sentence", None) is False
+
+    def test_no_sentence_end_with_next_returns_true(self) -> None:
+        """Incomplete paragraph must accumulate when more text is coming."""
+        processor = make_processor()
+        next_chunk = make_chunk("More text.")
+        assert processor._should_accumulate("Incomplete sentence", next_chunk) is True
+
+    def test_sentence_end_next_is_section_header_returns_false(self) -> None:
+        """Complete paragraph should emit before a section boundary."""
+        processor = make_processor(min_paragraph_size=1000)
+        next_chunk = make_chunk("Chapter Two", label='section_header')
+        assert processor._should_accumulate("Complete sentence.", next_chunk) is False
+
+    def test_sentence_end_next_is_not_body_text_returns_false(self) -> None:
+        """Complete paragraph should emit when next chunk is not body text."""
+        processor = make_processor(min_paragraph_size=1000)
+        next_chunk = make_chunk("104", label='page_header')
+        assert processor._should_accumulate("Complete sentence.", next_chunk) is False
+
+    def test_sentence_end_size_reached_returns_false(self) -> None:
+        """Complete paragraph at or above min size should emit."""
+        processor = make_processor(min_paragraph_size=10)
+        next_chunk = make_chunk("More text.")
+        assert processor._should_accumulate("Complete sentence.", next_chunk) is False
+
+    def test_sentence_end_below_min_size_returns_true(self) -> None:
+        """Complete but short paragraph should accumulate when more body text follows."""
+        processor = make_processor(min_paragraph_size=10000)
+        next_chunk = make_chunk("More text.")
+        assert processor._should_accumulate("Short.", next_chunk) is True
+
+    def test_accumulated_paragraph_counted_toward_min_size(self) -> None:
+        """Already-accumulated text contributes to the size check."""
+        processor = make_processor(min_paragraph_size=20)
+        processor._paragraph = ["Already accumulated text here."]
+        next_chunk = make_chunk("More text.")
+        # combined_count (30) + len("Done.") (5) >= 20 → emit
+        assert processor._should_accumulate("Done.", next_chunk) is False
+
+
+# --- TestBuildMeta ---
+
+class TestBuildMeta:
+
+    def test_includes_paragraph_number(self) -> None:
+        processor = make_processor()
+        processor._para_num = 7
+        result = processor._build_meta({})
+        assert result['paragraph_#'] == '7'
+
+    def test_passes_through_base_meta(self) -> None:
+        processor = make_processor()
+        processor._para_num = 1
+        result = processor._build_meta({'page_#': '42', 'source': 'test.pdf'})
+        assert result['page_#'] == '42'
+        assert result['source'] == 'test.pdf'
+
+    def test_includes_section_name_when_set(self) -> None:
+        processor = make_processor()
+        processor._para_num = 1
+        processor._section_name = "Chapter One"
+        result = processor._build_meta({})
+        assert result['section_name'] == 'Chapter One'
+
+    def test_omits_section_name_when_empty(self) -> None:
+        processor = make_processor()
+        processor._para_num = 1
+        processor._section_name = ""
+        result = processor._build_meta({})
+        assert 'section_name' not in result
+
+    def test_does_not_mutate_base_meta(self) -> None:
+        processor = make_processor()
+        processor._para_num = 1
+        base = {'page_#': '1'}
+        processor._build_meta(base)
+        assert 'paragraph_#' not in base
+
+
+# --- TestBuildPageContexts ---
+
+class TestBuildPageContexts:
+
+    def test_groups_chunks_by_page(self) -> None:
+        chunks = [
+            make_chunk("First sentence.", page='1'),
+            make_chunk("Second sentence.", page='2'),
+        ]
+        result = TextProcessor._build_page_contexts(chunks)
+        assert '1' in result
+        assert '2' in result
+        assert 'First sentence.' in result['1']
+        assert 'Second sentence.' in result['2']
+
+    def test_multiple_chunks_on_same_page_joined(self) -> None:
+        chunks = [
+            make_chunk("Sentence one.", page='3'),
+            make_chunk("Sentence two.", page='3'),
+        ]
+        result = TextProcessor._build_page_contexts(chunks)
+        assert 'Sentence one.' in result['3']
+        assert 'Sentence two.' in result['3']
+
+    def test_empty_chunk_list_returns_empty_dict(self) -> None:
+        assert TextProcessor._build_page_contexts([]) == {}
+
+    def test_chunks_without_page_number_are_ignored(self) -> None:
+        chunks = [make_chunk("No page.")]
+        result = TextProcessor._build_page_contexts(chunks)
+        assert result == {}
