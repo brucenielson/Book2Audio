@@ -14,6 +14,7 @@ from text_cleaner import TextCleaner
 from parsers.base_parser import BaseParser
 from utils.docling_utils import (is_footnote,
                                  is_too_short,
+                                 should_skip_element,
                                  load_as_document,
                                  is_text_bearing,
                                  compute_single_line_height,
@@ -246,9 +247,12 @@ class DoclingParser(BaseParser):
         Returns:
             A tuple of (regular_texts, notes) where each is a list of TextItems.
         """
-        # First pass: collect all valid TextItems and compute font-size baselines
+        # First pass: collect all valid TextItems and compute font-size baselines.
+        # Page headers and footers are excluded upfront — they are not body content
+        # and should never influence classification or appear in the debug file.
         all_text_items: list[TextItem] = [
-            item for item in self._doc.texts if is_text_bearing(item)
+            item for item in self._doc.texts
+            if is_text_bearing(item) and not should_skip_element(item)
         ]
         single_line_height: float = compute_single_line_height(self._doc)
         median_chars_per_line: float = compute_median_chars_per_line(
