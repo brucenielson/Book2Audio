@@ -203,7 +203,7 @@ class DoclingParser(BaseParser):
                 f.write(f"{text.prov[0].page_no if text.prov else 'N/A'}: {text.label}: {text.text}\n")
             f.write("--- FOOTNOTES ---\n")
             for text in notes:
-                f.write(f"{text.prov[0].page_no if text.prov else 'N/A'}: {DocItemLabel.FOOTNOTE}: {text.text}\n")
+                f.write(f"{text.prov[0].page_no if text.prov else 'N/A'}: {text.label}: {text.text}\n")
 
     def _is_footnote(self, text_item: TextItem, ctx: _FootnoteContext) -> bool:
         """Return True if text_item should be classified as a footnote.
