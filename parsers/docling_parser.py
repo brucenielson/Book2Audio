@@ -248,7 +248,7 @@ class DoclingParser(BaseParser):
         Returns:
             True if the item is or should be classified as a footnote.
         """
-        if text_item.label == DocItemLabel.FOOTNOTE:
+        if is_footnote(text_item):
             return True
         if not (text_item.label == DocItemLabel.TEXT
                 and text_item.text
