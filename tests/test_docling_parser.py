@@ -315,15 +315,34 @@ class TestRun:
         docs, meta = parser.run()
         assert any("Chapter One" in d for d in docs)
 
-    def test_section_header_flushes_accumulated_paragraph(self) -> None:
+    def test_section_header_kept_after_sentence_end(self) -> None:
+        """A section header preceded by sentence-ending text is retained."""
         texts = [
-            make_text_item("First sentence without end"),
+            make_text_item("First sentence ends here."),
             make_section_header("Chapter Two"),
         ]
         parser = make_parser(texts)
         docs, meta = parser.run()
-        assert any("First sentence without end" in d for d in docs)
+        assert any("First sentence ends here." in d for d in docs)
         assert any("Chapter Two" in d for d in docs)
+
+    def test_section_header_skipped_after_mid_sentence_text(self) -> None:
+        """A section header right after long mid-sentence text is treated as a
+        mislabeled running page header and dropped. Conditions: the preceding text
+        must be >= min_footnote_chars (100), end without sentence-terminating
+        punctuation, and the section header must be single-line (established by
+        including a page header so compute_single_line_height returns a non-zero value)."""
+        long_mid_sentence = "This is a long body paragraph that does not end with punctuation " \
+                            "and continues well past the one hundred character minimum threshold"
+        texts = [
+            make_page_header("Running Head"),   # establishes single_line_height = 10.0
+            make_text_item(long_mid_sentence),
+            make_section_header("Chapter Two"), # bbox height 10.0 — qualifies as single-line
+        ]
+        parser = make_parser(texts)
+        docs, meta = parser.run()
+        assert any(long_mid_sentence in d for d in docs)
+        assert all("Chapter Two" not in d for d in docs)
 
     def test_skips_page_header(self) -> None:
         texts = [

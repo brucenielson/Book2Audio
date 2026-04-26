@@ -132,6 +132,7 @@ def process_all_documents_with_cleaner():
 
 
 class TestDoclingParserOutput:
+    @pytest.mark.canonical
     def test_all_txt_files_have_canonical(self, process_all_documents):
         txt_files = list(TEST_DOCUMENTS.glob("*.txt"))
         missing = [f.name for f in txt_files if not (TEST_CANONICAL / f.name).exists()]
@@ -141,6 +142,7 @@ class TestDoclingParserOutput:
                 f"Copy the generated files from test_documents/ to test_canonical/ to create them."
             )
 
+    @pytest.mark.canonical
     def test_output_matches_canonical(self, process_all_documents):
         txt_files = list(TEST_DOCUMENTS.glob("*.txt"))
         failures = []

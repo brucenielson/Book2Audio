@@ -360,8 +360,9 @@ def is_sentence_end(text: str) -> bool:
     Returns:
         True if the string appears to end a complete sentence.
     """
-    has_end_punctuation: bool = is_ends_with_punctuation(text)
-    # Does it end with a closing bracket, quote, etc.?
+    if is_ends_with_punctuation(text):
+        return True
+    # Closing bracket/quote immediately after sentence-ending punctuation.
     ends_with_bracket: bool = (text.endswith(")")
                                or text.endswith("]")
                                or text.endswith("}")
@@ -369,8 +370,9 @@ def is_sentence_end(text: str) -> bool:
                                or text.endswith("\u201d")
                                or text.endswith("\u2019")
                                or text.endswith("\'"))
-    return (has_end_punctuation or
-            (ends_with_bracket and is_ends_with_punctuation(text[0:-1])))
+    if ends_with_bracket and is_ends_with_punctuation(text[:-1]):
+        return True
+    return False
 
 
 def strip_footnote_numbers(p_str: str) -> str:
