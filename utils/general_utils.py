@@ -303,6 +303,10 @@ def fix_apostrophes(p_str: str) -> str:
     return p_str
 
 
+_SENTENCE_END: frozenset[str] = frozenset('.?!')
+_CLOSING: frozenset[str] = frozenset({")", "}", "]", '"', "'", '”', '’'})
+
+
 def is_ends_with_punctuation(text: str) -> bool:
     """Check if a string ends with sentence-ending punctuation.
 
@@ -312,7 +316,7 @@ def is_ends_with_punctuation(text: str) -> bool:
     Returns:
         True if the string ends with a period, question mark, or exclamation point.
     """
-    return text.endswith(".") or text.endswith("?") or text.endswith("!")
+    return bool(text) and text[-1] in _SENTENCE_END
 
 
 def build_paragraph(paragraphs: list[str] | str, p2_str: str = "") -> str:
@@ -360,19 +364,13 @@ def is_sentence_end(text: str) -> bool:
     Returns:
         True if the string appears to end a complete sentence.
     """
-    if is_ends_with_punctuation(text):
+    if not text:
+        return False
+    last = text[-1]
+    if last in _SENTENCE_END:
         return True
     # Closing bracket/quote immediately after sentence-ending punctuation.
-    ends_with_bracket: bool = (text.endswith(")")
-                               or text.endswith("]")
-                               or text.endswith("}")
-                               or text.endswith("\"")
-                               or text.endswith("\u201d")
-                               or text.endswith("\u2019")
-                               or text.endswith("\'"))
-    if ends_with_bracket and is_ends_with_punctuation(text[:-1]):
-        return True
-    return False
+    return last in _CLOSING and len(text) >= 2 and text[-2] in _SENTENCE_END
 
 
 def strip_footnote_numbers(p_str: str) -> str:
