@@ -248,26 +248,23 @@ class DoclingParser(BaseParser):
         Returns:
             True if the item is or should be classified as a footnote.
         """
-        if is_footnote(text_item):
+        if text_item.label == DocItemLabel.FOOTNOTE:
             return True
         if not (text_item.label == DocItemLabel.TEXT
                 and text_item.text
                 and text_item.text[0].isdigit()):
             return False
         has_alpha: bool = any(c.isalpha() for c in text_item.text)
-        # Heuristic 1: digit+alpha immediately after substantial mid-sentence body text.
-        # The alpha check excludes pure number/punctuation continuations like "183-84".
-        if has_alpha and ctx.prev_text_candidate:
-            return True
-        # Heuristic 2: small text starting with a digit, preceded by body text on this page.
-        if (len(text_item.text) >= self._short_text_threshold
+        return (
+            # H1: follows mid-sentence body text; alpha check excludes index entries like "183-84"
+            (has_alpha and ctx.prev_text_candidate)
+            # H2: small font, preceded by body text on this page
+            or (len(text_item.text) >= self._short_text_threshold
                 and ctx.text_seen_this_page
-                and is_small_text(text_item, ctx.single_line_height, ctx.median_chars_per_line)):
-            return True
-        # Heuristic 3: a footnote already seen on this page — propagate until page boundary.
-        if has_alpha and ctx.found_note_this_page:
-            return True
-        return False
+                and is_small_text(text_item, ctx.single_line_height, ctx.median_chars_per_line))
+            # H3: propagation — footnote already seen on this page
+            or (has_alpha and ctx.found_note_this_page)
+        )
 
     def _get_processed_texts(self) -> tuple[list[TextItem], list[TextItem]]:
         """Separate the document's text items into regular content and footnotes.
