@@ -331,7 +331,6 @@ class DoclingParser(BaseParser):
 
         regular_texts: list[TextItem] = []
         notes: list[TextItem] = []
-        carry_over: bool = False  # prev_text_candidate intentionally kept from previous page
         current_page: int | None = None
         ctx: _FootnoteContext = _FootnoteContext(
             prev_text_candidate=False,
@@ -348,8 +347,6 @@ class DoclingParser(BaseParser):
             if page_number != current_page:
                 ctx.text_seen_this_page = False
                 ctx.found_note_this_page = False
-                if ctx.prev_text_candidate:
-                    carry_over = True   # keep prev_text_candidate visible for exactly one TEXT item
                 current_page = page_number
 
             if is_too_short(text_item):
@@ -365,9 +362,6 @@ class DoclingParser(BaseParser):
             else:
                 regular_texts.append(text_item)
                 self._update_text_state(text_item, ctx)
-
-            if carry_over and not went_to_notes and text_item.label == DocItemLabel.TEXT:
-                carry_over = False  # consumed by the first body TEXT item on the new page
 
             if not went_to_notes and text_item.label == DocItemLabel.TEXT:
                 ctx.text_seen_this_page = True
