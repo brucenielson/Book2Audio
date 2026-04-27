@@ -315,9 +315,7 @@ class DoclingParser(BaseParser):
         Returns:
             A tuple of (regular_texts, notes) where each is a list of TextItems.
         """
-        # Collect all valid TextItems. Page headers and footers are excluded
-        # upfront — they are not body content and should never influence
-        # classification or appear in the debug file.
+        # Collect all valid TextItems. Page headers and footers are excluded.
         all_text_items: list[TextItem] = [
             item for item in self._doc.texts
             if not should_skip_element(item)
