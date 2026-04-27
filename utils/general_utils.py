@@ -7,6 +7,8 @@ import re
 from pathlib import Path
 from typing import Any
 
+import pypdfium2 as pdfium
+
 from utils.logging_utils import vprint
 
 
@@ -303,6 +305,10 @@ def fix_apostrophes(p_str: str) -> str:
     return p_str
 
 
+_SENTENCE_END: frozenset[str] = frozenset('.?!')
+_CLOSING: frozenset[str] = frozenset({")", "}", "]", '"', "'", '”', '’'})
+
+
 def is_ends_with_punctuation(text: str) -> bool:
     """Check if a string ends with sentence-ending punctuation.
 
@@ -312,7 +318,7 @@ def is_ends_with_punctuation(text: str) -> bool:
     Returns:
         True if the string ends with a period, question mark, or exclamation point.
     """
-    return text.endswith(".") or text.endswith("?") or text.endswith("!")
+    return bool(text) and text[-1] in _SENTENCE_END
 
 
 def build_paragraph(paragraphs: list[str] | str, p2_str: str = "") -> str:
@@ -360,17 +366,13 @@ def is_sentence_end(text: str) -> bool:
     Returns:
         True if the string appears to end a complete sentence.
     """
-    has_end_punctuation: bool = is_ends_with_punctuation(text)
-    # Does it end with a closing bracket, quote, etc.?
-    ends_with_bracket: bool = (text.endswith(")")
-                               or text.endswith("]")
-                               or text.endswith("}")
-                               or text.endswith("\"")
-                               or text.endswith("\u201d")
-                               or text.endswith("\u2019")
-                               or text.endswith("\'"))
-    return (has_end_punctuation or
-            (ends_with_bracket and is_ends_with_punctuation(text[0:-1])))
+    if not text:
+        return False
+    last = text[-1]
+    if last in _SENTENCE_END:
+        return True
+    # Closing bracket/quote immediately after sentence-ending punctuation.
+    return last in _CLOSING and len(text) >= 2 and text[-2] in _SENTENCE_END
 
 
 def strip_footnote_numbers(p_str: str) -> str:
@@ -421,3 +423,41 @@ def clean_text(p_str: str, remove_footnotes: bool = False) -> str:
     p_str = normalize_quotes(p_str)
     p_str = normalize_whitespace(p_str)
     return p_str.strip()
+
+
+def extract_pdf_pages(source_path: str | Path,
+                      dest_path: str | Path,
+                      start_page: int,
+                      end_page: int) -> Path:
+    """Extract a range of pages from a PDF, preserving the text layer.
+
+    Page numbers are physical (1-indexed), matching what Acrobat Reader
+    shows in its page-count toolbar. Roman-numeral intro pages are still
+    physical pages 1, 2, 3, … from the front of the file.
+
+    Args:
+        source_path: Path to the source PDF file.
+        dest_path: Path to write the extracted PDF to.
+        start_page: First physical page to include (1-indexed, inclusive).
+        end_page: Last physical page to include (1-indexed, inclusive).
+
+    Returns:
+        The path of the written PDF.
+
+    Raises:
+        ValueError: If the page range is invalid for the document.
+    """
+    source_path = Path(source_path)
+    dest_path = Path(dest_path)
+    pdf = pdfium.PdfDocument(source_path)
+    total = len(pdf)
+    if start_page < 1 or end_page > total or start_page > end_page:
+        raise ValueError(
+            f"Invalid page range {start_page}–{end_page} for a {total}-page document."
+        )
+    indices = list(range(start_page - 1, end_page))  # convert to 0-indexed
+    new_pdf = pdfium.PdfDocument.new()
+    new_pdf.import_pages(pdf, indices)
+    new_pdf.save(dest_path)
+    print(f"Extracted pages {start_page}–{end_page} of {total} → {dest_path}")
+    return dest_path
