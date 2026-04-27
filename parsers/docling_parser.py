@@ -16,7 +16,6 @@ from utils.docling_utils import (is_footnote,
                                  is_too_short,
                                  should_skip_element,
                                  load_as_document,
-                                 is_text_bearing,
                                  compute_single_line_height,
                                  compute_median_chars_per_line,
                                  is_small_text,
@@ -26,12 +25,12 @@ from utils.general_utils import is_sentence_end
 
 @dataclasses.dataclass
 class _FootnoteContext:
-    """Transient classification state passed to the footnote detector.
+    """Transient classification state shared across the classification methods.
 
     Holds both the per-iteration loop state (which changes as we walk the
     document) and the document-level metrics (computed once before the loop).
-    Bundled here so _is_footnote() receives everything it needs in one argument
-    rather than five.
+    Bundled here so _is_footnote(), _is_running_head(), and _update_text_state()
+    all receive what they need in one argument.
     """
     prev_text_candidate: bool       # last TEXT item was long with no sentence end
     prev_ends_mid_sentence: bool    # last body TEXT item ended with alpha or non-terminal punct
@@ -105,9 +104,11 @@ class DoclingParser(BaseParser):
         Returns:
             True if the page is within [start_page, end_page], False otherwise.
         """
-        if self._start_page is not None and page_no is not None and page_no < self._start_page:
+        if page_no is None:
+            return True
+        if self._start_page is not None and page_no < self._start_page:
             return False
-        if self._end_page is not None and page_no is not None and page_no > self._end_page:
+        if self._end_page is not None and page_no > self._end_page:
             return False
         return True
 
@@ -261,7 +262,8 @@ class DoclingParser(BaseParser):
             page_last[pno] = i
         return set(page_first.values()) | set(page_last.values())
 
-    def _is_running_head(self, i: int, text_item: TextItem,
+    @staticmethod
+    def _is_running_head(i: int, text_item: TextItem,
                          boundary_indices: set[int], ctx: _FootnoteContext) -> bool:
         """Return True if this section header looks like a mislabeled running page header.
 
@@ -307,19 +309,18 @@ class DoclingParser(BaseParser):
     def _get_processed_texts(self) -> tuple[list[TextItem], list[TextItem]]:
         """Separate the document's text items into regular content and footnotes.
 
-        Uses two passes: the first computes the median bbox.height/charspan_length
-        ratio across all TextItems (a proxy for font size); the second classifies
-        each item using _is_footnote().
+        Collects valid TextItems, computes document-level font-size baselines,
+        then classifies each item using _is_footnote() and _is_running_head().
 
         Returns:
             A tuple of (regular_texts, notes) where each is a list of TextItems.
         """
-        # First pass: collect all valid TextItems and compute font-size baselines.
-        # Page headers and footers are excluded upfront — they are not body content
-        # and should never influence classification or appear in the debug file.
+        # Collect all valid TextItems. Page headers and footers are excluded
+        # upfront — they are not body content and should never influence
+        # classification or appear in the debug file.
         all_text_items: list[TextItem] = [
             item for item in self._doc.texts
-            if is_text_bearing(item) and not should_skip_element(item)
+            if not should_skip_element(item)
         ]
         single_line_height: float = compute_single_line_height(self._doc)
         median_chars_per_line: float = compute_median_chars_per_line(
@@ -354,7 +355,7 @@ class DoclingParser(BaseParser):
             if is_too_short(text_item):
                 continue
 
-            if self._is_running_head(i, text_item, boundary_indices, ctx):
+            if DoclingParser._is_running_head(i, text_item, boundary_indices, ctx):
                 continue
 
             went_to_notes: bool = self._is_footnote(text_item, ctx)
