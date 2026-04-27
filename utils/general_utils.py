@@ -7,6 +7,8 @@ import re
 from pathlib import Path
 from typing import Any
 
+import pypdfium2 as pdfium
+
 from utils.logging_utils import vprint
 
 
@@ -421,3 +423,41 @@ def clean_text(p_str: str, remove_footnotes: bool = False) -> str:
     p_str = normalize_quotes(p_str)
     p_str = normalize_whitespace(p_str)
     return p_str.strip()
+
+
+def extract_pdf_pages(source_path: str | Path,
+                      dest_path: str | Path,
+                      start_page: int,
+                      end_page: int) -> Path:
+    """Extract a range of pages from a PDF, preserving the text layer.
+
+    Page numbers are physical (1-indexed), matching what Acrobat Reader
+    shows in its page-count toolbar. Roman-numeral intro pages are still
+    physical pages 1, 2, 3, … from the front of the file.
+
+    Args:
+        source_path: Path to the source PDF file.
+        dest_path: Path to write the extracted PDF to.
+        start_page: First physical page to include (1-indexed, inclusive).
+        end_page: Last physical page to include (1-indexed, inclusive).
+
+    Returns:
+        The path of the written PDF.
+
+    Raises:
+        ValueError: If the page range is invalid for the document.
+    """
+    source_path = Path(source_path)
+    dest_path = Path(dest_path)
+    pdf = pdfium.PdfDocument(source_path)
+    total = len(pdf)
+    if start_page < 1 or end_page > total or start_page > end_page:
+        raise ValueError(
+            f"Invalid page range {start_page}–{end_page} for a {total}-page document."
+        )
+    indices = list(range(start_page - 1, end_page))  # convert to 0-indexed
+    new_pdf = pdfium.PdfDocument.new()
+    new_pdf.import_pages(pdf, indices)
+    new_pdf.save(dest_path)
+    print(f"Extracted pages {start_page}–{end_page} of {total} → {dest_path}")
+    return dest_path
