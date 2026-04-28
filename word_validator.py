@@ -88,12 +88,12 @@ class WordValidator:
             "ity": "e",  # creativity -> create
             "tion": "e",  # creation -> create
             "ally": "",  # scientifically -> scientific (via "ally" strip before "ly")
-            "ly": "",   # empirically -> empirical, quickly -> quick
+            "ly": "",    # empirically -> empirical, quickly -> quick
             "able": "",  # testable -> test
             "ible": "",  # possible -> poss
-            "ing": "",  # running -> run
-            "ed": "",  # tested -> test
-            "s": ""  # tests -> test
+            "ing": "",   # running -> run
+            "ed": "",    # tested -> test
+            "s": ""      # tests -> test
         }
         for suffix, replacement in suffixes.items():
             if word.endswith(suffix):
@@ -106,9 +106,31 @@ class WordValidator:
         return False
 
     def combine_hyphenated_words(self, p_str: str) -> str:
+        """Remove soft hyphens (U+00AD) and join the surrounding word parts.
+
+        Soft hyphens are purely typographic line-break hints and are never
+        meaningful in the text itself. This function strips them — along with
+        any space that immediately follows — so that page-break artifacts like
+        "empiri­ cally" become "empirically".
+
+        Regular hyphens are left completely untouched.
+
+        Args:
+            p_str: The input string potentially containing soft hyphens.
+
+        Returns:
+            The string with soft hyphens removed and word parts joined.
+        """
+        if '­' not in p_str:
+            return p_str
+        return re.sub('­\\s?', '', p_str)
+
+    def combine_hyphenated_words_advanced(self, p_str: str) -> str:
         """Combine hyphenated words if the parts together form a valid word.
 
         Otherwise, preserve the hyphen (assuming it connects two valid words).
+        Handles both soft hyphens (U+00AD) and regular hyphens, using
+        is_valid_word to decide whether to join or keep each hyphenated pair.
 
         Args:
             p_str: The input string potentially containing hyphenated words.

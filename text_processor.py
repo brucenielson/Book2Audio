@@ -122,6 +122,7 @@ class TextProcessor:
 
         # Clean all chunks upfront
         for chunk in chunks:
+            if 'The first has to do with the technical terms' in chunk.text:
                 pass
             chunk.text = word_validator.combine_hyphenated_words(chunk.text)
             chunk.text = clean_text(chunk.text, remove_footnotes=True)

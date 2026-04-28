@@ -199,8 +199,9 @@ class TestProcess:
     def test_page_break_hyphen_joined_before_cleaning(self) -> None:
         """A hyphenated word split by a page break is joined before any other processing."""
         processor = make_processor()
-        # "charac-ter" in a single chunk simulates a page-break OCR artifact
-        chunks = [make_chunk("an historical charac-ter.")]
+        # "character" with a soft hyphen in it in a single chunk simulates a page-break OCR artifact
+        # noinspection SpellCheckingInspection
+        chunks = [make_chunk("an historical charac\u00adter.")]
         result = processor.process(chunks)
         assert result[0].text == "an historical character."
 

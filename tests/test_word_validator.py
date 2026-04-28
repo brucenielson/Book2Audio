@@ -147,13 +147,13 @@ class TestCombineHyphenatedWords:
         """A word split across a hyphen with a space should be combined if valid."""
         # noinspection GrazieInspection
         # "base-ball" (with extra space) -> "baseball" if valid, or kept as is
-        result = validator.combine_hyphenated_words("base- ball")
+        result = validator.combine_hyphenated_words_advanced("base- ball")
         assert "-" not in result or result == "base-ball"
 
     def test_proper_noun_combined(self, validator) -> None:
         """A capitalized combined word with invalid second part should be combined."""
         # noinspection SpellCheckingInspection
-        result = validator.combine_hyphenated_words("New-xqzjk")
+        result = validator.combine_hyphenated_words_advanced("New-xqzjk")
         # noinspection SpellCheckingInspection
         assert result == "Newxqzjk"
 
