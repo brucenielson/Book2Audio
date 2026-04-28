@@ -315,6 +315,33 @@ class TestHasSuspiciousSubstitutions:
             "a closely-integrated work—far exceeding expectations"
         ) is False
 
+    # --- Not suspicious: missing hyphen restored ---
+
+    def test_missing_hyphen_restored_not_suspicious(self) -> None:
+        """'wellknown' → 'well-known': equal after hyphen stripping — not suspicious."""
+        assert _has_suspicious_substitutions(
+            "their wellknown paradoxes",
+            "their well-known paradoxes"
+        ) is False
+
+    # --- Not suspicious: diacritics restored ---
+
+    def test_diacritics_restored_not_suspicious(self) -> None:
+        """'Eotvos' → 'Eötvös': equal after ASCII-folding — not suspicious."""
+        assert _has_suspicious_substitutions(
+            "the experiments by Eotvos more recently",
+            "the experiments by Eötvös more recently"
+        ) is False
+
+    # --- Not suspicious: symbol/punctuation substitution ---
+
+    def test_symbol_substitution_not_suspicious(self) -> None:
+        """'star:✦' → 'star:*': non-alphabetic tokens are skipped — not suspicious."""
+        assert _has_suspicious_substitutions(
+            "marked with a star:✶",
+            "marked with a star:*"
+        ) is False
+
     # --- Suspicious: OCR artifact replaced with another invalid word ---
 
     def test_ocr_artifact_replaced_with_different_invalid_word_is_suspicious(self) -> None:

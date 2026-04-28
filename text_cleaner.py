@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import difflib
 import json
+import re
+import unicodedata
 from typing import Literal, TypeAlias
 
 import ollama
@@ -84,6 +86,24 @@ def _normalize_dashes(word: str) -> str:
     return word.replace('—', '-').replace('–', '-')
 
 
+def _normalize_token(word: str) -> str:
+    """Normalize a token for suspicious-substitution comparison.
+
+    Removes punctuation from anywhere in the token (not just the ends),
+    collapses all dash/hyphen variants to nothing, and ASCII-folds diacritics
+    so that equivalent forms compare as equal:
+      - "well-known" and "wellknown" → "wellknown"
+      - "Eötvös" and "Eotvos" → "eotvos"
+      - "star:✶" and "star:*" → "star" and "star" (after symbol stripping)
+
+    Used only for the invalid→invalid check, not for word validation.
+    """
+    word = re.sub(r'[.,;:!?"\'()\[\]]', '', word)
+    word = word.replace('—', '').replace('–', '').replace('-', '')
+    word = unicodedata.normalize('NFKD', word).encode('ascii', 'ignore').decode('ascii')
+    return word.lower()
+
+
 def _restore_valid_words(original: str, cleaned: str, verbose: bool = False) -> str:
     """Restore any valid original words that the LLM substituted.
 
@@ -161,9 +181,12 @@ def _has_suspicious_substitutions(original: str, cleaned: str) -> bool:
         if tag != 'replace' or (i2 - i1) != (j2 - j1):
             continue
         for orig_word, new_word in zip(original_words[i1:i2], cleaned_words[j1:j2]):
-            orig_clean = _normalize_dashes(orig_word.strip('.,;:!?"\'()-[]'))
-            new_clean = _normalize_dashes(new_word.strip('.,;:!?"\'()-[]'))
+            orig_clean = _normalize_token(orig_word)
+            new_clean = _normalize_token(new_word)
             if orig_clean == new_clean:
+                continue
+            # Skip purely symbolic tokens — not word substitutions (e.g. ✦ → *)
+            if not any(c.isalpha() for c in orig_clean) or not any(c.isalpha() for c in new_clean):
                 continue
             if not word_validator.is_valid_word(orig_clean) and not word_validator.is_valid_word(new_clean):
                 # OCR artifact replaced with a different invalid token — suspicious

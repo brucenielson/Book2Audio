@@ -122,7 +122,7 @@ class TextProcessor:
 
         # Clean all chunks upfront
         for chunk in chunks:
-            if 'following Tarski' in chunk.text:
+            if 'The Editor wishes to express his gratitude' in chunk.text:
                 pass
             chunk.text = word_validator.combine_hyphenated_words(chunk.text)
             chunk.text = clean_text(chunk.text, remove_footnotes=True)
@@ -143,6 +143,9 @@ class TextProcessor:
 
             if chunk.is_footnote and not self._include_footnotes:
                 continue
+
+            if 'The Editor wishes to express his gratitude' in chunk.text:
+                pass
 
             self._process_chunk(chunk, next_chunk)
 
@@ -269,7 +272,7 @@ class TextProcessor:
         """
         p_str: str = self._build_paragraph()
 
-        if 'Although, following Tarski' in p_str:
+        if 'The Editor wishes to express his gratitude' in p_str:
             pass
 
         if self._cleaner:
@@ -285,9 +288,11 @@ class TextProcessor:
                 p_str, classification = self._cleaner.clean(p_str, page_context=page_context)
                 self._t_llm += time.perf_counter() - t1
                 if classification == 'drop':
+                    vprint(self._verbose, f"  [LLM DROP] {p_str[:100]!r}")
                     self._paragraph = []
                     return
                 if classification == 'footnote':
+                    vprint(self._verbose, f"  [LLM FOOTNOTE] {p_str[:100]!r}")
                     if not self._include_footnotes:
                         self._paragraph = []
                         return
