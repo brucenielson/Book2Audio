@@ -122,6 +122,8 @@ class TextProcessor:
 
         # Clean all chunks upfront
         for chunk in chunks:
+                pass
+            chunk.text = word_validator.combine_hyphenated_words(chunk.text)
             chunk.text = clean_text(chunk.text, remove_footnotes=True)
 
         # Build page context strings for LLM-based cleaning
@@ -266,6 +268,9 @@ class TextProcessor:
         """
         p_str: str = self._build_paragraph()
 
+        if 'The first has to do with the technical terms' in p_str:
+            pass
+
         if self._cleaner:
             t0 = time.perf_counter()
             _skip = _all_words_valid(p_str, verbose=self._verbose)
@@ -289,7 +294,6 @@ class TextProcessor:
             else:
                 self._n_skipped += 1
 
-        p_str = word_validator.combine_hyphenated_words(p_str)
         if p_str:
             self._para_num += 1
             self._result.append(ParsedChunk(

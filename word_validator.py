@@ -87,6 +87,8 @@ class WordValidator:
             "iness": "y",  # happiness -> happy
             "ity": "e",  # creativity -> create
             "tion": "e",  # creation -> create
+            "ally": "",  # scientifically -> scientific (via "ally" strip before "ly")
+            "ly": "",   # empirically -> empirical, quickly -> quick
             "able": "",  # testable -> test
             "ible": "",  # possible -> poss
             "ing": "",  # running -> run

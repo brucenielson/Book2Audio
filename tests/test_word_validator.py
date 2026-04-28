@@ -110,6 +110,20 @@ class TestIsValidWord:
         """An empty string should return False without crashing."""
         assert validator.is_valid_word("") is False
 
+    def test_adverb_empirically(self, validator) -> None:
+        """'empirically' is a common English adverb and should be valid."""
+        assert validator.is_valid_word("empirically") is True
+
+    def test_adverb_empirically_is_reason_combine_hyphenated_fails(self, validator) -> None:
+        """If 'empirically' is invalid, combine_hyphenated_words cannot join 'empiri- cally'."""
+        # This test documents the dependency: combine_hyphenated_words relies on
+        # is_valid_word to decide whether to join soft-hyphen splits.
+        # If this assertion fails, the root cause of the joining bug is here.
+        assert validator.is_valid_word("empirically") is True, (
+            "is_valid_word('empirically') returned False — "
+            "this is why combine_hyphenated_words leaves 'empiri- cally' unhyphenated"
+        )
+
 
 # --- combine_hyphenated_words tests ---
 
