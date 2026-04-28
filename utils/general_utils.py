@@ -10,6 +10,7 @@ from typing import Any
 import pypdfium2 as pdfium
 
 from utils.logging_utils import vprint
+from word_validator import word_validator as _word_validator
 
 
 def print_debug_results(results: dict[str, Any],
@@ -400,7 +401,7 @@ def clean_text(p_str: str, remove_footnotes: bool = False) -> str:
 
     Applies a pipeline of normalization steps in order: ligature normalization,
     encoding artifact correction, punctuation spacing, bracket spacing,
-    apostrophe normalization, hyphen normalization, quote normalization,
+    apostrophe normalization, dash-hyphen detection, quote normalization,
     and whitespace normalization. Optionally strips trailing footnote numbers
     before the main pipeline runs.
 
@@ -419,7 +420,7 @@ def clean_text(p_str: str, remove_footnotes: bool = False) -> str:
     p_str = fix_punctuation_spacing(p_str)
     p_str = fix_bracket_spacing(p_str)
     p_str = fix_apostrophes(p_str)
-    p_str = normalize_hyphens(p_str)
+    p_str = _word_validator.fix_dash_hyphens(p_str)
     p_str = normalize_quotes(p_str)
     p_str = normalize_whitespace(p_str)
     return p_str.strip()

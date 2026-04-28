@@ -195,6 +195,63 @@ class TestCombineHyphenatedWords:
         assert result == "empirically refutable and empirical hypotheses"
 
 
+# --- POS-tag dash-detection tests ---
+# Theory: the second word of a hyphenated pair can be POS-tagged to detect whether
+# the hyphen is a legitimate compound marker or an em-dash artifact.
+# Determiners (DT), prepositions (IN), and conjunctions (CC) never follow a real
+# compound hyphen, so "word-the" / "word-of" / "word-and" are always dash artifacts.
+# Words like "known", "term", "date" are adjectives/nouns and can legitimately follow a hyphen.
+
+class TestHyphenIsDash:
+    """Tests for WordValidator.hyphen_is_dash.
+
+    Theory: function words (articles, prepositions, conjunctions) have no WordNet
+    synsets. If the second part of a hyphenated pair has no synsets, it is a function
+    word that cannot legitimately follow a compound hyphen — the hyphen is a dash artifact.
+
+    Known limitation: 'a' and 'an' are false negatives because WordNet stores them
+    as abbreviations (angstrom, associate in nursing), so they are not tested here.
+    """
+
+    def test_the_signals_dash(self, validator) -> None:
+        """'demarcation-the': 'the' has no synsets → hyphen is a dash."""
+        assert validator.hyphen_is_dash("demarcation", "the") is True
+
+    def test_known_does_not_signal_dash(self, validator) -> None:
+        """'well-known': 'known' has synsets → hyphen is a legitimate compound."""
+        assert validator.hyphen_is_dash("well", "known") is False
+
+    def test_term_does_not_signal_dash(self, validator) -> None:
+        """'long-term': 'term' has synsets → hyphen is a legitimate compound."""
+        assert validator.hyphen_is_dash("long", "term") is False
+
+    def test_date_does_not_signal_dash(self, validator) -> None:
+        """'up-to-date': 'date' has synsets → hyphen is a legitimate compound."""
+        assert validator.hyphen_is_dash("up", "date") is False
+
+    # --- fix_dash_hyphens tests ---
+
+    def test_fix_dash_hyphens_the(self, validator) -> None:
+        """'demarcation-the': the actual PDF artifact should become 'demarcation - the'."""
+        assert validator.fix_dash_hyphens("demarcation-the") == "demarcation - the"
+
+    def test_fix_dash_hyphens_preserves_compound(self, validator) -> None:
+        """'well-known' is a genuine compound and should be left unchanged."""
+        assert validator.fix_dash_hyphens("well-known") == "well-known"
+
+    def test_fix_dash_hyphens_preserves_long_term(self, validator) -> None:
+        """'long-term' is a genuine compound and should be left unchanged."""
+        assert validator.fix_dash_hyphens("long-term") == "long-term"
+
+    def test_fix_dash_hyphens_in_sentence(self, validator) -> None:
+        """A full sentence with a dash-hyphen artifact is corrected."""
+        result = validator.fix_dash_hyphens(
+            "the criterion of demarcation-the line between science and metaphysics"
+        )
+        assert "demarcation - the" in result
+        assert "demarcation-the" not in result
+
+
 # --- Module-level instance test ---
 
 class TestModuleLevelInstance:

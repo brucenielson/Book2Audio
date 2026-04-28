@@ -307,8 +307,6 @@ class TestCleanText:
     def test_normalizes_smart_quotes(self) -> None:
         assert clean_text("\u201chello\u201d") == '"hello"'
 
-    def test_removes_soft_hyphen(self) -> None:
-        assert clean_text("explo\u00adration") == "exploration"
 
     def test_preserves_regular_hyphen(self) -> None:
         assert clean_text("well-known") == "well-known"

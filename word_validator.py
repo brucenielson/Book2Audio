@@ -174,5 +174,54 @@ class WordValidator:
         return p_str
 
 
+    def fix_dash_hyphens(self, p_str: str) -> str:
+        """Replace hyphens that are acting as dashes with spaced dashes.
+
+        When the second word of a hyphenated pair is a function word with no
+        WordNet synsets (e.g. "the", "of", "and"), the hyphen is almost certainly
+        a typographic artifact — a PDF line-break hyphen or an em-dash substitute.
+        Those hyphens are replaced with " - " to restore the correct reading.
+
+        Compound words and genuine hyphenated phrases (where word2 is a content
+        word with synsets) are left untouched.
+
+        Args:
+            p_str: The input string potentially containing dash-hyphens.
+
+        Returns:
+            The string with dash-hyphens expanded to " - ".
+        """
+        def _replace(match: re.Match[str]) -> str:
+            word1, word2 = match.group(1), match.group(2)
+            if self.hyphen_is_dash(word1, word2):
+                return word1 + ' - ' + word2
+            return match.group(0)
+
+        return re.sub(r'(\w+)-(\w+)', _replace, p_str)
+
+    def hyphen_is_dash(self, word1: str, word2: str) -> bool:
+        """Return True if the hyphen between word1 and word2 is acting as a dash.
+
+        Uses WordNet synsets as a proxy: genuine function words like "the" have
+        no synsets, while content words like "known" or "term" do. If word2 has
+        no synsets it cannot legitimately follow a compound hyphen, so the hyphen
+        is most likely a dash artifact (e.g. a PDF line-break hyphen before an
+        article or conjunction).
+
+        Note: "a" and "an" are known false negatives — WordNet stores them as
+        abbreviations (angstrom, associate in nursing) and gives them synsets even
+        though they are function words. This method does not attempt to handle them.
+
+        Args:
+            word1: The token before the hyphen.
+            word2: The token after the hyphen.
+
+        Returns:
+            True if the hyphen appears to be a dash artifact, False otherwise.
+        """
+        from nltk.corpus import wordnet
+        return len(wordnet.synsets(word2.lower())) == 0
+
+
 # Module-level instance for use across the codebase
 word_validator: WordValidator = WordValidator()
