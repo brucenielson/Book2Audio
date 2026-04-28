@@ -1,0 +1,113 @@
+Text Cleaner Improvements — Branch: improving-pdf-cleaning
+===========================================================
+Date: 2026-04-28
+
+This document records all changes made to the LLM-based text cleaning pipeline
+(_restore_valid_words, _has_suspicious_substitutions, TextCleaner.clean) during
+this branch, along with the motivation for each change.
+
+
+1. WORD RESTORATION (_restore_valid_words)
+------------------------------------------
+Purpose: After the LLM cleans a paragraph, silently undo any word substitutions
+where the original word was a valid English word. This prevents the LLM from
+"improving" perfectly good vocabulary while still keeping legitimate OCR fixes.
+
+Mechanism: SequenceMatcher compares original and LLM tokens word-by-word and
+handles three opcode types:
+
+  a) 1:1 replacements
+     - If the original word is valid English: restore it, keep the LLM's version
+       of all other tokens (e.g. OCR fixes).
+     - Quote normalization: apply normalize_quotes to both tokens before stripping
+       so that ASCII quotes and smart/curly quotes (which the LLM often introduces)
+       compare as equal and do not trigger spurious restores.
+       Examples that were spuriously restored before fix:
+         'All (ASCII) vs 'All (smart)     → 'all' == 'all' after norm → no restore
+         white'. (ASCII) vs white'. (smart) → 'white' == 'white'      → no restore
+     - Em-dash downgrade protection: if the original token contained an em/en-dash
+       and the cleaned token has a plain hyphen instead (tokens are equal after
+       _normalize_dashes), restore the original to preserve typographic quality.
+       The upgrade direction (hyphen → em-dash) is intentionally left as-is.
+       Example: false—as → false-as    → restore to false—as
+                false-as → false—as    → keep em-dash (upgrade)
+
+  b) N→1 merges (multiple original tokens collapsed to one cleaned token)
+     Keep the merged token if ANY of these conditions hold:
+     - The merged result is a valid English word (e.g. "Scienti fic" → "Scientific")
+     - The merged result contains a digit (e.g. "1 959" → "1959")
+     - The cleaned token exactly equals the concatenation of original tokens
+       (e.g. "i. e.," → "i.e.,")
+     - The cleaned token has an internal period (abbreviation signal,
+       e.g. "Ph. D" → "Ph.D.")
+     - Em-dash upgrade: _normalize_dashes(cleaned) == joined originals AND the first
+       original token starts with a letter (guards "- including" → "—including").
+       Example: "criticism - and" → "criticism—and"   ✓ keep
+                "- including"     → "—including"       ✗ restore (leading dash)
+     - Hyphen compounding: '-'.join(originals) == cleaned token.
+       Example: "proof reading" → "proof-reading"     ✓ keep
+
+  c) All other shapes (1→N splits, N→M) — keep the LLM version.
+
+
+2. SUSPICIOUS SUBSTITUTION CHECK (_has_suspicious_substitutions)
+----------------------------------------------------------------
+Originally flagged invalid→invalid swaps (OCR artifact replaced with a different
+invalid token) as suspicious, causing a retry.
+
+Decision: TRUST THE LLM on invalid→invalid. Rejecting these caused whole paragraphs
+to fail when the LLM made imperfect but reasonable fixes to OCR artifacts that are
+not in NLTK WordNet (e.g. foreign words, British spellings, proper names).
+
+The function now always returns False and is retained as a hook for future checks.
+
+Previously suspicious case that is now accepted:
+  "heiden" → "beiden"  (both invalid in NLTK — LLM does its best)
+  "endeavoured" → "endeavourd"  (British spelling not in WordNet — accepted)
+
+
+3. LIST PREFIX RESTORATION (_restore_list_prefix)
+-------------------------------------------------
+The LLM sometimes strips numbered list markers treating them as stray OCR markers.
+A post-processing guard restores them:
+  Pattern matched: (1), (2), (3)  or  1. 2. 3)
+  Example: "(3) All human actions..." → LLM drops "(3) " → restored after cleaning.
+Also added to SYSTEM_PROMPT: "Do NOT remove numbered list prefixes such as (1), (2), (3)."
+
+
+4. SYSTEM PROMPT ADDITION
+--------------------------
+Added rule: "Do NOT remove numbered list prefixes such as (1), (2), (3) from the
+start of a paragraph."
+
+
+5. NORMALIZE_TOKEN (_normalize_token)
+--------------------------------------
+Helper used by _has_suspicious_substitutions for comparison only (not validation):
+  - Strips punctuation anywhere in the token (re.sub, not just ends)
+  - Collapses all dash/hyphen variants to nothing
+  - ASCII-folds diacritics (NFKD + encode ascii ignore)
+  - Lowercases
+Examples of false positives this prevents:
+  "wellknown" vs "well-known"   → both → "wellknown" (equal, not suspicious)
+  "Eotvos" vs "Eötvös"          → both → "eotvos"    (equal, not suspicious)
+  "star:✶" vs "star:*"          → purely symbolic token, skipped entirely
+
+
+6. TDD PROCESS RULE
+-------------------
+CLAUDE.md updated: always write failing unit tests before implementing any fix.
+Test file: tests/test_text_cleaner.py
+  - TestRestoreValidWords — covers all merge and restore cases
+  - TestHasSuspiciousSubstitutions — covers quote/dash/symbol edge cases
+  - TestRestoreListPrefix — covers prefix drop and restoration
+  - TestNormalizeDashes — covers em/en dash normalization
+
+
+7. KNOWN REMAINING ISSUES (as of 2026-04-28)
+---------------------------------------------
+Observed during full-book run — not yet fixed:
+  - New patterns of spurious restores or missed fixes may emerge from the
+    full-book run currently in progress.
+  - Debug breakpoint string _DEBUG_BREAK_TEXT in text_processor.py should be
+    cleared to None once debugging is complete.

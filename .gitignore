@@ -214,5 +214,4 @@ tests/test_canonical/
 .claude/settings.local.json
 tests/test_documents_llm/
 tests/test_canonical_llm/
-try/
 output/
