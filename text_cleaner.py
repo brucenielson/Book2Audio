@@ -46,6 +46,7 @@ Rules:
 - Do NOT reword, paraphrase, or alter the actual prose
 - Do NOT change capitalization of words
 - Do NOT drop any words from the original text unless they are clear OCR artifacts
+- Do NOT remove numbered list prefixes such as (1), (2), (3) from the start of a paragraph
 - Only fix genuine errors — if text looks correct, leave it unchanged
 - Respond ONLY with a JSON object, no preamble or markdown backticks
 
@@ -104,6 +105,30 @@ def _normalize_token(word: str) -> str:
     return word.lower()
 
 
+_LIST_PREFIX_RE: re.Pattern[str] = re.compile(r'^(\(\d+\)|\d+[.)]) ')
+
+
+def _restore_list_prefix(original: str, cleaned: str) -> str:
+    """Restore a leading list prefix if the LLM dropped it.
+
+    Paragraphs that begin with a numbered list marker such as "(3)" or "3."
+    should have that prefix preserved. The LLM sometimes strips it, treating
+    it as a stray marker. This function detects the pattern in the original
+    and prepends it to the cleaned text when absent.
+
+    Args:
+        original: The original paragraph text.
+        cleaned: The LLM-cleaned paragraph text.
+
+    Returns:
+        The cleaned text with the list prefix restored if it was dropped.
+    """
+    match = _LIST_PREFIX_RE.match(original)
+    if match and not _LIST_PREFIX_RE.match(cleaned):
+        return match.group(0) + cleaned
+    return cleaned
+
+
 def _restore_valid_words(original: str, cleaned: str, verbose: bool = False) -> str:
     """Restore any valid original words that the LLM substituted.
 
@@ -149,9 +174,18 @@ def _restore_valid_words(original: str, cleaned: str, verbose: bool = False) -> 
                 else:
                     result.append(cleaned_split[j1 + k])
         elif orig_count > new_count == 1:
-            # N→1 merge — keep if the merged result is a valid word or a number (e.g. OCR fix)
+            # N→1 merge — keep if the merged result is a valid word, a number, the
+            # cleaned token is simply the original tokens concatenated (e.g. "i. e.," →
+            # "i.e.,"), or the cleaned token has internal periods (abbreviation signal,
+            # e.g. "Ph. D" → "Ph.D." or "U. S. A" → "U.S.A.").
             merged = _normalize_dashes(cleaned_lower[j1].strip('.,;:!?"\'()-[]'))
-            if word_validator.is_valid_word(merged) or any(c.isdigit() for c in merged):
+            joined_orig = ''.join(original_split[i1:i2])
+            cleaned_inner = cleaned_split[j1].strip('.,;:!?"\'()-[]')
+            has_internal_period = '.' in cleaned_inner
+            if (word_validator.is_valid_word(merged)
+                    or any(c.isdigit() for c in merged)
+                    or cleaned_split[j1] == joined_orig
+                    or has_internal_period):
                 result.append(cleaned_split[j1])
             else:
                 vprint(verbose,
@@ -185,8 +219,9 @@ def _has_suspicious_substitutions(original: str, cleaned: str) -> bool:
             new_clean = _normalize_token(new_word)
             if orig_clean == new_clean:
                 continue
-            # Skip purely symbolic tokens — not word substitutions (e.g. ✦ → *)
-            if not any(c.isalpha() for c in orig_clean) or not any(c.isalpha() for c in new_clean):
+            # Skip if original token is purely symbolic (no letters or digits) — trust
+            # the LLM to substitute symbols/encoding artifacts freely (e.g. ✦ → *)
+            if not any(c.isalpha() or c.isdigit() for c in orig_clean):
                 continue
             if not word_validator.is_valid_word(orig_clean) and not word_validator.is_valid_word(new_clean):
                 # OCR artifact replaced with a different invalid token — suspicious
@@ -278,6 +313,7 @@ class TextCleaner:
                 cleaned_candidate = _restore_valid_words(
                     paragraph, cleaned_candidate, verbose=self._verbose
                 )
+                cleaned_candidate = _restore_list_prefix(paragraph, cleaned_candidate)
 
                 if _has_suspicious_substitutions(paragraph, cleaned_candidate):
                     raise ValueError("LLM made invalid→invalid substitution — possible hallucination")

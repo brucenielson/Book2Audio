@@ -3,7 +3,7 @@
 import pytest
 from unittest.mock import patch
 from text_cleaner import (TextCleaner, _has_suspicious_substitutions, _coerce_classification,
-                          _normalize_dashes, _restore_valid_words)
+                          _normalize_dashes, _restore_valid_words, _restore_list_prefix)
 
 patch_llm_chat: str = 'text_cleaner.ollama.chat'
 
@@ -342,6 +342,20 @@ class TestHasSuspiciousSubstitutions:
             "marked with a star:*"
         ) is False
 
+    def test_pure_symbol_token_not_suspicious(self) -> None:
+        """A standalone non-alphanumeric token replaced by any other token is not suspicious."""
+        assert _has_suspicious_substitutions(
+            "marked with a star ✶ here",
+            "marked with a star * here"
+        ) is False
+
+    def test_multi_char_symbol_token_not_suspicious(self) -> None:
+        """A multi-character symbolic token with no letters or digits is not suspicious."""
+        assert _has_suspicious_substitutions(
+            "the symbol ✶✶ appears",
+            "the symbol ** appears"
+        ) is False
+
     # --- Suspicious: OCR artifact replaced with another invalid word ---
 
     def test_ocr_artifact_replaced_with_different_invalid_word_is_suspicious(self) -> None:
@@ -357,6 +371,42 @@ class TestHasSuspiciousSubstitutions:
             "The xzqpf was undeniable.",
             "The truth was undeniable."
         ) is False
+
+
+# --- TestRestoreListPrefix ---
+
+class TestRestoreListPrefix:
+    def test_parenthesized_number_restored_when_dropped(self) -> None:
+        """(3) prefix dropped by LLM is restored."""
+        result = _restore_list_prefix(
+            "(3) All human actions are egotistic.",
+            "All human actions are egotistic."
+        )
+        assert result == "(3) All human actions are egotistic."
+
+    def test_dot_number_prefix_restored_when_dropped(self) -> None:
+        """'3. ' prefix dropped by LLM is restored."""
+        result = _restore_list_prefix(
+            "3. All human actions are egotistic.",
+            "All human actions are egotistic."
+        )
+        assert result == "3. All human actions are egotistic."
+
+    def test_prefix_not_duplicated_when_already_present(self) -> None:
+        """Prefix already present in cleaned text is not added again."""
+        result = _restore_list_prefix(
+            "(3) All human actions are egotistic.",
+            "(3) All human actions are egotistic."
+        )
+        assert result == "(3) All human actions are egotistic."
+
+    def test_no_prefix_in_original_leaves_cleaned_unchanged(self) -> None:
+        """Text without a list prefix is returned unchanged."""
+        result = _restore_list_prefix(
+            "All human actions are egotistic.",
+            "All human actions are egotistic."
+        )
+        assert result == "All human actions are egotistic."
 
 
 # --- TestNormalizeDashes ---
@@ -470,6 +520,22 @@ class TestRestoreValidWords:
             "Popper (1977), argued"
         )
         assert result == "Popper (1977), argued"
+
+    def test_n_to_1_merge_of_spaced_abbreviation_is_kept(self) -> None:
+        """'i. e.,' merged to 'i.e.,' is kept — concatenation of originals matches."""
+        result = _restore_valid_words(
+            "means nothing, i. e., it is not falsifiable.",
+            "means nothing, i.e., it is not falsifiable."
+        )
+        assert result == "means nothing, i.e., it is not falsifiable."
+
+    def test_n_to_1_merge_with_internal_period_is_kept(self) -> None:
+        """'Ph. D' merged to 'Ph.D.' is kept — internal period signals deliberate abbreviation."""
+        result = _restore_valid_words(
+            "awarded a Ph. D in philosophy.",
+            "awarded a Ph.D. in philosophy."
+        )
+        assert result == "awarded a Ph.D. in philosophy."
 
     def test_em_dash_glued_to_word_restored_to_space_hyphen_space(self) -> None:
         """Standalone ' - ' merged by LLM into '—word' is restored to ' - word'."""
