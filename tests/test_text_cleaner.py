@@ -452,6 +452,43 @@ class TestRestoreValidWords:
         )
         assert result == "before - after"
 
+    def test_standalone_hyphen_preserved_when_unchanged(self) -> None:
+        """A standalone ' - ' that the LLM leaves untouched should survive the join."""
+        result = _restore_valid_words(
+            "a criterion of demarcation - the criterion",
+            "a criterion of demarcation - the criterion"
+        )
+        assert result == "a criterion of demarcation - the criterion"
+
+    def test_standalone_hyphen_preserved_when_other_change_made(self) -> None:
+        """Spaces around a standalone ' - ' are preserved when the LLM changes something else."""
+        result = _restore_valid_words(
+            "I do not believe that a criterion of demarcation - the criterion of falsifiability.",
+            "I do not believe that a criterion of demarcation - the criterion of falsifiability."
+        )
+        assert result == "I do not believe that a criterion of demarcation - the criterion of falsifiability."
+
+    def test_standalone_hyphen_spaces_not_stripped_by_join(self) -> None:
+        """The ' '.join() at the end of _restore_valid_words must not collapse ' - ' into '-'."""
+        # Specifically testing that the standalone '-' token and its neighbours
+        # are all preserved as separate tokens so the join reconstructs the spaces.
+        result = _restore_valid_words(
+            "a criterion of demarcation - the",
+            "a criterion of demarcation - the"
+        )
+        assert " - " in result
+
+    def test_1_to_3_expansion_of_line_break_hyphen_is_kept(self) -> None:
+        """LLM expanding 'word-word' (line-break hyphen) to 'word - word' should be kept."""
+        # Docling joins PDF line breaks as "demarcation-the" (plain hyphen, no spaces).
+        # The LLM correctly expands this to "demarcation - the". This is a 1→3 token
+        # expansion and must not be reverted by _restore_valid_words.
+        result = _restore_valid_words(
+            "a criterion of demarcation-the criterion of falsifiability.",
+            "a criterion of demarcation - the criterion of falsifiability."
+        )
+        assert result == "a criterion of demarcation - the criterion of falsifiability."
+
 
 # --- TestCoerceClassification ---
 
