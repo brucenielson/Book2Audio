@@ -149,9 +149,9 @@ def _has_suspicious_substitutions(original: str, cleaned: str) -> bool:
     """Return True if the LLM replaced an OCR artifact with another invalid word.
 
     This check runs after _restore_valid_words has already silently reverted
-    valid-word substitutions. The remaining suspicious case is when the LLM
-    replaces an invalid token with a different invalid token rather than
-    fixing it to a correct English word.
+    any substitution where the original was a valid word. The only remaining
+    suspicious case is invalid→invalid: the LLM received a genuine OCR artifact
+    and replaced it with a different garbage token rather than a real English word.
     """
     original_words = original.lower().split()
     cleaned_words = cleaned.lower().split()
@@ -161,15 +161,12 @@ def _has_suspicious_substitutions(original: str, cleaned: str) -> bool:
         if tag != 'replace' or (i2 - i1) != (j2 - j1):
             continue
         for orig_word, new_word in zip(original_words[i1:i2], cleaned_words[j1:j2]):
-            orig_clean = orig_word.strip('.,;:!?"\'()-[]')
-            new_clean = new_word.strip('.,;:!?"\'()-[]')
+            orig_clean = _normalize_dashes(orig_word.strip('.,;:!?"\'()-[]'))
+            new_clean = _normalize_dashes(new_word.strip('.,;:!?"\'()-[]'))
             if orig_clean == new_clean:
                 continue
-            if word_validator.is_valid_word(orig_clean):
-                # Original was a clean valid word — any substitution is suspicious
-                return True
-            if not word_validator.is_valid_word(new_clean):
-                # Original was an OCR artifact but replacement is also invalid
+            if not word_validator.is_valid_word(orig_clean) and not word_validator.is_valid_word(new_clean):
+                # OCR artifact replaced with a different invalid token — suspicious
                 return True
     return False
 
@@ -255,8 +252,12 @@ class TextCleaner:
                         raise ValueError(f"Cleaned text size differs by more than 10% "
                                          f"(original printable={printable_len}, cleaned={len(cleaned_candidate)})")
 
+                cleaned_candidate = _restore_valid_words(
+                    paragraph, cleaned_candidate, verbose=self._verbose
+                )
+
                 if _has_suspicious_substitutions(paragraph, cleaned_candidate):
-                    raise ValueError("LLM replaced valid English words — possible hallucination")
+                    raise ValueError("LLM made invalid→invalid substitution — possible hallucination")
 
                 cleaned_candidate = ' '.join(cleaned_candidate.split('\n'))
                 return cleaned_candidate, classification
