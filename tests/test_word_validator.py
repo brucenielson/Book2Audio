@@ -152,6 +152,34 @@ class TestCombineHyphenatedWords:
         result = validator.combine_hyphenated_words("well-known and up-to-date")
         assert isinstance(result, str)
 
+    def test_soft_hyphen_with_space_joined(self, validator) -> None:
+        """Soft hyphen followed by a space should join the word (page-break artifact)."""
+        # U+00AD followed by a space is how PDF page-break hyphens appear after extraction
+        result = validator.combine_hyphenated_words("empiri­ cally")
+        assert result == "empirically"
+
+    def test_soft_hyphen_with_space_demarcation(self, validator) -> None:
+        """'demarca­ tion' (soft hyphen + space) should join to 'demarcation'."""
+        result = validator.combine_hyphenated_words("demarca­ tion")
+        assert result == "demarcation"
+
+    def test_soft_hyphen_with_space_volume(self, validator) -> None:
+        """'vol­ ume' (soft hyphen + space) should join to 'volume'."""
+        result = validator.combine_hyphenated_words("vol­ ume")
+        assert result == "volume"
+
+    def test_soft_hyphen_with_space_empirical(self, validator) -> None:
+        """'empir­ ical' (soft hyphen + space) should join to 'empirical'."""
+        result = validator.combine_hyphenated_words("empir­ ical")
+        assert result == "empirical"
+
+    def test_soft_hyphen_multiple_in_sentence(self, validator) -> None:
+        """Multiple soft-hyphen page-break artifacts in one string are all resolved."""
+        result = validator.combine_hyphenated_words(
+            "empiri­ cally refutable and empir­ ical hypotheses"
+        )
+        assert result == "empirically refutable and empirical hypotheses"
+
 
 # --- Module-level instance test ---
 
