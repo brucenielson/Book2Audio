@@ -10,6 +10,7 @@ from typing import Literal, TypeAlias
 
 import ollama
 
+from utils.general_utils import normalize_quotes
 from utils.logging_utils import vprint
 from word_validator import word_validator
 
@@ -164,8 +165,14 @@ def _restore_valid_words(original: str, cleaned: str, verbose: bool = False) -> 
         if orig_count == new_count:
             # 1:1 replacements — restore valid original words
             for k in range(orig_count):
-                orig_stripped = _normalize_dashes(original_lower[i1 + k].strip('.,;:!?"\'()-[]'))
-                new_stripped = _normalize_dashes(cleaned_lower[j1 + k].strip('.,;:!?"\'()-[]'))
+                # Normalize quotes before stripping so that ASCII and smart/curly
+                # quote variants (e.g. ' vs ‘) compare as equal. The LLM often
+                # converts straight quotes to typographic quotes; without this step,
+                # tokens like "'All" vs "‘All" would be seen as different words.
+                orig_stripped = _normalize_dashes(
+                    normalize_quotes(original_lower[i1 + k]).strip('.,;:!?"\'()-[]'))
+                new_stripped = _normalize_dashes(
+                    normalize_quotes(cleaned_lower[j1 + k]).strip('.,;:!?"\'()-[]'))
                 if orig_stripped != new_stripped and word_validator.is_valid_word(orig_stripped):
                     vprint(verbose,
                            f"  → restored '{original_split[i1 + k]}' "

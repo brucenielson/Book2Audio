@@ -616,6 +616,48 @@ class TestRestoreValidWords:
         )
         assert result == "a criterion of demarcation - the criterion of falsifiability."
 
+    # --- Quote normalization: LLM introduces smart/curly quotes ---
+    # The preprocessor normalizes all quotes to ASCII before text reaches _restore_valid_words.
+    # The LLM often "improves" straight quotes back to typographic curly quotes. The only
+    # difference between the original and LLM tokens is the quote Unicode code point —
+    # they are semantically identical and must not trigger a restore.
+
+    def test_llm_smart_open_quote_on_word_not_restored(self) -> None:
+        """'All (ASCII) vs ‘All (smart open quote): same word, no restore.
+        Seen in practice as: → restored ''All' (LLM tried ''All')"""
+        result = _restore_valid_words(
+            "He said 'All is well.",
+            "He said ‘All is well."
+        )
+        assert result == "He said ‘All is well."
+
+    def test_llm_smart_close_quote_mid_token_not_restored(self) -> None:
+        """white'. (ASCII) vs white’. (smart close quote): same word, no restore.
+        Seen in practice as: → restored 'white'.' (LLM tried 'white'.')"""
+        result = _restore_valid_words(
+            "the colour white'.",
+            "the colour white’."
+        )
+        assert result == "the colour white’."
+
+    def test_llm_smart_close_quote_after_period_not_restored(self) -> None:
+        """Vienna.' (ASCII) vs Vienna.’ (smart close quote): same word, no restore.
+        Seen in practice as: → restored 'Vienna.'' (LLM tried 'Vienna.'')"""
+        result = _restore_valid_words(
+            "the city Vienna.'",
+            "the city Vienna.’"
+        )
+        assert result == "the city Vienna.’"
+
+    def test_llm_smart_quotes_around_abbreviation_not_restored(self) -> None:
+        """'Ed.'.' (ASCII) vs ‘Ed.’. (smart quotes): same token, no restore.
+        Seen in practice as: → restored ''Ed.'.' (LLM tried ''Ed.'.')"""
+        result = _restore_valid_words(
+            "published by 'Ed.'.",
+            "published by ‘Ed.’."
+        )
+        assert result == "published by ‘Ed.’."
+
 
 # --- TestCoerceClassification ---
 
