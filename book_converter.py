@@ -81,7 +81,8 @@ class BookToAudio:
         elif suffix == '.pdf':
             parser: DoclingParser = DoclingParser(source, include_footnotes=False,
                                                   start_page=start_page, end_page=end_page,
-                                                  llm_cleaner=self._llm_cleaner)
+                                                  llm_cleaner=self._llm_cleaner,
+                                                  verbose=self._verbose)
             paragraphs, _ = parser.run(generate_text_file=generate_text_file)
         elif suffix == '.epub':
             epub_parser: EpubParser = EpubParser(source, include_footnotes=False,

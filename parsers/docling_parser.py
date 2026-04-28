@@ -50,7 +50,8 @@ class DoclingParser(BaseParser):
                  start_page: int | None = None,
                  end_page: int | None = None,
                  llm_cleaner: str | TextCleaner | None = None,
-                 min_footnote_chars: int = 100) -> None:
+                 min_footnote_chars: int = 100,
+                 verbose: bool = False) -> None:
         """Initialise DoclingParser.
 
         Args:
@@ -79,6 +80,7 @@ class DoclingParser(BaseParser):
                                 the minimum charspan used when computing the
                                 document's median characters-per-line baseline.
                                 Defaults to 100.
+            verbose: If True, prints progress messages during conversion. Defaults to False.
         """
         if isinstance(source, DoclingDocument):
             self._doc: DoclingDocument = source
@@ -94,6 +96,7 @@ class DoclingParser(BaseParser):
         self._include_notes: bool = include_footnotes
         self._cleaner: str | TextCleaner | None = llm_cleaner
         self._short_text_threshold: int = min_footnote_chars
+        self._verbose: bool = verbose
 
     def _is_in_page_range(self, page_no: int | None) -> bool:
         """Check whether a page number falls within the configured page range.
@@ -133,7 +136,8 @@ class DoclingParser(BaseParser):
         processor: TextProcessor = TextProcessor(
             min_paragraph_size=self._min_paragraph_size,
             include_footnotes=self._include_notes,
-            cleaner=self._cleaner
+            cleaner=self._cleaner,
+            verbose=self._verbose
         )
 
         parsed_chunks: list[ParsedChunk] = processor.process(

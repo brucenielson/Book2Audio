@@ -25,7 +25,7 @@ def _all_words_valid(text: str, verbose: bool = False) -> bool:
     for token in text.split():
         stripped = re.sub(r"[,;:.!?()'\"—–]", '', token.lower())
         if not stripped or not word_validator.is_valid_word(stripped):
-            vprint(verbose, f"  [FAIL TOKEN] {token!r} -> {stripped!r}")
+            # vprint(verbose, f"  [FAIL TOKEN] {token!r} -> {stripped!r}")
             return False
     return True
 
@@ -73,6 +73,7 @@ class TextProcessor:
         self._t_llm: float = 0.0
         self._n_skipped: int = 0
         self._n_llm_calls: int = 0
+        self._last_reported_page: int = -1
 
     @property
     def _combined_count(self) -> int:
@@ -89,6 +90,7 @@ class TextProcessor:
         self._t_llm = 0.0
         self._n_skipped = 0
         self._n_llm_calls = 0
+        self._last_reported_page = -1
 
     def _clear_state(self) -> None:
         """Clear processing state after a run to free memory."""
@@ -270,6 +272,7 @@ class TextProcessor:
             self._t_validation += time.perf_counter() - t0
 
             vprint(self._verbose, f"{'[SKIP]' if _skip else '[LLM ] '} {p_str[:100]!r}")
+            # vprint(self._verbose, f"{'[SKIP]' if _skip else '[LLM ] '} {p_str[:100]!r}")
             if not _skip:
                 self._n_llm_calls += 1
                 page_context = self._page_contexts.get(meta.get('page_#', ''), '')
@@ -297,6 +300,24 @@ class TextProcessor:
             ))
         self._paragraph = []
 
+    def _report_page_progress(self, chunk: RawChunk) -> None:
+        """Print a progress line when processing crosses a 10-page boundary.
+
+        Args:
+            chunk: The current chunk whose page number is checked.
+        """
+        page_str = chunk.meta.get('page_#', '')
+        if not page_str:
+            return
+        try:
+            page = int(page_str)
+        except ValueError:
+            return
+        milestone = page != self._last_reported_page if self._verbose else page // 10 > self._last_reported_page // 10
+        if milestone:
+            print(f"  [Page {page}]")
+            self._last_reported_page = page
+
     def _process_chunk(self, chunk: RawChunk, next_chunk: RawChunk | None) -> None:
         """Process a single body text chunk.
 
@@ -304,6 +325,8 @@ class TextProcessor:
             chunk: The current RawChunk to process.
             next_chunk: The next RawChunk in the list, or None if at end.
         """
+        self._report_page_progress(chunk)
+
         p_str: str = chunk.text
 
         if self._should_accumulate(p_str, next_chunk):

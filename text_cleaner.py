@@ -75,13 +75,83 @@ def _coerce_classification(raw: str) -> ClassificationType | None:
     return None
 
 
-def _has_suspicious_substitutions(original: str, cleaned: str) -> bool:
-    """Return True if the LLM made a suspicious word substitution.
+def _normalize_dashes(word: str) -> str:
+    """Normalize em-dashes and en-dashes to hyphens for word comparison.
 
-    Legitimate fixes replace invalid words (OCR artifacts, misspellings) with
-    valid ones. Two cases are suspicious:
-    - Replacing a valid English word with a different word (hallucination)
-    - Replacing a valid English word with an invalid word (introducing errors)
+    Prevents false positives when the LLM correctly converts a hyphen to an
+    em-dash within a compound token (e.g. "false-as" → "false—as").
+    """
+    return word.replace('—', '-').replace('–', '-')
+
+
+def _restore_valid_words(original: str, cleaned: str, verbose: bool = False) -> str:
+    """Restore any valid original words that the LLM substituted.
+
+    When the LLM performs a 1:1 word substitution and the original word is
+    valid English, the original word is silently restored while all other
+    LLM changes (joined OCR splits, punctuation fixes, etc.) are kept.
+    Hyphens and em-dashes are treated as equivalent during comparison.
+
+    Args:
+        original: The original paragraph text.
+        cleaned: The LLM-cleaned paragraph text.
+        verbose: If True, prints each word restoration to stdout.
+
+    Returns:
+        The cleaned text with any valid-word substitutions undone.
+    """
+    original_split = original.split()
+    cleaned_split = cleaned.split()
+    original_lower = [w.lower() for w in original_split]
+    cleaned_lower = [w.lower() for w in cleaned_split]
+
+    opcodes = difflib.SequenceMatcher(None, original_lower, cleaned_lower).get_opcodes()
+    result: list[str] = []
+
+    for tag, i1, i2, j1, j2 in opcodes:
+        if tag != 'replace':
+            result.extend(cleaned_split[j1:j2])
+            continue
+
+        orig_count = i2 - i1
+        new_count = j2 - j1
+
+        if orig_count == new_count:
+            # 1:1 replacements — restore valid original words
+            for k in range(orig_count):
+                orig_stripped = _normalize_dashes(original_lower[i1 + k].strip('.,;:!?"\'()-[]'))
+                new_stripped = _normalize_dashes(cleaned_lower[j1 + k].strip('.,;:!?"\'()-[]'))
+                if orig_stripped != new_stripped and word_validator.is_valid_word(orig_stripped):
+                    vprint(verbose,
+                           f"  → restored '{original_split[i1 + k]}' "
+                           f"(LLM tried '{cleaned_split[j1 + k]}')")
+                    result.append(original_split[i1 + k])
+                else:
+                    result.append(cleaned_split[j1 + k])
+        elif orig_count > new_count == 1:
+            # N→1 merge — keep if the merged result is a valid word or a number (e.g. OCR fix)
+            merged = _normalize_dashes(cleaned_lower[j1].strip('.,;:!?"\'()-[]'))
+            if word_validator.is_valid_word(merged) or any(c.isdigit() for c in merged):
+                result.append(cleaned_split[j1])
+            else:
+                vprint(verbose,
+                       f"  → restored {original_split[i1:i2]} "
+                       f"(LLM tried '{cleaned_split[j1]}')")
+                result.extend(original_split[i1:i2])
+        else:
+            # Other mismatches (1→N splits, N→M) — keep LLM version
+            result.extend(cleaned_split[j1:j2])
+
+    return ' '.join(result)
+
+
+def _has_suspicious_substitutions(original: str, cleaned: str) -> bool:
+    """Return True if the LLM replaced an OCR artifact with another invalid word.
+
+    This check runs after _restore_valid_words has already silently reverted
+    valid-word substitutions. The remaining suspicious case is when the LLM
+    replaces an invalid token with a different invalid token rather than
+    fixing it to a correct English word.
     """
     original_words = original.lower().split()
     cleaned_words = cleaned.lower().split()

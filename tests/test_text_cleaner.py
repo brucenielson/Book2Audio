@@ -2,7 +2,8 @@
 
 import pytest
 from unittest.mock import patch
-from text_cleaner import TextCleaner, _has_suspicious_substitutions, _coerce_classification
+from text_cleaner import (TextCleaner, _has_suspicious_substitutions, _coerce_classification,
+                          _normalize_dashes, _restore_valid_words)
 
 patch_llm_chat: str = 'text_cleaner.ollama.chat'
 
@@ -190,24 +191,25 @@ class TestSanityCheck:
             cleaned, classification = cleaner.clean("I am hppy today.")
         assert cleaned == "I am happy today."
 
-    def test_rejects_valid_word_substitution(self) -> None:
-        """Replacing a valid English word with a different word should trigger retry and fallback."""
+    def test_restores_valid_word_substitution(self) -> None:
+        """When LLM substitutes a valid word, restore it without retrying."""
         cleaner = make_cleaner(max_retries=3)
-        # "judiciary" is valid — replacing it with "judicial" is suspicious
-        bad_response = make_response("He obstructed judicial powers.", "body")
-        with patch(patch_llm_chat, return_value=bad_response):
+        # "judiciary" is valid — "judicial" substitution should be silently undone
+        response = make_response("He obstructed judicial powers.", "body")
+        with patch(patch_llm_chat, return_value=response) as mock_chat:
             cleaned, classification = cleaner.clean("He obstructed judiciary powers.")
         assert cleaned == "He obstructed judiciary powers."
         assert classification == "body"
+        assert mock_chat.call_count == 1  # no retry needed
 
-    def test_retries_on_suspicious_substitution(self) -> None:
-        """Should retry when a suspicious substitution is detected, then accept a clean response."""
-        cleaner = make_cleaner(max_retries=3)
-        bad_response = make_response("He obstructed judicial powers.", "body")
-        good_response = make_response("He obstructed judiciary powers.", "body")
-        with patch(patch_llm_chat, side_effect=[bad_response, good_response]):
-            cleaned, classification = cleaner.clean("He obstructed judiciary powers.")
-        assert cleaned == "He obstructed judiciary powers."
+    def test_keeps_other_llm_changes_when_restoring_valid_word(self) -> None:
+        """When restoring a valid word, other LLM changes (e.g. OCR fixes) are kept."""
+        cleaner = make_cleaner()
+        # LLM fixes "hppy" → "happy" (legitimate) but also swaps "today" → "now" (valid→valid)
+        response = make_response("I am happy now.", "body")
+        with patch(patch_llm_chat, return_value=response):
+            cleaned, _ = cleaner.clean("I am hppy today.")
+        assert cleaned == "I am happy today."  # "today" restored, "happy" kept
 
     def test_accepts_punctuation_only_change(self) -> None:
         """Changes that only affect punctuation (not words) should be accepted."""
@@ -288,28 +290,167 @@ class TestHasSuspiciousSubstitutions:
             "She agreed."
         ) is False
 
-    # --- Suspicious: valid word replaced ---
+    # --- Not suspicious: valid-word substitutions are handled by _restore_valid_words ---
 
-    def test_valid_word_swapped_for_different_valid_word_is_suspicious(self) -> None:
-        """'cat' → 'dog': both valid, different — hallucination."""
+    def test_valid_word_swapped_for_different_valid_word_not_suspicious(self) -> None:
+        """'cat' → 'dog' is now handled by _restore_valid_words, not flagged here."""
         assert _has_suspicious_substitutions(
             "The cat sat on the mat.",
             "The dog sat on the mat."
-        ) is True
+        ) is False
 
-    def test_valid_word_replaced_with_invalid_word_is_suspicious(self) -> None:
-        """Replacing a valid word with gibberish is suspicious."""
+    def test_valid_word_replaced_with_invalid_word_not_suspicious(self) -> None:
+        """valid → invalid is caught by _restore_valid_words (restores original), not flagged here."""
         assert _has_suspicious_substitutions(
             "The quick brown fox.",
             "The quick xzqpf fox."
+        ) is False
+
+    # --- Not suspicious: hyphen/em-dash equivalence ---
+
+    def test_hyphen_to_em_dash_in_compound_not_suspicious(self) -> None:
+        """'work-far' → 'work—far': same token after dash normalization — not suspicious."""
+        assert _has_suspicious_substitutions(
+            "a closely-integrated work-far exceeding expectations",
+            "a closely-integrated work—far exceeding expectations"
+        ) is False
+
+    # --- Suspicious: OCR artifact replaced with another invalid word ---
+
+    def test_ocr_artifact_replaced_with_different_invalid_word_is_suspicious(self) -> None:
+        """'xzqpf' → 'zqpfx': both garbage — LLM failed to fix it."""
+        assert _has_suspicious_substitutions(
+            "The xzqpf was clear.",
+            "The zqpfx was clear."
         ) is True
 
-    def test_valid_word_with_boundary_punctuation_swapped_is_suspicious(self) -> None:
-        """'running,' and 'walking,' both strip to different valid words — suspicious."""
+    def test_ocr_artifact_replaced_with_valid_word_not_suspicious(self) -> None:
+        """'xzqpf' → 'truth': OCR fixed correctly — not suspicious."""
         assert _has_suspicious_substitutions(
-            "She was running, quickly.",
-            "She was walking, quickly."
-        ) is True
+            "The xzqpf was undeniable.",
+            "The truth was undeniable."
+        ) is False
+
+
+# --- TestNormalizeDashes ---
+
+class TestNormalizeDashes:
+    def test_em_dash_replaced_with_hyphen(self) -> None:
+        assert _normalize_dashes('well—known') == 'well-known'
+
+    def test_en_dash_replaced_with_hyphen(self) -> None:
+        assert _normalize_dashes('well–known') == 'well-known'
+
+    def test_plain_hyphen_unchanged(self) -> None:
+        assert _normalize_dashes('well-known') == 'well-known'
+
+    def test_no_dash_unchanged(self) -> None:
+        assert _normalize_dashes('hello') == 'hello'
+
+    def test_both_em_and_en_dash_replaced(self) -> None:
+        assert _normalize_dashes('a—b–c') == 'a-b-c'
+
+    def test_empty_string(self) -> None:
+        assert _normalize_dashes('') == ''
+
+
+# --- TestRestoreValidWords ---
+
+class TestRestoreValidWords:
+    def test_valid_word_substitution_is_restored(self) -> None:
+        """LLM swaps one valid word for another — original is restored."""
+        result = _restore_valid_words(
+            "He obstructed judiciary powers.",
+            "He obstructed judicial powers."
+        )
+        assert result == "He obstructed judiciary powers."
+
+    def test_ocr_fix_to_valid_word_is_kept(self) -> None:
+        """LLM fixes an invalid OCR token to a valid word — change is kept."""
+        result = _restore_valid_words(
+            "I am hppy today.",
+            "I am happy today."
+        )
+        assert result == "I am happy today."
+
+    def test_ocr_fix_kept_while_valid_substitution_is_restored(self) -> None:
+        """Mixed case: OCR fix kept, valid-word swap restored."""
+        result = _restore_valid_words(
+            "I am hppy today.",
+            "I am happy now."
+        )
+        assert result == "I am happy today."
+
+    def test_identical_text_unchanged(self) -> None:
+        result = _restore_valid_words("Hello world.", "Hello world.")
+        assert result == "Hello world."
+
+    def test_em_dash_treated_as_hyphen(self) -> None:
+        """em-dash variant of a hyphenated compound should not be restored."""
+        result = _restore_valid_words(
+            "a false-as assumption",
+            "a false—as assumption"
+        )
+        # "false-as" and "false—as" normalize to the same thing — no substitution
+        assert result == "a false—as assumption"
+
+    def test_ocr_artifact_replaced_with_valid_word_is_kept(self) -> None:
+        """Invalid OCR token replaced by valid word — keep the fix."""
+        result = _restore_valid_words(
+            "The xzqpf was undeniable.",
+            "The truth was undeniable."
+        )
+        assert result == "The truth was undeniable."
+
+    def test_multiple_valid_substitutions_all_restored(self) -> None:
+        """All valid-word swaps across the sentence are restored."""
+        result = _restore_valid_words(
+            "The quick brown fox.",
+            "The slow white dog."
+        )
+        assert result == "The quick brown fox."
+
+    def test_n_to_1_merge_producing_valid_word_is_kept(self) -> None:
+        """LLM merges an OCR split into a valid word — keep the fix."""
+        # "Scienti fic" is an OCR word-break; "Scientific" is the correct merge
+        result = _restore_valid_words(
+            "the Scienti fic method",
+            "the Scientific method"
+        )
+        assert result == "the Scientific method"
+
+    def test_n_to_1_merge_producing_invalid_word_restores_originals(self) -> None:
+        """LLM merges tokens into an invalid word — restore the originals."""
+        # "- including" (standalone dash + word) merged into "—including" (invalid token)
+        result = _restore_valid_words(
+            "Parts of the Postscript - including Realism",
+            "Parts of the Postscript —including Realism"
+        )
+        assert result == "Parts of the Postscript - including Realism"
+
+    def test_n_to_1_merge_producing_number_is_kept(self) -> None:
+        """LLM merges OCR-broken number tokens into a single number — keep the fix."""
+        result = _restore_valid_words(
+            "published in 1 959.",
+            "published in 1959."
+        )
+        assert result == "published in 1959."
+
+    def test_n_to_1_merge_producing_number_with_punctuation_is_kept(self) -> None:
+        """Punctuation around a merged number should not prevent it being kept."""
+        result = _restore_valid_words(
+            "Popper (1 977), argued",
+            "Popper (1977), argued"
+        )
+        assert result == "Popper (1977), argued"
+
+    def test_em_dash_glued_to_word_restored_to_space_hyphen_space(self) -> None:
+        """Standalone ' - ' merged by LLM into '—word' is restored to ' - word'."""
+        result = _restore_valid_words(
+            "before - after",
+            "before —after"
+        )
+        assert result == "before - after"
 
 
 # --- TestCoerceClassification ---

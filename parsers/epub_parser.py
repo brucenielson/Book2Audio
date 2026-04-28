@@ -410,7 +410,8 @@ class EpubParser(BaseParser):
             chunks.append(RawChunk(text=p_str, meta=chunk_meta, label='text'))
 
         processor: TextProcessor = TextProcessor(min_paragraph_size=self._min_paragraph_size,
-                                                  cleaner=self._cleaner)
+                                                  cleaner=self._cleaner,
+                                                  verbose=self._verbose)
         parsed_chunks = processor.process(chunks)
 
         docs: list[str] = [chunk.text for chunk in parsed_chunks]

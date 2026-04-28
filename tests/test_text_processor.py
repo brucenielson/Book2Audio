@@ -196,6 +196,14 @@ class TestProcess:
         processor.process(chunks, output_path=output_path, generate_text_file=False)
         assert not (tmp_path / "test_processed_paragraphs.txt").exists()
 
+    def test_page_break_hyphen_joined_before_cleaning(self) -> None:
+        """A hyphenated word split by a page break is joined before any other processing."""
+        processor = make_processor()
+        # "charac-ter" in a single chunk simulates a page-break OCR artifact
+        chunks = [make_chunk("an historical charac-ter.")]
+        result = processor.process(chunks)
+        assert result[0].text == "an historical character."
+
     def test_process_can_be_called_multiple_times(self) -> None:
         processor = make_processor()
         chunks = [make_chunk("First run.")]
