@@ -178,14 +178,26 @@ def _restore_valid_words(original: str, cleaned: str, verbose: bool = False) -> 
             # cleaned token is simply the original tokens concatenated (e.g. "i. e.," →
             # "i.e.,"), or the cleaned token has internal periods (abbreviation signal,
             # e.g. "Ph. D" → "Ph.D." or "U. S. A" → "U.S.A.").
+            # Also keep em-dash upgrades ("criticism - and" → "criticism—and") and
+            # hyphen compounding ("proof reading" → "proof-reading").
             merged = _normalize_dashes(cleaned_lower[j1].strip('.,;:!?"\'()-[]'))
             joined_orig = ''.join(original_split[i1:i2])
             cleaned_inner = cleaned_split[j1].strip('.,;:!?"\'()-[]')
             has_internal_period = '.' in cleaned_inner
+            # Em-dash upgrade: dash-normalized cleaned token equals joined originals,
+            # and the first original token starts with a letter (guards against a leading
+            # standalone dash being glued to the next word, e.g. "- including" → "—including").
+            is_dash_upgrade = (_normalize_dashes(cleaned_split[j1]) == joined_orig
+                               and original_split[i1][0].isalpha())
+            # Hyphen compounding: LLM joined two words with a hyphen ("proof reading" →
+            # "proof-reading"). The hyphen-joined originals exactly match the cleaned token.
+            is_hyphen_compound = '-'.join(original_split[i1:i2]) == cleaned_split[j1]
             if (word_validator.is_valid_word(merged)
                     or any(c.isdigit() for c in merged)
                     or cleaned_split[j1] == joined_orig
-                    or has_internal_period):
+                    or has_internal_period
+                    or is_dash_upgrade
+                    or is_hyphen_compound):
                 result.append(cleaned_split[j1])
             else:
                 vprint(verbose,
@@ -200,32 +212,17 @@ def _restore_valid_words(original: str, cleaned: str, verbose: bool = False) -> 
 
 
 def _has_suspicious_substitutions(original: str, cleaned: str) -> bool:
-    """Return True if the LLM replaced an OCR artifact with another invalid word.
+    """Return True if the LLM made a substitution that looks like hallucination.
 
-    This check runs after _restore_valid_words has already silently reverted
-    any substitution where the original was a valid word. The only remaining
-    suspicious case is invalid→invalid: the LLM received a genuine OCR artifact
-    and replaced it with a different garbage token rather than a real English word.
+    We trust the LLM on all substitution types:
+    - valid→valid: _restore_valid_words already silently reverts these
+    - invalid→valid: a legitimate OCR fix — keep it
+    - valid→invalid: _restore_valid_words already restores the original
+    - invalid→invalid: we trust the LLM to do its best with OCR artifacts
+
+    This function is retained as a hook for future checks but currently always
+    returns False.
     """
-    original_words = original.lower().split()
-    cleaned_words = cleaned.lower().split()
-
-    opcodes = difflib.SequenceMatcher(None, original_words, cleaned_words).get_opcodes()
-    for tag, i1, i2, j1, j2 in opcodes:
-        if tag != 'replace' or (i2 - i1) != (j2 - j1):
-            continue
-        for orig_word, new_word in zip(original_words[i1:i2], cleaned_words[j1:j2]):
-            orig_clean = _normalize_token(orig_word)
-            new_clean = _normalize_token(new_word)
-            if orig_clean == new_clean:
-                continue
-            # Skip if original token is purely symbolic (no letters or digits) — trust
-            # the LLM to substitute symbols/encoding artifacts freely (e.g. ✦ → *)
-            if not any(c.isalpha() or c.isdigit() for c in orig_clean):
-                continue
-            if not word_validator.is_valid_word(orig_clean) and not word_validator.is_valid_word(new_clean):
-                # OCR artifact replaced with a different invalid token — suspicious
-                return True
     return False
 
 

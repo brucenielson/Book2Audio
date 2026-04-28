@@ -218,15 +218,21 @@ class TestSanityCheck:
             cleaned, classification = cleaner.clean("Hello, world.")
         assert cleaned == "Hello world."
 
-    def test_rejects_valid_word_replaced_with_invalid_word(self) -> None:
-        """LLM introducing an invalid word where a valid one existed should trigger fallback."""
+    def test_trusts_llm_on_invalid_to_invalid_substitution(self) -> None:
+        """LLM replaces one invalid token with another — we now trust the LLM's version.
+
+        'endeavoured' (British spelling) is not in NLTK WordNet, so it appears invalid
+        to the word validator. 'endeavourd' is also invalid. Under the old policy this
+        was flagged as a suspicious invalid→invalid swap and triggered a retry. Under
+        the new policy we trust the LLM, so the LLM's version is kept as-is.
+        """
         cleaner = make_cleaner(max_retries=3)
-        # LLM drops a letter from a valid word, producing an invalid replacement
         # noinspection SpellCheckingInspection
         bad_response = make_response("He has endeavourd to bring on the inhabitants.", "body")
-        with patch(patch_llm_chat, return_value=bad_response):
+        with patch(patch_llm_chat, return_value=bad_response) as mock_chat:
             cleaned, _ = cleaner.clean("He has endeavoured to bring on the inhabitants.")
-        assert cleaned == "He has endeavoured to bring on the inhabitants."
+        assert cleaned == "He has endeavourd to bring on the inhabitants."
+        assert mock_chat.call_count == 1  # no retry triggered
 
     def test_accepts_word_removal_of_ocr_artifact(self) -> None:
         """Removing a number that is an OCR artifact should be accepted (size check permitting)."""
@@ -356,14 +362,18 @@ class TestHasSuspiciousSubstitutions:
             "the symbol ** appears"
         ) is False
 
-    # --- Suspicious: OCR artifact replaced with another invalid word ---
+    # --- Not suspicious: invalid→invalid is now trusted ---
 
-    def test_ocr_artifact_replaced_with_different_invalid_word_is_suspicious(self) -> None:
-        """'xzqpf' → 'zqpfx': both garbage — LLM failed to fix it."""
+    def test_invalid_to_invalid_is_trusted_not_suspicious(self) -> None:
+        """Both original and replacement are invalid — we trust the LLM to do its best.
+        Previously this was flagged as suspicious, but rejecting invalid→invalid caused
+        whole paragraphs to fail when the LLM made an imperfect but reasonable substitution
+        (e.g. 'heiden' → 'beiden' in a German title, or any OCR artifact the LLM
+        partially corrects). We now accept the LLM's version in this case."""
         assert _has_suspicious_substitutions(
             "The xzqpf was clear.",
             "The zqpfx was clear."
-        ) is True
+        ) is False
 
     def test_ocr_artifact_replaced_with_valid_word_not_suspicious(self) -> None:
         """'xzqpf' → 'truth': OCR fixed correctly — not suspicious."""
@@ -536,6 +546,30 @@ class TestRestoreValidWords:
             "awarded a Ph.D. in philosophy."
         )
         assert result == "awarded a Ph.D. in philosophy."
+
+    def test_hyphen_as_dash_separator_upgraded_to_em_dash_is_kept(self) -> None:
+        """['criticism', '-', 'and'] → 'criticism—and': LLM replaced hyphen-as-dash with em-dash."""
+        result = _restore_valid_words(
+            "a criticism - and its response",
+            "a criticism—and its response"
+        )
+        assert result == "a criticism—and its response"
+
+    def test_two_words_hyphenated_into_compound_is_kept(self) -> None:
+        """['proof', 'reading'] → 'proof-reading': LLM correctly hyphenated a compound noun."""
+        result = _restore_valid_words(
+            "requires careful proof reading of the text",
+            "requires careful proof-reading of the text"
+        )
+        assert result == "requires careful proof-reading of the text"
+
+    def test_three_tokens_with_hyphen_em_dashed_is_kept(self) -> None:
+        """['long', '-', 'term'] → 'long—term': LLM upgraded hyphen separator to em-dash."""
+        result = _restore_valid_words(
+            "a long - term solution",
+            "a long—term solution"
+        )
+        assert result == "a long—term solution"
 
     def test_em_dash_glued_to_word_restored_to_space_hyphen_space(self) -> None:
         """Standalone ' - ' merged by LLM into '—word' is restored to ' - word'."""
