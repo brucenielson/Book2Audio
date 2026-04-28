@@ -1,5 +1,15 @@
 # Claude Instructions for Book2Audio
 
+## Test-Driven Development
+
+This project uses test-driven development. **Always write failing unit tests before making any code change.**
+
+- Write the test(s) first and confirm they fail for the right reason
+- Then prompt the user before implementing the fix or feature to make them pass
+- Then run the full fast suite to confirm nothing else broke
+
+This applies to bug fixes, new features, and refactors. Do not skip ahead to the implementation even if the fix seems obvious.
+
 ## Running Tests
 
 When verifying a code change, run only the fast unit tests:

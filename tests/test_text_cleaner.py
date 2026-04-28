@@ -473,13 +473,22 @@ class TestRestoreValidWords:
         assert result == "Hello world."
 
     def test_em_dash_treated_as_hyphen(self) -> None:
-        """em-dash variant of a hyphenated compound should not be restored."""
+        """LLM upgrades hyphen to em-dash in a compound — keep the upgrade."""
         result = _restore_valid_words(
             "a false-as assumption",
             "a false—as assumption"
         )
         # "false-as" and "false—as" normalize to the same thing — no substitution
         assert result == "a false—as assumption"
+
+    def test_llm_em_dash_downgraded_to_hyphen_is_restored(self) -> None:
+        """LLM downgrades em-dash to plain hyphen in a compound — restore the em-dash.
+        Seen in practice: 'false—as' and '1913—can' both downgraded to hyphens."""
+        result = _restore_valid_words(
+            "theories shown to be false—as for example the model of 1913—can retain",
+            "theories shown to be false-as for example the model of 1913-can retain"
+        )
+        assert result == "theories shown to be false—as for example the model of 1913—can retain"
 
     def test_ocr_artifact_replaced_with_valid_word_is_kept(self) -> None:
         """Invalid OCR token replaced by valid word — keep the fix."""

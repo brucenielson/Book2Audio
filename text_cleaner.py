@@ -173,7 +173,19 @@ def _restore_valid_words(original: str, cleaned: str, verbose: bool = False) -> 
                     normalize_quotes(original_lower[i1 + k]).strip('.,;:!?"\'()-[]'))
                 new_stripped = _normalize_dashes(
                     normalize_quotes(cleaned_lower[j1 + k]).strip('.,;:!?"\'()-[]'))
+                orig_tok = original_lower[i1 + k]
+                new_tok = cleaned_lower[j1 + k]
                 if orig_stripped != new_stripped and word_validator.is_valid_word(orig_stripped):
+                    # valid→something: restore the original word
+                    vprint(verbose,
+                           f"  → restored '{original_split[i1 + k]}' "
+                           f"(LLM tried '{cleaned_split[j1 + k]}')")
+                    result.append(original_split[i1 + k])
+                elif (orig_stripped == new_stripped
+                      and ('—' in orig_tok or '–' in orig_tok)
+                      and '—' not in new_tok and '–' not in new_tok):
+                    # em/en-dash downgraded to plain hyphen — restore to preserve
+                    # typographic quality (upgrade direction is intentionally kept)
                     vprint(verbose,
                            f"  → restored '{original_split[i1 + k]}' "
                            f"(LLM tried '{cleaned_split[j1 + k]}')")
