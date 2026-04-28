@@ -10,6 +10,10 @@ from utils.general_utils import is_sentence_end, build_paragraph, clean_text
 from utils.logging_utils import vprint
 from text_cleaner import TextCleaner
 
+# Debug breakpoint string — set to a snippet of text to pause on that paragraph.
+# Set to None (or empty string) to disable. Easy to remove once debugging is done.
+_DEBUG_BREAK_TEXT: str | None = 'The Editor wishes to express his gratitude'
+
 
 def _all_words_valid(text: str, verbose: bool = False) -> bool:
     """Return True if every token in text is a known English word.
@@ -122,7 +126,7 @@ class TextProcessor:
 
         # Clean all chunks upfront
         for chunk in chunks:
-            if 'The Editor wishes to express his gratitude' in chunk.text:
+            if _DEBUG_BREAK_TEXT and _DEBUG_BREAK_TEXT in chunk.text:
                 pass
             chunk.text = word_validator.combine_hyphenated_words(chunk.text)
             chunk.text = clean_text(chunk.text, remove_footnotes=True)
@@ -144,7 +148,7 @@ class TextProcessor:
             if chunk.is_footnote and not self._include_footnotes:
                 continue
 
-            if 'The Editor wishes to express his gratitude' in chunk.text:
+            if _DEBUG_BREAK_TEXT and _DEBUG_BREAK_TEXT in chunk.text:
                 pass
 
             self._process_chunk(chunk, next_chunk)
@@ -272,7 +276,7 @@ class TextProcessor:
         """
         p_str: str = self._build_paragraph()
 
-        if 'The Editor wishes to express his gratitude' in p_str:
+        if _DEBUG_BREAK_TEXT and _DEBUG_BREAK_TEXT in p_str:
             pass
 
         if self._cleaner:
