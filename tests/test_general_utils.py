@@ -18,6 +18,7 @@ from utils.general_utils import (
     clean_text,
     build_paragraph,
     load_sections_to_skip,
+    load_valid_pages,
 )
 
 # --- is_ends_with_punctuation ---
@@ -113,6 +114,20 @@ class TestCombineParagraphs:
     def test_empty_first_paragraph(self) -> None:
         result = build_paragraph("", "Second.")
         assert result == "Second."
+
+    def test_list_form_joins_all_items(self) -> None:
+        result = build_paragraph(["First part", "second part", "final sentence."])
+        assert result == "First part second part final sentence."
+
+    def test_list_form_newline_at_sentence_end(self) -> None:
+        result = build_paragraph(["First sentence.", "Second sentence."])
+        assert result == "First sentence.\nSecond sentence."
+
+    def test_list_form_empty_list(self) -> None:
+        assert build_paragraph([]) == ""
+
+    def test_list_form_single_item(self) -> None:
+        assert build_paragraph(["Only sentence."]) == "Only sentence."
 
 
 # --- enhance_title ---
@@ -292,8 +307,6 @@ class TestCleanText:
     def test_normalizes_smart_quotes(self) -> None:
         assert clean_text("\u201chello\u201d") == '"hello"'
 
-    def test_removes_soft_hyphen(self) -> None:
-        assert clean_text("explo\u00adration") == "exploration"
 
     def test_preserves_regular_hyphen(self) -> None:
         assert clean_text("well-known") == "well-known"
@@ -327,3 +340,38 @@ class TestLoadSectionsToSkip:
         result = load_sections_to_skip(csv_path)
         assert "Book One" in result
         assert "Book Two" in result
+
+
+# --- TestLoadValidPages ---
+
+class TestLoadValidPages:
+    def test_loads_page_range_from_csv(self, tmp_path) -> None:
+        csv_path = tmp_path / "valid_pages.csv"
+        csv_path.write_text(
+            "Book Title,Start,End\nMy Book,5,120\n", encoding="utf-8"
+        )
+        result = load_valid_pages(str(csv_path))
+        assert "My Book" in result
+        assert result["My Book"] == (5, 120)
+
+    def test_returns_empty_if_file_missing(self, tmp_path) -> None:
+        result = load_valid_pages(str(tmp_path / "nonexistent.csv"))
+        assert result == {}
+
+    def test_handles_multiple_books(self, tmp_path) -> None:
+        csv_path = tmp_path / "valid_pages.csv"
+        csv_path.write_text(
+            "Book Title,Start,End\nBook One,1,50\nBook Two,10,200\n", encoding="utf-8"
+        )
+        result = load_valid_pages(str(csv_path))
+        assert result["Book One"] == (1, 50)
+        assert result["Book Two"] == (10, 200)
+
+    def test_strips_whitespace_from_fields(self, tmp_path) -> None:
+        csv_path = tmp_path / "valid_pages.csv"
+        csv_path.write_text(
+            "Book Title,Start,End\n  My Book  ,  3  ,  99  \n", encoding="utf-8"
+        )
+        result = load_valid_pages(str(csv_path))
+        assert "My Book" in result
+        assert result["My Book"] == (3, 99)

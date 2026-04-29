@@ -64,7 +64,7 @@ def is_section_header(text: DocItem | None) -> bool:
     """
     if not is_text_bearing(text):
         return False
-    return text.label == DocItemLabel.SECTION_HEADER.value
+    return text.label == DocItemLabel.SECTION_HEADER
 
 
 def is_page_footer(text: DocItem | None) -> bool:
@@ -78,7 +78,7 @@ def is_page_footer(text: DocItem | None) -> bool:
     """
     if not is_text_bearing(text):
         return False
-    return text.label == DocItemLabel.PAGE_FOOTER.value
+    return text.label == DocItemLabel.PAGE_FOOTER
 
 
 def is_page_header(text: DocItem | None) -> bool:
@@ -92,7 +92,7 @@ def is_page_header(text: DocItem | None) -> bool:
     """
     if not is_text_bearing(text):
         return False
-    return text.label == DocItemLabel.PAGE_HEADER.value
+    return text.label == DocItemLabel.PAGE_HEADER
 
 
 def is_footnote(text: DocItem | None) -> bool:
@@ -106,7 +106,7 @@ def is_footnote(text: DocItem | None) -> bool:
     """
     if not is_text_bearing(text):
         return False
-    return text.label == DocItemLabel.FOOTNOTE.value
+    return text.label == DocItemLabel.FOOTNOTE
 
 
 def is_list_item(text: DocItem | None) -> bool:
@@ -120,7 +120,7 @@ def is_list_item(text: DocItem | None) -> bool:
     """
     if not is_text_bearing(text):
         return False
-    return text.label == DocItemLabel.LIST_ITEM.value
+    return text.label == DocItemLabel.LIST_ITEM
 
 
 # TODO: Check if is_text_break is still needed or can be removed
@@ -141,24 +141,12 @@ def is_text_break(text: DocItem | None) -> bool:
     return is_page_header(text) or is_section_header(text) or is_footnote(text)
 
 
-def is_page_not_text(text: DocItem | None) -> bool:
-    """Check if a DocItem is not a body text element.
-
-    Returns True for items that are not regular text, list items, or formulas.
-    Also returns True for None or non-text DocItem subclasses.
-
-    Args:
-        text: The DocItem to check, or None.
-
-    Returns:
-        True if the item is not a body text element, False otherwise.
-    """
-    if not is_text_bearing(text):
-        return True
-    return text.label not in [DocItemLabel.TEXT.value, DocItemLabel.LIST_ITEM.value, DocItemLabel.FORMULA.value]
+_BODY_TEXT_LABELS: frozenset[DocItemLabel] = frozenset({
+    DocItemLabel.TEXT, DocItemLabel.LIST_ITEM, DocItemLabel.FORMULA
+})
 
 
-def is_page_text(text: DocItem | None) -> bool:
+def is_body_text(text: DocItem | None) -> bool:
     """Check if a DocItem is a body text element.
 
     Returns True for items that are regular text, list items, or formulas.
@@ -169,9 +157,7 @@ def is_page_text(text: DocItem | None) -> bool:
     Returns:
         True if the item is a body text element, False otherwise.
     """
-    if not is_text_bearing(text):
-        return False
-    return not is_page_not_text(text)
+    return is_text_bearing(text) and text.label in _BODY_TEXT_LABELS
 
 
 def is_too_short(doc_item: DocItem, threshold: int = 2) -> bool:
@@ -188,7 +174,6 @@ def is_too_short(doc_item: DocItem, threshold: int = 2) -> bool:
     """
     if not is_text_bearing(doc_item):
         return False
-    assert isinstance(doc_item, TextItem)
     return len(doc_item.text) <= threshold
 
 
@@ -221,8 +206,6 @@ def get_next_text(texts: list[DocItem], i: int) -> DocItem | None:
     Returns:
         The next DocItem that passes is_text_item, or None if not found.
     """
-    # Seek through the list of texts to find the next text item using is_text_item
-    # Should return None if no more text items are found
     for j in range(i + 1, len(texts)):
         if is_text_item(texts[j]):
             return texts[j]
@@ -248,8 +231,137 @@ def get_current_page(text: DocItem,
     """
     if not is_text_bearing(text):
         return current_page
-    # noinspection PyTypeHints
-    return text.prov[0].page_no if current_page is None or combined_paragraph == "" else current_page
+    if current_page is None or combined_paragraph == "":
+        return text.prov[0].page_no
+    return current_page
+
+
+def compute_single_line_height(doc: DoclingDocument) -> float:
+    """Compute the median bbox.height of page header and footer items.
+
+    Page headers and footers are reliably single-line items, making their
+    bbox.height a good baseline for the height of one line of text.
+
+    Args:
+        doc: The DoclingDocument to analyse.
+
+    Returns:
+        The median bbox.height of page headers and footers, or 0.0 if none found.
+    """
+    heights: list[float] = []
+    for item in doc.texts:
+        if not (is_page_header(item) or is_page_footer(item)):
+            continue
+        if not item.prov:
+            continue
+        bbox = item.prov[0].bbox
+        if bbox is not None:
+            heights.append(bbox.height)
+    if not heights:
+        return 0.0
+    heights.sort()
+    return heights[len(heights) // 2]
+
+
+def compute_median_chars_per_line(items: list[TextItem], single_line_height: float,
+                                   min_charspan: int = 100) -> float:
+    """Compute the median characters-per-estimated-line across a list of TextItems.
+
+    For each item, estimates the number of lines as bbox.height / single_line_height,
+    then divides charspan_length by that estimate. The median of this value across
+    all body text items represents normal characters per line for the document.
+
+    Only items with a charspan of at least min_charspan are included, so that short
+    items (headings, list items, page numbers etc.) do not drag the median down and
+    make the threshold comparison unreliable.
+
+    Args:
+        items: The TextItems to analyse.
+        single_line_height: The height of a single line, from compute_single_line_height().
+        min_charspan: Minimum charspan length to include in the median calculation.
+                      Defaults to 100.
+
+    Returns:
+        The median chars-per-estimated-line, or 0.0 if no valid items are found.
+    """
+    if single_line_height <= 0:
+        return 0.0
+    ratios: list[float] = []
+    for item in items:
+        if not item.prov:
+            continue
+        prov = item.prov[0]
+        if prov.bbox is None:
+            continue
+        if prov.bbox.height <= 0:
+            continue
+        charspan_length: int = prov.charspan[1] - prov.charspan[0]
+        if charspan_length < min_charspan:
+            continue
+        estimated_lines: float = prov.bbox.height / single_line_height
+        ratios.append(charspan_length / estimated_lines)
+    if not ratios:
+        return 0.0
+    ratios.sort()
+    return ratios[len(ratios) // 2]
+
+
+def is_small_text(item: TextItem, single_line_height: float,
+                  median_chars_per_line: float, threshold: float = 1.25) -> bool:
+    """Return True if a TextItem's font is significantly smaller than the document norm.
+
+    Uses characters-per-estimated-line as a proxy for font size. Smaller fonts
+    pack more characters into each estimated line, so items with significantly
+    more chars per estimated line than the document median are likely in smaller
+    text. This approach works for both short and long footnotes.
+
+    Args:
+        item: The TextItem to check.
+        single_line_height: The height of a single line, from compute_single_line_height().
+        median_chars_per_line: The median chars-per-estimated-line for the document,
+                               from compute_median_chars_per_line().
+        threshold: Items above this multiple of the median are considered small
+                   text. Defaults to 1.25.
+
+    Returns:
+        True if the item's chars-per-estimated-line exceeds median_chars_per_line * threshold.
+    """
+    if not item.prov or single_line_height <= 0 or median_chars_per_line <= 0:
+        return False
+    prov = item.prov[0]
+    if prov.bbox is None:
+        return False
+    if prov.bbox.height <= 0:
+        return False
+    charspan_length: int = prov.charspan[1] - prov.charspan[0]
+    if charspan_length <= 0:
+        return False
+    estimated_lines: float = prov.bbox.height / single_line_height
+    chars_per_line: float = charspan_length / estimated_lines
+    return chars_per_line > median_chars_per_line * threshold
+
+
+def is_single_line(item: TextItem, single_line_height: float, tolerance: float = 1.3) -> bool:
+    """Return True if a TextItem's bbox height is consistent with a single line of text.
+
+    Used to distinguish mislabeled running page headers (always one line) from
+    genuine multi-line section headers. If single_line_height is zero or bbox
+    data is unavailable, returns False so the caller does not incorrectly skip
+    the item.
+
+    Args:
+        item: The TextItem to check.
+        single_line_height: The median height of one line, from compute_single_line_height().
+        tolerance: The item's bbox height must be <= single_line_height * tolerance
+                   to be considered single-line. Defaults to 1.5.
+
+    Returns:
+        True if the item appears to be a single line of text, False otherwise.
+    """
+    if single_line_height <= 0 or not item.prov:
+        return False
+    bbox = item.prov[0].bbox
+    return bbox is not None and bbox.height <= single_line_height * tolerance
 
 
 def should_skip_element(text: DocItem) -> bool:
@@ -266,8 +378,4 @@ def should_skip_element(text: DocItem) -> bool:
     """
     if not is_text_bearing(text):
         return True
-    assert isinstance(text, TextItem)
-    return any([
-        is_page_footer(text),
-        is_page_header(text)
-    ])
+    return is_page_footer(text) or is_page_header(text)

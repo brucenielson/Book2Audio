@@ -10,6 +10,10 @@ from utils.general_utils import is_sentence_end, build_paragraph, clean_text
 from utils.logging_utils import vprint
 from text_cleaner import TextCleaner
 
+# Debug breakpoint string — set to a snippet of text to pause on that paragraph.
+# Set to None (or empty string) to disable. Easy to remove once debugging is done.
+_DEBUG_BREAK_TEXT: str | None = 'The Editor wishes to express his gratitude'
+
 
 def _all_words_valid(text: str, verbose: bool = False) -> bool:
     """Return True if every token in text is a known English word.
@@ -25,7 +29,7 @@ def _all_words_valid(text: str, verbose: bool = False) -> bool:
     for token in text.split():
         stripped = re.sub(r"[,;:.!?()'\"—–]", '', token.lower())
         if not stripped or not word_validator.is_valid_word(stripped):
-            vprint(verbose, f"  [FAIL TOKEN] {token!r} -> {stripped!r}")
+            # vprint(verbose, f"  [FAIL TOKEN] {token!r} -> {stripped!r}")
             return False
     return True
 
@@ -73,6 +77,7 @@ class TextProcessor:
         self._t_llm: float = 0.0
         self._n_skipped: int = 0
         self._n_llm_calls: int = 0
+        self._last_reported_page: int = -1
 
     @property
     def _combined_count(self) -> int:
@@ -89,6 +94,7 @@ class TextProcessor:
         self._t_llm = 0.0
         self._n_skipped = 0
         self._n_llm_calls = 0
+        self._last_reported_page = -1
 
     def _clear_state(self) -> None:
         """Clear processing state after a run to free memory."""
@@ -120,6 +126,9 @@ class TextProcessor:
 
         # Clean all chunks upfront
         for chunk in chunks:
+            if _DEBUG_BREAK_TEXT and _DEBUG_BREAK_TEXT in chunk.text:
+                pass
+            chunk.text = word_validator.combine_hyphenated_words(chunk.text)
             chunk.text = clean_text(chunk.text, remove_footnotes=True)
 
         # Build page context strings for LLM-based cleaning
@@ -138,6 +147,9 @@ class TextProcessor:
 
             if chunk.is_footnote and not self._include_footnotes:
                 continue
+
+            if _DEBUG_BREAK_TEXT and _DEBUG_BREAK_TEXT in chunk.text:
+                pass
 
             self._process_chunk(chunk, next_chunk)
 
@@ -264,12 +276,15 @@ class TextProcessor:
         """
         p_str: str = self._build_paragraph()
 
+        if _DEBUG_BREAK_TEXT and _DEBUG_BREAK_TEXT in p_str:
+            pass
+
         if self._cleaner:
             t0 = time.perf_counter()
             _skip = _all_words_valid(p_str, verbose=self._verbose)
             self._t_validation += time.perf_counter() - t0
 
-            vprint(self._verbose, f"{'[SKIP]' if _skip else '[LLM ] '} {p_str[:100]!r}")
+            # vprint(self._verbose, f"{'[SKIP]' if _skip else '[LLM ] '} {p_str[:100]!r}")
             if not _skip:
                 self._n_llm_calls += 1
                 page_context = self._page_contexts.get(meta.get('page_#', ''), '')
@@ -277,9 +292,11 @@ class TextProcessor:
                 p_str, classification = self._cleaner.clean(p_str, page_context=page_context)
                 self._t_llm += time.perf_counter() - t1
                 if classification == 'drop':
+                    vprint(self._verbose, f"  [LLM DROP] {p_str[:100]!r}")
                     self._paragraph = []
                     return
                 if classification == 'footnote':
+                    vprint(self._verbose, f"  [LLM FOOTNOTE] {p_str[:100]!r}")
                     if not self._include_footnotes:
                         self._paragraph = []
                         return
@@ -287,7 +304,6 @@ class TextProcessor:
             else:
                 self._n_skipped += 1
 
-        p_str = word_validator.combine_hyphenated_words(p_str)
         if p_str:
             self._para_num += 1
             self._result.append(ParsedChunk(
@@ -297,6 +313,24 @@ class TextProcessor:
             ))
         self._paragraph = []
 
+    def _report_page_progress(self, chunk: RawChunk) -> None:
+        """Print a progress line when processing crosses a 10-page boundary.
+
+        Args:
+            chunk: The current chunk whose page number is checked.
+        """
+        page_str = chunk.meta.get('page_#', '')
+        if not page_str:
+            return
+        try:
+            page = int(page_str)
+        except ValueError:
+            return
+        milestone = page != self._last_reported_page if self._verbose else page // 10 > self._last_reported_page // 10
+        if milestone:
+            print(f"  [Page {page}]")
+            self._last_reported_page = page
+
     def _process_chunk(self, chunk: RawChunk, next_chunk: RawChunk | None) -> None:
         """Process a single body text chunk.
 
@@ -304,6 +338,8 @@ class TextProcessor:
             chunk: The current RawChunk to process.
             next_chunk: The next RawChunk in the list, or None if at end.
         """
+        self._report_page_progress(chunk)
+
         p_str: str = chunk.text
 
         if self._should_accumulate(p_str, next_chunk):

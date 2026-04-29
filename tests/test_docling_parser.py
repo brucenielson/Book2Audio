@@ -4,7 +4,7 @@ import pytest
 from unittest.mock import MagicMock
 from docling_core.types.doc.document import SectionHeaderItem, TextItem, DocItemLabel
 from docling_core.types import DoclingDocument
-from parsers.docling_parser import DoclingParser
+from parsers.docling_parser import DoclingParser, _FootnoteContext
 from text_cleaner import TextCleaner
 
 
@@ -15,7 +15,12 @@ def make_doc_item(spec, label: str, text: str, page_no: int = 1) -> MagicMock:
     item = MagicMock(spec=spec)
     item.label = label
     item.text = text
-    item.prov = [MagicMock(page_no=page_no)]
+    prov = MagicMock()
+    prov.page_no = page_no
+    prov.bbox = MagicMock()
+    prov.bbox.height = 10.0
+    prov.charspan = (0, 10)
+    item.prov = [prov]
     return item
 
 
@@ -50,14 +55,419 @@ def make_parser(texts: list,
                 start_page: int | None = None,
                 end_page: int | None = None,
                 include_notes: bool = True,
-                cleaner: TextCleaner | None = None) -> DoclingParser:
+                cleaner: TextCleaner | None = None,
+                min_footnote_chars: int = 100) -> DoclingParser:
     """Create a DoclingParser with a mocked DoclingDocument."""
     doc = MagicMock(spec=DoclingDocument)
     doc.name = "test_doc"
     doc.texts = texts
     return DoclingParser(source=doc, meta_data=meta_data or {}, min_paragraph_size=min_paragraph_size,
                          start_page=start_page, end_page=end_page, include_footnotes=include_notes,
-                         llm_cleaner=cleaner)
+                         llm_cleaner=cleaner, min_footnote_chars=min_footnote_chars)
+
+
+def make_ctx(
+    prev_text_candidate: bool = False,
+    prev_ends_mid_sentence: bool = False,
+    text_seen_this_page: bool = False,
+    found_note_this_page: bool = False,
+    single_line_height: float = 10.0,
+    median_chars_per_line: float = 50.0,
+) -> _FootnoteContext:
+    """Create a _FootnoteContext with sensible defaults for unit testing."""
+    return _FootnoteContext(
+        prev_text_candidate=prev_text_candidate,
+        prev_ends_mid_sentence=prev_ends_mid_sentence,
+        text_seen_this_page=text_seen_this_page,
+        found_note_this_page=found_note_this_page,
+        single_line_height=single_line_height,
+        median_chars_per_line=median_chars_per_line,
+    )
+
+
+def make_sized_text_item(text: str, page_no: int = 1,
+                         charspan_length: int = 10,
+                         bbox_height: float = 10.0) -> MagicMock:
+    """Create a TEXT item with configurable charspan and bbox height for H2 testing."""
+    item = make_doc_item(TextItem, DocItemLabel.TEXT.value, text, page_no)
+    item.prov[0].charspan = (0, charspan_length)
+    item.prov[0].bbox.height = bbox_height
+    return item
+
+
+# --- TestIsFootnote ---
+
+class TestIsFootnote:
+
+    # --- Already-labeled FOOTNOTE ---
+
+    def test_labeled_footnote_returns_true(self) -> None:
+        """Items Docling already labeled as FOOTNOTE must always return True."""
+        parser = make_parser([])
+        assert parser._is_footnote(make_footnote("1 Already labeled."), make_ctx()) is True
+
+    def test_labeled_footnote_ignores_ctx(self) -> None:
+        """FOOTNOTE label is sufficient on its own — context state is irrelevant."""
+        parser = make_parser([])
+        ctx = make_ctx(prev_text_candidate=False, text_seen_this_page=False,
+                       found_note_this_page=False)
+        assert parser._is_footnote(make_footnote("1 Already labeled."), ctx) is True
+
+    # --- Guard: label is not FOOTNOTE and item is not digit-start TEXT ---
+
+    def test_text_starting_with_letter_returns_false(self) -> None:
+        parser = make_parser([])
+        assert parser._is_footnote(make_text_item("Regular body text."), make_ctx()) is False
+
+    def test_section_header_with_digit_start_returns_false(self) -> None:
+        """SECTION_HEADER label must fail the guard even when text starts with a digit."""
+        parser = make_parser([])
+        ctx = make_ctx(prev_text_candidate=True, found_note_this_page=True)
+        assert parser._is_footnote(make_section_header("1. Introduction"), ctx) is False
+
+    def test_page_header_returns_false(self) -> None:
+        parser = make_parser([])
+        assert parser._is_footnote(make_page_header("1 Page Header"), make_ctx()) is False
+
+    def test_page_footer_returns_false(self) -> None:
+        parser = make_parser([])
+        assert parser._is_footnote(make_page_footer("1 Page Footer"), make_ctx()) is False
+
+    def test_list_item_returns_false(self) -> None:
+        """LIST_ITEM label must fail the guard even with digit-start text."""
+        item = make_doc_item(TextItem, DocItemLabel.LIST_ITEM.value, "1 list entry")
+        parser = make_parser([])
+        assert parser._is_footnote(item, make_ctx(prev_text_candidate=True)) is False
+
+    def test_empty_text_returns_false(self) -> None:
+        """Empty string is falsy — guard bails before any heuristic is checked."""
+        parser = make_parser([])
+        assert parser._is_footnote(make_text_item(""), make_ctx()) is False
+
+    def test_text_starting_with_space_returns_false(self) -> None:
+        """A leading space before a digit is not a digit-start — guard must not pass."""
+        parser = make_parser([])
+        ctx = make_ctx(prev_text_candidate=True)
+        assert parser._is_footnote(make_text_item(" 1 Leading space."), ctx) is False
+
+    # --- H1: digit-start TEXT following mid-sentence body text ---
+
+    def test_h1_digit_alpha_after_mid_sentence_returns_true(self) -> None:
+        parser = make_parser([])
+        item = make_text_item("1 This is an unlabelled footnote.")
+        assert parser._is_footnote(item, make_ctx(prev_text_candidate=True)) is True
+
+    def test_h1_pure_number_with_prev_candidate_returns_false(self) -> None:
+        """Index entries like '183-84' contain no alpha — H1 must not fire."""
+        parser = make_parser([])
+        item = make_text_item("183-84")
+        assert parser._is_footnote(item, make_ctx(prev_text_candidate=True)) is False
+
+    def test_h1_alpha_without_prev_candidate_returns_false(self) -> None:
+        """Alpha alone is not enough — H1 also requires prev_text_candidate."""
+        parser = make_parser([])
+        item = make_text_item("1 Some text.")
+        assert parser._is_footnote(item, make_ctx(prev_text_candidate=False)) is False
+
+    # --- H2: small font, preceded by body text on this page ---
+    # is_small_text: chars_per_line = charspan / (height / single_line_height)
+    # Fires when chars_per_line > median * 1.25
+    # Setup: charspan=200, height=10, single_line_height=5 → chars_per_line=100
+    #   small:     median=50  → 100 > 62.5  → True
+    #   not small: median=200 → 100 > 250   → False
+
+    def test_h2_small_text_with_body_seen_returns_true(self) -> None:
+        """Long digit-start item in small font, preceded by body text → H2 fires."""
+        text = "1" + "a" * 99   # len=100, digit-start, has alpha
+        item = make_sized_text_item(text, charspan_length=200, bbox_height=10.0)
+        parser = make_parser([], min_footnote_chars=100)
+        ctx = make_ctx(text_seen_this_page=True, single_line_height=5.0,
+                       median_chars_per_line=50.0)
+        assert parser._is_footnote(item, ctx) is True
+
+    def test_h2_fires_without_alpha(self) -> None:
+        """H2 has no alpha requirement — a long digit-only small-font item qualifies."""
+        text = "1" + "0" * 99   # len=100, digit-start, no alpha
+        item = make_sized_text_item(text, charspan_length=200, bbox_height=10.0)
+        parser = make_parser([], min_footnote_chars=100)
+        ctx = make_ctx(text_seen_this_page=True, single_line_height=5.0,
+                       median_chars_per_line=50.0)
+        assert parser._is_footnote(item, ctx) is True
+
+    def test_h2_text_below_threshold_returns_false(self) -> None:
+        """Text shorter than min_footnote_chars must not trigger H2."""
+        text = "1 short"   # len < 100
+        item = make_sized_text_item(text, charspan_length=200, bbox_height=10.0)
+        parser = make_parser([], min_footnote_chars=100)
+        ctx = make_ctx(text_seen_this_page=True, single_line_height=5.0,
+                       median_chars_per_line=50.0)
+        assert parser._is_footnote(item, ctx) is False
+
+    def test_h2_no_body_text_seen_returns_false(self) -> None:
+        """H2 must not fire if no body text has appeared yet on this page."""
+        text = "1" + "a" * 99
+        item = make_sized_text_item(text, charspan_length=200, bbox_height=10.0)
+        parser = make_parser([], min_footnote_chars=100)
+        ctx = make_ctx(text_seen_this_page=False, single_line_height=5.0,
+                       median_chars_per_line=50.0)
+        assert parser._is_footnote(item, ctx) is False
+
+    def test_h2_normal_font_size_returns_false(self) -> None:
+        """H2 must not fire when the item's font size matches the document norm."""
+        text = "1" + "a" * 99
+        item = make_sized_text_item(text, charspan_length=200, bbox_height=10.0)
+        parser = make_parser([], min_footnote_chars=100)
+        ctx = make_ctx(text_seen_this_page=True, single_line_height=5.0,
+                       median_chars_per_line=200.0)  # high median → not small
+        assert parser._is_footnote(item, ctx) is False
+
+    # --- H3: propagation after a footnote has been seen on this page ---
+
+    def test_h3_digit_alpha_after_note_on_page_returns_true(self) -> None:
+        parser = make_parser([])
+        item = make_text_item("2 Continuation of a footnote.")
+        assert parser._is_footnote(item, make_ctx(found_note_this_page=True)) is True
+
+    def test_h3_pure_number_after_note_returns_false(self) -> None:
+        """No alpha — H3 must not fire even when a note has been seen on the page."""
+        parser = make_parser([])
+        item = make_text_item("2")
+        assert parser._is_footnote(item, make_ctx(found_note_this_page=True)) is False
+
+    def test_h3_alpha_no_prior_note_returns_false(self) -> None:
+        """Alpha alone is not enough — H3 also requires found_note_this_page."""
+        parser = make_parser([])
+        item = make_text_item("2 Some text.")
+        assert parser._is_footnote(item, make_ctx(found_note_this_page=False)) is False
+
+    # --- No heuristic fires ---
+
+    def test_digit_only_text_all_ctx_false_returns_false(self) -> None:
+        parser = make_parser([])
+        assert parser._is_footnote(make_text_item("42"), make_ctx()) is False
+
+    def test_digit_alpha_text_all_ctx_false_returns_false(self) -> None:
+        """Has alpha and digit-start but no context conditions met — must return False."""
+        parser = make_parser([])
+        assert parser._is_footnote(make_text_item("1 Some text."), make_ctx()) is False
+
+
+# --- TestIsInPageRange ---
+
+class TestIsInPageRange:
+
+    def test_no_range_always_returns_true(self) -> None:
+        parser = make_parser([])
+        assert parser._is_in_page_range(1) is True
+        assert parser._is_in_page_range(999) is True
+
+    def test_none_page_no_always_returns_true(self) -> None:
+        parser = make_parser([], start_page=5, end_page=10)
+        assert parser._is_in_page_range(None) is True
+
+    def test_start_page_filters_earlier_pages(self) -> None:
+        parser = make_parser([], start_page=5)
+        assert parser._is_in_page_range(4) is False
+        assert parser._is_in_page_range(5) is True
+        assert parser._is_in_page_range(6) is True
+
+    def test_end_page_filters_later_pages(self) -> None:
+        parser = make_parser([], end_page=10)
+        assert parser._is_in_page_range(9) is True
+        assert parser._is_in_page_range(10) is True
+        assert parser._is_in_page_range(11) is False
+
+    def test_both_bounds_inclusive(self) -> None:
+        parser = make_parser([], start_page=3, end_page=7)
+        assert parser._is_in_page_range(2) is False
+        assert parser._is_in_page_range(3) is True
+        assert parser._is_in_page_range(5) is True
+        assert parser._is_in_page_range(7) is True
+        assert parser._is_in_page_range(8) is False
+
+
+# --- TestExtractChunks ---
+
+class TestExtractChunks:
+
+    def test_regular_texts_become_chunks(self) -> None:
+        texts = [make_text_item("Body text.")]
+        parser = make_parser([])
+        chunks = parser._extract_chunks(texts, [])
+        assert len(chunks) == 1
+        assert chunks[0].text == "Body text."
+
+    def test_notes_excluded_when_include_notes_false(self) -> None:
+        notes = [make_text_item("Footnote text.")]
+        parser = make_parser([], include_notes=False)
+        chunks = parser._extract_chunks([], notes)
+        assert chunks == []
+
+    def test_notes_included_when_include_notes_true(self) -> None:
+        notes = [make_text_item("Footnote text.")]
+        parser = make_parser([], include_notes=True)
+        chunks = parser._extract_chunks([], notes)
+        assert len(chunks) == 1
+        assert chunks[0].text == "Footnote text."
+
+    def test_page_range_filters_out_of_range_items(self) -> None:
+        texts = [
+            make_text_item("Page 2 text.", page_no=2),
+            make_text_item("Page 5 text.", page_no=5),
+        ]
+        parser = make_parser([], start_page=5, end_page=10)
+        chunks = parser._extract_chunks(texts, [])
+        assert len(chunks) == 1
+        assert chunks[0].text == "Page 5 text."
+
+    def test_chunk_meta_contains_page_number(self) -> None:
+        texts = [make_text_item("Text.", page_no=42)]
+        parser = make_parser([])
+        chunks = parser._extract_chunks(texts, [])
+        assert chunks[0].meta['page_#'] == '42'
+
+    def test_chunk_label_matches_item_label(self) -> None:
+        texts = [make_text_item("Text.")]
+        parser = make_parser([])
+        chunks = parser._extract_chunks(texts, [])
+        assert chunks[0].label == DocItemLabel.TEXT
+
+
+# --- TestComputeBoundaryIndices ---
+
+class TestComputeBoundaryIndices:
+    def test_single_page_first_and_last_are_boundary(self) -> None:
+        items = [make_text_item("A"), make_text_item("B"), make_text_item("C")]
+        result = DoclingParser._compute_boundary_indices(items)
+        assert 0 in result   # first on page 1
+        assert 2 in result   # last on page 1
+
+    def test_middle_item_not_boundary(self) -> None:
+        items = [make_text_item("A"), make_text_item("B"), make_text_item("C")]
+        result = DoclingParser._compute_boundary_indices(items)
+        assert 1 not in result
+
+    def test_two_pages_each_contributes_boundaries(self) -> None:
+        items = [
+            make_text_item("A", page_no=1),
+            make_text_item("B", page_no=1),
+            make_text_item("C", page_no=2),
+            make_text_item("D", page_no=2),
+        ]
+        result = DoclingParser._compute_boundary_indices(items)
+        assert result == {0, 1, 2, 3}
+
+    def test_single_item_page_is_both_first_and_last(self) -> None:
+        items = [
+            make_text_item("A", page_no=1),
+            make_text_item("B", page_no=2),
+        ]
+        result = DoclingParser._compute_boundary_indices(items)
+        assert result == {0, 1}
+
+    def test_empty_list_returns_empty_set(self) -> None:
+        assert DoclingParser._compute_boundary_indices([]) == set()
+
+
+# --- TestIsRunningHead ---
+
+class TestIsRunningHead:
+    def test_all_conditions_met_returns_true(self) -> None:
+        header = make_section_header("Running Head")
+        parser = make_parser([])
+        ctx = make_ctx(prev_text_candidate=True, prev_ends_mid_sentence=True, single_line_height=10.0)
+        assert parser._is_running_head(0, header, {0}, ctx) is True
+
+    def test_not_section_header_returns_false(self) -> None:
+        text = make_text_item("Some text")
+        parser = make_parser([])
+        ctx = make_ctx(prev_text_candidate=True, prev_ends_mid_sentence=True)
+        assert parser._is_running_head(0, text, {0}, ctx) is False
+
+    def test_not_at_boundary_returns_false(self) -> None:
+        header = make_section_header("Chapter One")
+        parser = make_parser([])
+        ctx = make_ctx(prev_text_candidate=True, prev_ends_mid_sentence=True)
+        assert parser._is_running_head(1, header, {0, 2}, ctx) is False
+
+    def test_prev_text_candidate_false_returns_false(self) -> None:
+        header = make_section_header("Running Head")
+        parser = make_parser([])
+        ctx = make_ctx(prev_text_candidate=False, prev_ends_mid_sentence=True)
+        assert parser._is_running_head(0, header, {0}, ctx) is False
+
+    def test_prev_ends_mid_sentence_false_returns_false(self) -> None:
+        header = make_section_header("Running Head")
+        parser = make_parser([])
+        ctx = make_ctx(prev_text_candidate=True, prev_ends_mid_sentence=False)
+        assert parser._is_running_head(0, header, {0}, ctx) is False
+
+    def test_multi_line_header_returns_false(self) -> None:
+        header = make_section_header("Running Head")
+        header.prov[0].bbox.height = 30.0  # too tall for single-line (10.0 * 1.3 = 13.0)
+        parser = make_parser([])
+        ctx = make_ctx(prev_text_candidate=True, prev_ends_mid_sentence=True, single_line_height=10.0)
+        assert parser._is_running_head(0, header, {0}, ctx) is False
+
+
+# --- TestUpdateTextState ---
+
+class TestUpdateTextState:
+    def test_long_mid_sentence_text_sets_prev_text_candidate(self) -> None:
+        text = make_text_item("A" * 100)   # long, no sentence-ending punctuation
+        parser = make_parser([], min_footnote_chars=100)
+        ctx = make_ctx()
+        parser._update_text_state(text, ctx)
+        assert ctx.prev_text_candidate is True
+
+    def test_short_text_clears_prev_text_candidate(self) -> None:
+        text = make_text_item("Short text")
+        parser = make_parser([], min_footnote_chars=100)
+        ctx = make_ctx(prev_text_candidate=True)
+        parser._update_text_state(text, ctx)
+        assert ctx.prev_text_candidate is False
+
+    def test_sentence_ending_text_clears_prev_text_candidate(self) -> None:
+        text = make_text_item("A" * 100 + ".")
+        parser = make_parser([], min_footnote_chars=100)
+        ctx = make_ctx()
+        parser._update_text_state(text, ctx)
+        assert ctx.prev_text_candidate is False
+
+    def test_alpha_ending_sets_prev_ends_mid_sentence(self) -> None:
+        text = make_text_item("ends with alpha")
+        parser = make_parser([])
+        ctx = make_ctx()
+        parser._update_text_state(text, ctx)
+        assert ctx.prev_ends_mid_sentence is True
+
+    def test_comma_ending_sets_prev_ends_mid_sentence(self) -> None:
+        text = make_text_item("ends with comma,")
+        parser = make_parser([])
+        ctx = make_ctx()
+        parser._update_text_state(text, ctx)
+        assert ctx.prev_ends_mid_sentence is True
+
+    def test_period_ending_clears_prev_ends_mid_sentence(self) -> None:
+        text = make_text_item("ends with period.")
+        parser = make_parser([])
+        ctx = make_ctx(prev_ends_mid_sentence=True)
+        parser._update_text_state(text, ctx)
+        assert ctx.prev_ends_mid_sentence is False
+
+    def test_non_text_label_clears_prev_ends_mid_sentence(self) -> None:
+        header = make_section_header("A Chapter")
+        parser = make_parser([])
+        ctx = make_ctx(prev_ends_mid_sentence=True)
+        parser._update_text_state(header, ctx)
+        assert ctx.prev_ends_mid_sentence is False
+
+    def test_non_text_label_does_not_change_prev_text_candidate(self) -> None:
+        header = make_section_header("A Chapter")
+        parser = make_parser([])
+        ctx = make_ctx(prev_text_candidate=True)
+        parser._update_text_state(header, ctx)
+        assert ctx.prev_text_candidate is True
 
 
 # --- TestGetProcessedTexts ---
@@ -125,15 +535,34 @@ class TestRun:
         docs, meta = parser.run()
         assert any("Chapter One" in d for d in docs)
 
-    def test_section_header_flushes_accumulated_paragraph(self) -> None:
+    def test_section_header_kept_after_sentence_end(self) -> None:
+        """A section header preceded by sentence-ending text is retained."""
         texts = [
-            make_text_item("First sentence without end"),
+            make_text_item("First sentence ends here."),
             make_section_header("Chapter Two"),
         ]
         parser = make_parser(texts)
         docs, meta = parser.run()
-        assert any("First sentence without end" in d for d in docs)
+        assert any("First sentence ends here." in d for d in docs)
         assert any("Chapter Two" in d for d in docs)
+
+    def test_section_header_skipped_after_mid_sentence_text(self) -> None:
+        """A section header right after long mid-sentence text is treated as a
+        mislabeled running page header and dropped. Conditions: the preceding text
+        must be >= min_footnote_chars (100), end without sentence-terminating
+        punctuation, and the section header must be single-line (established by
+        including a page header so compute_single_line_height returns a non-zero value)."""
+        long_mid_sentence = "This is a long body paragraph that does not end with punctuation " \
+                            "and continues well past the one hundred character minimum threshold"
+        texts = [
+            make_page_header("Running Head"),   # establishes single_line_height = 10.0
+            make_text_item(long_mid_sentence),
+            make_section_header("Chapter Two"), # bbox height 10.0 — qualifies as single-line
+        ]
+        parser = make_parser(texts)
+        docs, meta = parser.run()
+        assert any(long_mid_sentence in d for d in docs)
+        assert all("Chapter Two" not in d for d in docs)
 
     def test_skips_page_header(self) -> None:
         texts = [
@@ -170,6 +599,40 @@ class TestRun:
         parser = make_parser(texts, include_notes=False)
         docs, meta = parser.run()
         assert all("Footnote content." not in d for d in docs)
+
+    def test_digit_start_after_incomplete_sentence_classified_as_note(self) -> None:
+        # Preceding text is long and doesn't end with punctuation → footnote heuristic fires
+        preceding = "A" * 100
+        texts = [
+            make_text_item(preceding),
+            make_text_item("1 This is an unlabelled footnote reference."),
+        ]
+        parser = make_parser(texts, include_notes=False, min_footnote_chars=100)
+        docs, meta = parser.run()
+        assert all("unlabelled footnote" not in d for d in docs)
+
+    def test_digit_start_after_short_text_not_classified_as_note(self) -> None:
+        # Preceding text is too short (below min_footnote_chars) → heuristic must not fire
+        short_preceding = "Button Gwinnett Lyman Hall"  # name list, no punctuation, but short
+        texts = [
+            make_text_item(short_preceding),
+            make_text_item("6 The Declaration of Independence of The United States of America"),
+        ]
+        parser = make_parser(texts, include_notes=False, min_footnote_chars=100)
+        docs, meta = parser.run()
+        assert any("Declaration of Independence" in d for d in docs)
+
+    def test_digit_start_with_no_alpha_not_classified_as_note(self) -> None:
+        # Pure number/punctuation continuation (e.g. "183-84" from an index entry)
+        # has no alphabetic content → must never be classified as a footnote
+        long_no_punct = "Jehovah's Witnesses, 1, 48, 50, 160-61, 221 justificationism, xvi, 60, 124-28, 130,"
+        texts = [
+            make_text_item(long_no_punct),
+            make_text_item("183-84"),
+        ]
+        parser = make_parser(texts, include_notes=False, min_footnote_chars=100)
+        docs, meta = parser.run()
+        assert any("183-84" in d for d in docs)
 
     def test_start_page_filters_early_pages(self) -> None:
         texts = [

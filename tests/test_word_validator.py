@@ -110,6 +110,20 @@ class TestIsValidWord:
         """An empty string should return False without crashing."""
         assert validator.is_valid_word("") is False
 
+    def test_adverb_empirically(self, validator) -> None:
+        """'empirically' is a common English adverb and should be valid."""
+        assert validator.is_valid_word("empirically") is True
+
+    def test_adverb_empirically_is_reason_combine_hyphenated_fails(self, validator) -> None:
+        """If 'empirically' is invalid, combine_hyphenated_words cannot join 'empiri- cally'."""
+        # This test documents the dependency: combine_hyphenated_words relies on
+        # is_valid_word to decide whether to join soft-hyphen splits.
+        # If this assertion fails, the root cause of the joining bug is here.
+        assert validator.is_valid_word("empirically") is True, (
+            "is_valid_word('empirically') returned False — "
+            "this is why combine_hyphenated_words leaves 'empiri- cally' unhyphenated"
+        )
+
 
 # --- combine_hyphenated_words tests ---
 
@@ -133,13 +147,13 @@ class TestCombineHyphenatedWords:
         """A word split across a hyphen with a space should be combined if valid."""
         # noinspection GrazieInspection
         # "base-ball" (with extra space) -> "baseball" if valid, or kept as is
-        result = validator.combine_hyphenated_words("base- ball")
+        result = validator.combine_hyphenated_words_advanced("base- ball")
         assert "-" not in result or result == "base-ball"
 
     def test_proper_noun_combined(self, validator) -> None:
         """A capitalized combined word with invalid second part should be combined."""
         # noinspection SpellCheckingInspection
-        result = validator.combine_hyphenated_words("New-xqzjk")
+        result = validator.combine_hyphenated_words_advanced("New-xqzjk")
         # noinspection SpellCheckingInspection
         assert result == "Newxqzjk"
 
@@ -151,6 +165,91 @@ class TestCombineHyphenatedWords:
         """A string with multiple hyphenated pairs should process all of them."""
         result = validator.combine_hyphenated_words("well-known and up-to-date")
         assert isinstance(result, str)
+
+    def test_soft_hyphen_with_space_joined(self, validator) -> None:
+        """Soft hyphen followed by a space should join the word (page-break artifact)."""
+        # U+00AD followed by a space is how PDF page-break hyphens appear after extraction
+        result = validator.combine_hyphenated_words("empiri­ cally")
+        assert result == "empirically"
+
+    def test_soft_hyphen_with_space_demarcation(self, validator) -> None:
+        """'demarca­ tion' (soft hyphen + space) should join to 'demarcation'."""
+        result = validator.combine_hyphenated_words("demarca­ tion")
+        assert result == "demarcation"
+
+    def test_soft_hyphen_with_space_volume(self, validator) -> None:
+        """'vol­ ume' (soft hyphen + space) should join to 'volume'."""
+        result = validator.combine_hyphenated_words("vol­ ume")
+        assert result == "volume"
+
+    def test_soft_hyphen_with_space_empirical(self, validator) -> None:
+        """'empir­ ical' (soft hyphen + space) should join to 'empirical'."""
+        result = validator.combine_hyphenated_words("empir­ ical")
+        assert result == "empirical"
+
+    def test_soft_hyphen_multiple_in_sentence(self, validator) -> None:
+        """Multiple soft-hyphen page-break artifacts in one string are all resolved."""
+        result = validator.combine_hyphenated_words(
+            "empiri­ cally refutable and empir­ ical hypotheses"
+        )
+        assert result == "empirically refutable and empirical hypotheses"
+
+
+# --- POS-tag dash-detection tests ---
+# Theory: the second word of a hyphenated pair can be POS-tagged to detect whether
+# the hyphen is a legitimate compound marker or an em-dash artifact.
+# Determiners (DT), prepositions (IN), and conjunctions (CC) never follow a real
+# compound hyphen, so "word-the" / "word-of" / "word-and" are always dash artifacts.
+# Words like "known", "term", "date" are adjectives/nouns and can legitimately follow a hyphen.
+
+class TestHyphenIsDash:
+    """Tests for WordValidator.hyphen_is_dash.
+
+    Theory: function words (articles, prepositions, conjunctions) have no WordNet
+    synsets. If the second part of a hyphenated pair has no synsets, it is a function
+    word that cannot legitimately follow a compound hyphen — the hyphen is a dash artifact.
+
+    Known limitation: 'a' and 'an' are false negatives because WordNet stores them
+    as abbreviations (angstrom, associate in nursing), so they are not tested here.
+    """
+
+    def test_the_signals_dash(self, validator) -> None:
+        """'demarcation-the': 'the' has no synsets → hyphen is a dash."""
+        assert validator.hyphen_is_dash("demarcation", "the") is True
+
+    def test_known_does_not_signal_dash(self, validator) -> None:
+        """'well-known': 'known' has synsets → hyphen is a legitimate compound."""
+        assert validator.hyphen_is_dash("well", "known") is False
+
+    def test_term_does_not_signal_dash(self, validator) -> None:
+        """'long-term': 'term' has synsets → hyphen is a legitimate compound."""
+        assert validator.hyphen_is_dash("long", "term") is False
+
+    def test_date_does_not_signal_dash(self, validator) -> None:
+        """'up-to-date': 'date' has synsets → hyphen is a legitimate compound."""
+        assert validator.hyphen_is_dash("up", "date") is False
+
+    # --- fix_dash_hyphens tests ---
+
+    def test_fix_dash_hyphens_the(self, validator) -> None:
+        """'demarcation-the': the actual PDF artifact should become 'demarcation - the'."""
+        assert validator.fix_dash_hyphens("demarcation-the") == "demarcation - the"
+
+    def test_fix_dash_hyphens_preserves_compound(self, validator) -> None:
+        """'well-known' is a genuine compound and should be left unchanged."""
+        assert validator.fix_dash_hyphens("well-known") == "well-known"
+
+    def test_fix_dash_hyphens_preserves_long_term(self, validator) -> None:
+        """'long-term' is a genuine compound and should be left unchanged."""
+        assert validator.fix_dash_hyphens("long-term") == "long-term"
+
+    def test_fix_dash_hyphens_in_sentence(self, validator) -> None:
+        """A full sentence with a dash-hyphen artifact is corrected."""
+        result = validator.fix_dash_hyphens(
+            "the criterion of demarcation-the line between science and metaphysics"
+        )
+        assert "demarcation - the" in result
+        assert "demarcation-the" not in result
 
 
 # --- Module-level instance test ---

@@ -2,7 +2,6 @@ import re
 import difflib
 import pytest
 from pathlib import Path
-from utils.nltk_utils import get_english_words
 from parsers.docling_parser import DoclingParser
 from parsers.epub_parser import EpubParser
 from text_cleaner import TextCleaner
@@ -12,8 +11,7 @@ TEST_CANONICAL = Path(__file__).parent / "test_canonical"
 TEST_DOCUMENTS_LLM = Path(__file__).parent / "test_documents_llm"
 TEST_CANONICAL_LLM = Path(__file__).parent / "test_canonical_llm"
 
-
-_ENGLISH_WORDS: set[str] = get_english_words()
+_SPELLING_VARIANT_THRESHOLD = 0.8
 
 
 def _normalize(line: str) -> str:
@@ -22,7 +20,10 @@ def _normalize(line: str) -> str:
 
 def _only_valid_spelling_variants(expected: str, actual: str) -> bool:
     """Return True if all word differences between expected and actual are
-    both valid English words (i.e. legitimate spelling variants)."""
+    close spelling variants (e.g. American/British spelling differences like
+    'initialize'/'initialise'). Uses character-level similarity — words must
+    share at least 80% of their characters to qualify. This prevents unrelated
+    dictionary words like 'text'/'footnote' from passing as variants."""
     expected_words = expected.lower().split()
     actual_words = actual.lower().split()
 
@@ -31,13 +32,14 @@ def _only_valid_spelling_variants(expected: str, actual: str) -> bool:
         if tag == 'equal':
             continue
         if tag == 'replace' and (i2 - i1) == (j2 - j1):
-            # Same number of words substituted — check each pair
+            # Same number of words substituted — each pair must be a close spelling variant
             for exp_word, act_word in zip(expected_words[i1:i2], actual_words[j1:j2]):
                 exp_clean = re.sub(r'[^a-z]', '', exp_word)
                 act_clean = re.sub(r'[^a-z]', '', act_word)
                 if exp_clean == act_clean:
                     continue
-                if not (exp_clean in _ENGLISH_WORDS and act_clean in _ENGLISH_WORDS):
+                similarity = difflib.SequenceMatcher(None, exp_clean, act_clean).ratio()
+                if similarity < _SPELLING_VARIANT_THRESHOLD:
                     return False
         else:
             # Insertions or deletions — not a spelling variant
@@ -130,6 +132,7 @@ def process_all_documents_with_cleaner():
 
 
 class TestDoclingParserOutput:
+    @pytest.mark.canonical
     def test_all_txt_files_have_canonical(self, process_all_documents):
         txt_files = list(TEST_DOCUMENTS.glob("*.txt"))
         missing = [f.name for f in txt_files if not (TEST_CANONICAL / f.name).exists()]
@@ -139,6 +142,7 @@ class TestDoclingParserOutput:
                 f"Copy the generated files from test_documents/ to test_canonical/ to create them."
             )
 
+    @pytest.mark.canonical
     def test_output_matches_canonical(self, process_all_documents):
         txt_files = list(TEST_DOCUMENTS.glob("*.txt"))
         failures = []
