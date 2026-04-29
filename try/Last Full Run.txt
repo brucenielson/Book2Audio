@@ -1,0 +1,939 @@
+C:\AI\Book2Audio\.venv\Scripts\python.exe C:\AI\Book2Audio\try\try_llm_cleaner.py 
+
+********
+Warning: flash-attn is not installed. Will only run the manual PyTorch version. Please install flash-attn for faster inference.
+********
+ 
+'sox' is not recognized as an internal or external command,
+operable program or batch file.
+SoX could not be found!
+
+    If you do not have SoX, proceed here:
+     - - - http://sox.sourceforge.net/ - - -
+
+    If you do (or think that you should) have SoX, double-check your
+    path variables.
+    
+C:\AI\Book2Audio\.venv\Lib\site-packages\torch\nn\modules\rnn.py:990: UserWarning: dropout option adds dropout after all but last recurrent layer, so non-zero dropout expects num_layers greater than 1, but got dropout=0.2 and num_layers=1
+  super().__init__("LSTM", *args, **kwargs)
+C:\AI\Book2Audio\.venv\Lib\site-packages\torch\nn\utils\weight_norm.py:144: FutureWarning: `torch.nn.utils.weight_norm` is deprecated in favor of `torch.nn.utils.parametrizations.weight_norm`.
+  WeightNorm.apply(module, name, dim)
+  [Page 3]
+  [Page 4]
+  [LLM DROP] 'Karl Popper. From the Postscript to the Logic of Scientific Discovery edited by W. W. Bartley, III'
+  [Page 5]
+  [LLM DROP] 'Reprinted 1992, 1994, 1996 by Routledge. 2 Park Square, Milton Park, Abingdon, Oxon, OX14 4RN. Simul'
+  [LLM DROP] 'Library of Congress Cataloging in Publication Data A catalog record for this book is available from '
+  [Page 8]
+  [LLM DROP] 'Note on Numbering of Sections. The sections in each of the three volumes of the Postscript, and in t'
+  [Page 11]
+  [LLM DROP] '25. The Structure of the Neo-Classical Theory.'
+  [LLM DROP] 'Concluding Summary, 1982'
+  [Page 12]
+  → restored 'its' (LLM tried 'their')
+  [Page 13]
+  [Page 14]
+  [Page 15]
+  [Page 16]
+  [LLM DROP] 'The Editor wishes to express his gratitude to the American Council of Learned Societies and to the A'
+  [Page 18]
+  [LLM DROP] 'PENN, BUCKINGHAMSHIRE, 1959.'
+  [Page 19]
+  [LLM DROP] 'Penn, Buckinghamshire, 1981.'
+  [Page 20]
+  [Page 21]
+  → attempt 1 rejected: Invalid \escape: line 2 column 21 (char 22)
+  → restored 'realize' (LLM tried 'realise')
+  [Page 22]
+  [Page 23]
+  → attempt 1 rejected: Invalid \escape: line 2 column 21 (char 22)
+  → attempt 2 rejected: Invalid \escape: line 2 column 21 (char 22)
+  [Page 24]
+  → attempt 1 rejected: Cleaned text size differs by more than 10% (original printable=1185, cleaned=1064)
+  original: An entire literature rests on the failure to observe this distinction. It is often said that my criterion of demarcation is inapplicable because empirical scientific theories cannot be definitively falsified. Less importantly, it is often said (see section IV below) that the discovery of the unfalsifiability of scientific theories in the second sense is an achievement that contradicts my theory, despite the fact that I myself have pointed this out over and over again. (Instead of distinguishing the two meanings-'falsifiability1', the possibility that certain theories can in principle be falsified, because they have some potential falsifiers, and 'falsifiability/, the always problematic possibility that a theory can be shown to be false, since final empirical proofs do not exist - the ironic distinctions of 'Popper0', 'Poppert', and 'Popper/, and so on, have been made (i. e., of various stages of 'Popper' that flagrantly contradict one another and cannot be brought into harmony).· And the difficulties, in many cases the impossibility, of a conclusive practical falsification are put forward as a difficulty or even impossibility of the proposed criterion of demarcation.
+  cleaned:  An entire literature rests on the failure to observe this distinction. It is often said that my criterion of demarcation is inapplicable because empirical scientific theories cannot be definitively falsified. Less importantly, it is often said (see section IV below) that the discovery of the unfalsifiability of scientific theories in the second sense is an achievement that contradicts my theory, despite the fact that I myself have pointed this out over and over again. Instead of distinguishing the two meanings—falsifiability1', the possibility that certain theories can in principle be falsified, because they have some potential falsifiers, and 'falsifiability/, the always problematic possibility that a theory can be shown to be false, since final empirical proofs do not exist—the ironic distinctions of Popper0', Poppert', and Popper/, and so on, have been made. And the difficulties, in many cases the impossibility, of a conclusive practical falsification are put forward as a difficulty or even impossibility of the proposed criterion of demarcation.
+  [Page 25]
+  → restored 'golf' (LLM tried 'gold')
+  [Page 26]
+  → attempt 1 rejected: Cleaned text size differs by more than 10% (original printable=725, cleaned=162)
+  original: The misunderstood logical-technical meaning of falsifiability in the first sense, in the sense of the criterion of demarcation, has led to two historical legends. The first, unimportant legend is that I overlooked the non-conclusiveness of the falsifiability of theories - the fact that theories are never conclusively falsifiable in the second sense. Whereas in fact, I had repeatedly stressed this since 1932. The second legend (and it is a far more important legend) is that falsification plays no role in the history of science. In fact, it plays a leading role, despite its non-definitive character. The examples already given provide some evidence of this, but I shall provide some further examples in the next section.
+  cleaned:  The misunderstood logical-technical meaning of falsifiability in the first sense, in the sense of the criterion of demarcation, has led to two historical legends.
+  → restored ['them-I', 'believe'] (LLM tried 'them—believe')
+  [Page 27]
+  → restored 'vu.' (LLM tried 'v.u.')
+  [LLM FOOTNOTE] 'Cp. my Conjectures and Refutations, Chapter 2, sections VI and vu. [See also Volume III of the Posts'
+  [Page 28]
+  → restored 'the' (LLM tried '·')
+  [Page 29]
+  → restored 'eans,' (LLM tried 'Jeans,')
+  [Page 30]
+  → attempt 1 rejected: Invalid \escape: line 2 column 78 (char 79)
+  → restored ['Heisenberg-Born}', 'ordan'] (LLM tried 'Heisenberg-Born')
+  [LLM DROP] '(19) The electrical theory of matter9 elaborated by Einstein and Cp. my "The Rationality of Scientif'
+  [LLM DROP] "9 Cp. The Introduction to Volume III of the Postscript. Cp. also my 'The Rationality of Scientific R"
+  [Page 31]
+  → attempt 1 rejected: Cleaned text size differs by more than 10% (original printable=108, cleaned=132)
+  original: (20) The refutation of parity conservation. (See Allan Franklin, Stud. Hist. Philos. Sci. 10, 1979, p. 201.)
+  cleaned:  (20) The refutation of parity conservation. (See Allan Franklin, Studies in the History and Philosophy of Science 10, 1979, p. 201.)
+  → attempt 2 rejected: Cleaned text size differs by more than 10% (original printable=108, cleaned=142)
+  original: (20) The refutation of parity conservation. (See Allan Franklin, Stud. Hist. Philos. Sci. 10, 1979, p. 201.)
+  cleaned:  (20) The refutation of parity conservation. (See Allan Franklin, Studies in the History and Philosophy of Science, volume 10, 1979, page 201.)
+  → attempt 3 rejected: Cleaned text size differs by more than 10% (original printable=108, cleaned=132)
+  original: (20) The refutation of parity conservation. (See Allan Franklin, Stud. Hist. Philos. Sci. 10, 1979, p. 201.)
+  cleaned:  (20) The refutation of parity conservation. (See Allan Franklin, Studies in the History and Philosophy of Science 10, 1979, p. 201.)
+  [Page 32]
+  [Page 33]
+  [Page 34]
+  [LLM FOOTNOTE] "14 Loc. cit. Kuhn writes 'demonstrates'. 15 I dislike the term 'his conceptual scheme'; I should hav"
+  [Page 35]
+  [Page 36]
+  [Page 37]
+  [Page 38]
+  [Page 39]
+  → restored ['evidence', 'e-say,'] (LLM tried 'evidence—say,')
+  → restored 'h.' (LLM tried 'h_1')
+  → restored 'h.,' (LLM tried 'h_,')
+  [Page 40]
+  [Page 44]
+  [LLM FOOTNOTE] "1. HANS CHRISTIAN 0ERSTED2 1 Hans Christian Oersted: 'Observations on the History of Chemistry : A L"
+  [Page 46]
+  [LLM FOOTNOTE] 'See Hermann Diels: Die Fragmente der Vorsokratiker, ed. Walther Kranz, 6. Auflage, 1951, Vol. II, p.'
+  [Page 47]
+  [LLM FOOTNOTE] '(2) There is no method of ascertaining the truth of a scientific hypothesis, that is, no method of v'
+  [Page 48]
+  → restored 'criticizing' (LLM tried 'criticising')
+  → attempt 1 rejected: Invalid \escape: line 2 column 178 (char 179)
+  [Page 49]
+  → restored 'specialist,' (LLM tried 'specialists,')
+  → restored 'ye' (LLM tried 'you')
+  [Page 50]
+  [Page 52]
+  [Page 53]
+  [Page 54]
+  → attempt 1 rejected: Cleaned text size differs by more than 10% (original printable=2088, cleaned=428)
+  original: Having been invited to participate in the discussion, I said that I did not believe in induction at all, although I did believe in empiricism-an empiricism which did not impose upon itself those Kantian limits which Russell was prepared to accept. This statement (which I formulated as pointedly as I could manage with the little English at my disposal) was taken for a joke by the audience, who graciously laughed and clapped. I then suggested that the whole trouble was due to the mistaken belief that scienti fic knowledge was an especially strict or certain or august kind of knowledge. This statement met with the same reception as the first. I concluded with an attempt to explain that, in the usual sense of 'know', whenever I know that it is raining, it must be true that it is raining; for if it is not true, then I simply cannot know that it is raining, however sincerely I may believe that I know it. In this sense of the word, 'knowledge' always means 'true and certain knowledge'; and 'to know' means, in addition, to be in possession of sufficient reason for holding that our knowledge is true and certain. But, I said, there was no such thing as scientific knowledge in this sense. If, nonetheless, we chose to label the results of our scientific endeavours with the customary name ' scientific knowledge', then we ought to be clear that scientific knowledge was not a species of knowledge; least of all, a species distinguished by a high degree of solidity or certainty. On the contrary, measured by the high standards of scientific criticism, ' scientific knowledge' always remained sheer guesswork - although guesswork controlled by criticism and experiment. (It could not even attain any positive degree of 'probability' if this term was used in the sense of the probability calculus, for example, in the form given to it by Keynes or Jeffreys.) I ended by saying that merely by recognizing that scientific knowledge consists of guesses or hypotheses, we can solve the problem of induction without having to assume a principle of induction, or any limits to empiricism.
+  cleaned:  Having been invited to participate in the discussion, I said that I did not believe in induction at all, although I did believe in empiricism—-an empiricism which did not impose upon itself those Kantian limits which Russell was prepared to accept. This statement (which I formulated as pointedly as I could manage with the little English at my disposal) was taken for a joke by the audience, who graciously laughed and clapped.
+  → attempt 2 rejected: Cleaned text size differs by more than 10% (original printable=2088, cleaned=247)
+  original: Having been invited to participate in the discussion, I said that I did not believe in induction at all, although I did believe in empiricism-an empiricism which did not impose upon itself those Kantian limits which Russell was prepared to accept. This statement (which I formulated as pointedly as I could manage with the little English at my disposal) was taken for a joke by the audience, who graciously laughed and clapped. I then suggested that the whole trouble was due to the mistaken belief that scienti fic knowledge was an especially strict or certain or august kind of knowledge. This statement met with the same reception as the first. I concluded with an attempt to explain that, in the usual sense of 'know', whenever I know that it is raining, it must be true that it is raining; for if it is not true, then I simply cannot know that it is raining, however sincerely I may believe that I know it. In this sense of the word, 'knowledge' always means 'true and certain knowledge'; and 'to know' means, in addition, to be in possession of sufficient reason for holding that our knowledge is true and certain. But, I said, there was no such thing as scientific knowledge in this sense. If, nonetheless, we chose to label the results of our scientific endeavours with the customary name ' scientific knowledge', then we ought to be clear that scientific knowledge was not a species of knowledge; least of all, a species distinguished by a high degree of solidity or certainty. On the contrary, measured by the high standards of scientific criticism, ' scientific knowledge' always remained sheer guesswork - although guesswork controlled by criticism and experiment. (It could not even attain any positive degree of 'probability' if this term was used in the sense of the probability calculus, for example, in the form given to it by Keynes or Jeffreys.) I ended by saying that merely by recognizing that scientific knowledge consists of guesses or hypotheses, we can solve the problem of induction without having to assume a principle of induction, or any limits to empiricism.
+  cleaned:  Having been invited to participate in the discussion, I said that I did not believe in induction at all, although I did believe in empiricism—an empiricism which did not impose upon itself those Kantian limits which Russell was prepared to accept.
+  [Page 55]
+  [Page 56]
+  → attempt 1 rejected: Cleaned text size differs by more than 10% (original printable=513, cleaned=228)
+  original: One of the oldest, more interesting and perhaps more important tasks of philosophy is the critical examination of such 'positions' and the theories or views they involve-especially those whi�;h are uncritically taken for granted. In doing so it is often found that there are clusters of related views related by common assumptions, by common preferences, or by common dislikes. Obviously it is often convenient and even necessary to give names to these positions, or views, or clusters of views. Hence the 'isms'.
+  cleaned:  One of the oldest, more interesting and perhaps more important tasks of philosophy is the critical examination of such 'positions' and the theories or views they involve-especially those which are uncritically taken for granted.
+  [Page 57]
+  → restored 'relations).' (LLM tried 'relations}.')
+  [LLM FOOTNOTE] '3 See B. L. Whorf, Language, Thought and Reality, 1956.'
+  [Page 58]
+  → restored 'criticize' (LLM tried 'criticise')
+  → restored 'criticize,' (LLM tried 'criticise,')
+  [Page 59]
+  [Page 60]
+  [Page 61]
+  → restored 'criticized' (LLM tried 'criticised')
+  [Page 62]
+  → attempt 1 rejected: Cleaned text size differs by more than 10% (original printable=973, cleaned=239)
+  original: For according to Bartley all philosophies so f ar have been justi ficationist philosophies, in the sense that all assumed that it was the prima f acie task of the theory of knowledge to show that, and how, we can justi f y our theories or beliefs. Not only the rationalists and the empiricists and the Kantians shared this assumption but also the sceptics and the irrationalists. The sceptics, compelled to admit that we cannot justify our theories or beliefs, declare the bankruptcy of the search for knowledge; while the irrationalists (for example the fideists), owing to the same fundamental admission, declare the bankruptcy of the search for reasons - that is, for rationally valid arguments - and try to justify our knowledge, or rather, our beliefs, by appealing to authority, such as the authority of irrational sources. Both assume that the question of justification, or of the existence of positive reasons, is fundamental : both are classical justificationists.
+  cleaned:  For according to Bartley all philosophies so far have been justificatory philosophies, in the sense that all assumed that it was the prima facie task of the theory of knowledge to show that, and how, we can justify our theories or beliefs.
+  → attempt 2 rejected: Cleaned text size differs by more than 10% (original printable=973, cleaned=239)
+  original: For according to Bartley all philosophies so f ar have been justi ficationist philosophies, in the sense that all assumed that it was the prima f acie task of the theory of knowledge to show that, and how, we can justi f y our theories or beliefs. Not only the rationalists and the empiricists and the Kantians shared this assumption but also the sceptics and the irrationalists. The sceptics, compelled to admit that we cannot justify our theories or beliefs, declare the bankruptcy of the search for knowledge; while the irrationalists (for example the fideists), owing to the same fundamental admission, declare the bankruptcy of the search for reasons - that is, for rationally valid arguments - and try to justify our knowledge, or rather, our beliefs, by appealing to authority, such as the authority of irrational sources. Both assume that the question of justification, or of the existence of positive reasons, is fundamental : both are classical justificationists.
+  cleaned:  For according to Bartley all philosophies so far have been justificatory philosophies, in the sense that all assumed that it was the prima facie task of the theory of knowledge to show that, and how, we can justify our theories or beliefs.
+  → attempt 3 rejected: Cleaned text size differs by more than 10% (original printable=973, cleaned=242)
+  original: For according to Bartley all philosophies so f ar have been justi ficationist philosophies, in the sense that all assumed that it was the prima f acie task of the theory of knowledge to show that, and how, we can justi f y our theories or beliefs. Not only the rationalists and the empiricists and the Kantians shared this assumption but also the sceptics and the irrationalists. The sceptics, compelled to admit that we cannot justify our theories or beliefs, declare the bankruptcy of the search for knowledge; while the irrationalists (for example the fideists), owing to the same fundamental admission, declare the bankruptcy of the search for reasons - that is, for rationally valid arguments - and try to justify our knowledge, or rather, our beliefs, by appealing to authority, such as the authority of irrational sources. Both assume that the question of justification, or of the existence of positive reasons, is fundamental : both are classical justificationists.
+  cleaned:  For according to Bartley all philosophies so far have been justificationist philosophies, in the sense that all assumed that it was the prima facie task of the theory of knowledge to show that, and how, we can justify our theories or beliefs.
+  → attempt 1 rejected: Cleaned text size differs by more than 10% (original printable=777, cleaned=586)
+  original: My position, Bartley suggests, is liable to be misunderstood unless it is first grasped that the classical problem of justification has not only been removed from its central position, but that, seen from the new point of view, it must actually be dismissed as insignificant. Yet for the justificationist this is very difficult to see. For he argues like Hume: 'If I ask you why you believe in any particular matter of fact... you must tell me some reason;.,.. r you must allow that o your belief is entirely without foundation.'2 Now like E. M. Forster I do not believe in belief: I am not 2David Hume, Enquiry Concerning Human Understanding, Section v, Part I ; Selby - Bigge, p. 46. [C p. Popper on methods of criticism i n The Self and its Brain, op. cit., pp. t 72-3. Ed.]
+  cleaned:  My position, Bartley suggests, is liable to be misunderstood unless it is first grasped that the classical problem of justification has not only been removed from its central position, but that, seen from the new point of view, it must actually be dismissed as insignificant. Yet for the justificationist this is very difficult to see. For he argues like Hume: 'If I ask you why you believe in any particular matter of fact... you must tell me some reason; r you must allow that o your belief is entirely without foundation.'2 Now like E. M. Forster I do not believe in belief: I am not
+  → attempt 2 rejected: Cleaned text size differs by more than 10% (original printable=777, cleaned=586)
+  original: My position, Bartley suggests, is liable to be misunderstood unless it is first grasped that the classical problem of justification has not only been removed from its central position, but that, seen from the new point of view, it must actually be dismissed as insignificant. Yet for the justificationist this is very difficult to see. For he argues like Hume: 'If I ask you why you believe in any particular matter of fact... you must tell me some reason;.,.. r you must allow that o your belief is entirely without foundation.'2 Now like E. M. Forster I do not believe in belief: I am not 2David Hume, Enquiry Concerning Human Understanding, Section v, Part I ; Selby - Bigge, p. 46. [C p. Popper on methods of criticism i n The Self and its Brain, op. cit., pp. t 72-3. Ed.]
+  cleaned:  My position, Bartley suggests, is liable to be misunderstood unless it is first grasped that the classical problem of justification has not only been removed from its central position, but that, seen from the new point of view, it must actually be dismissed as insignificant. Yet for the justificationist this is very difficult to see. For he argues like Hume: 'If I ask you why you believe in any particular matter of fact... you must tell me some reason;.. or you must allow that your belief is entirely without foundation.' Now like E.M. Forster, I do not believe in belief: I am not
+  → restored 'r' (LLM tried 'or')
+  [Page 63]
+  [Page 64]
+  [Page 65]
+  [Page 66]
+  [Page 67]
+  [LLM FOOTNOTE] 'There is no need to be shocked by the discovery that we cannot justify or even support by arguments '
+  [Page 68]
+  [Page 69]
+  [Page 70]
+  → restored 'j' (LLM tried 'justificati')
+  [Page 71]
+  [LLM FOOTNOTE] 'We owe the remark in parentheses to a comment of Alan E. Musgrave’s on this passage.'
+  [Page 72]
+  [Page 73]
+  [LLM FOOTNOTE] 'There can be no valid reasoning from singular observation statements to universal laws of nature, an'
+  → attempt 1 rejected: Cleaned text size differs by more than 10% (original printable=107, cleaned=66)
+  original: In order to see that (i) to (iv) are consistent we merely have to 1 2[See Objective Knowledge, p. 1 2. Ed.)
+  cleaned:  In order to see that (i) to (iv) are consistent we merely have to.
+  [LLM FOOTNOTE] 'In order to see that (i) to (iv) are consistent we merely have to [See Objective Knowledge, p.12. Ed'
+  [Page 74]
+  [Page 75]
+  [Page 76]
+  [LLM FOOTNOTE] "Thus while I agree with Hume's analysis of the logical problem of the validity of induction - that i"
+  [Page 77]
+  [Page 78]
+  → restored ['f', "acti'"] (LLM tried 'facit'')
+  [Page 79]
+  [Page 80]
+  [Page 81]
+  → restored 'that' (LLM tried 'which')
+  [Page 82]
+  [Page 83]
+  [Page 84]
+  [Page 85]
+  [Page 86]
+  [Page 87]
+  [Page 88]
+  → restored ['etymology', '-', 'of'] (LLM tried 'etymology--of')
+  [Page 89]
+  [Page 90]
+  [Page 91]
+  [Page 92]
+  [Page 93]
+  [Page 94]
+  → restored 'tomorrow'.' (LLM tried 'tomorrow\".')
+  [Page 95]
+  [Page 96]
+  [Page 97]
+  [Page 98]
+  [LLM FOOTNOTE] '3 See L.Sc.D., section 79, p. 253.'
+  [Page 99]
+  [Page 100]
+  [Page 101]
+  [Page 102]
+  [Page 103]
+  [Page 104]
+  → attempt 1 rejected: Expecting ',' delimiter: line 2 column 332 (char 333)
+  [Page 105]
+  [Page 106]
+  [Page 107]
+  [Page 108]
+  [Page 109]
+  [LLM FOOTNOTE] '15 Cp. L. Sc. D., sections 13 to 15 and Appendix >:·x. 16 [Cp. L. Sc. D., section 79. Ed.]'
+  [Page 110]
+  → restored 'giver.' (LLM tried 'given')
+  [Page 111]
+  [LLM FOOTNOTE] 'Thus if we were to give methodological reasons for condemning 18 See note 6 to Chapter 11 of my Open'
+  [Page 112]
+  → restored ['remaining-!', 'call'] (LLM tried 'remaining—call')
+  [Page 113]
+  → restored 'howsoever' (LLM tried 'however')
+  [Page 114]
+  [Page 115]
+  [Page 116]
+  [Page 117]
+  [Page 118]
+  [Page 119]
+  [Page 120]
+  → restored 'of' (LLM tried 'or')
+  [Page 121]
+  [Page 122]
+  [Page 123]
+  → restored 'Tyrolese' (LLM tried 'Tyrolean')
+  [Page 124]
+  [Page 125]
+  [Page 126]
+  [LLM FOOTNOTE] 'The Note-Books of Samuel Butler (Shrewsbury Edition, 1926), p. 229.'
+  [Page 127]
+  [Page 128]
+  [LLM DROP] '·op. cit., p. 16. (The italics are not in the original.)'
+  [Page 129]
+  [Page 130]
+  [LLM DROP] 'See The Philosophy of Bertrand Russell, Library of Living Philosophers, ed. by P. A. Schilpp, p. 13.'
+  [LLM FOOTNOTE] 'Schilpp, p. 13. 50p. cit., especially pp. 198 and 201. 60p. cit., p. 219. 70p. cit., p. 207; cp. als'
+  [Page 132]
+  [Page 133]
+  → restored 'observe' (LLM tried 'obey')
+  → restored 'results' (LLM tried 'result')
+  → restored 'results' (LLM tried 'result')
+  [Page 134]
+  [Page 135]
+  [LLM FOOTNOTE] "Subjectivists are often misled by some of the ambiguities of the word 'knowledge'. Knowledge is clea"
+  [LLM FOOTNOTE] '2 [See Objective Knowledge, pp. 97, 149, 268-84. Ed.]'
+  [Page 136]
+  [Page 137]
+  → attempt 1 rejected: Cleaned text size differs by more than 10% (original printable=176, cleaned=60)
+  original: If we want to look upon scientific knowledge and activity as 3See my Poverty of Historicism, especially sections 32 and 2 1, and my Open Society, especially Chapters 23 and 14.
+  cleaned:  If we want to look upon scientific knowledge and activity as
+  → attempt 2 rejected: Cleaned text size differs by more than 10% (original printable=176, cleaned=60)
+  original: If we want to look upon scientific knowledge and activity as 3See my Poverty of Historicism, especially sections 32 and 2 1, and my Open Society, especially Chapters 23 and 14.
+  cleaned:  If we want to look upon scientific knowledge and activity as
+  → attempt 3 rejected: Cleaned text size differs by more than 10% (original printable=176, cleaned=60)
+  original: If we want to look upon scientific knowledge and activity as 3See my Poverty of Historicism, especially sections 32 and 2 1, and my Open Society, especially Chapters 23 and 14.
+  cleaned:  If we want to look upon scientific knowledge and activity as
+  [Page 138]
+  [Page 139]
+  [Page 140]
+  [Page 141]
+  [Page 142]
+  [Page 143]
+  [Page 144]
+  → restored 'which' (LLM tried 'that')
+  [Page 145]
+  [Page 146]
+  → restored 'or' (LLM tried 'nor')
+  [LLM FOOTNOTE] 'See my Note on Berkeley as a Precursor of Mach, now in Conjectures and Refutations, Chapter 6.'
+  [Page 147]
+  → restored 'o' (LLM tried 'to')
+  [LLM DROP] '7 Treatise, Introduction. (Selby-Bigge, pp.'
+  [LLM DROP] "8 Treatise, loc. cit. xix 'Treatise, Book i, Part iv, section vi. (Selby - Bigge, p."
+  [LLM DROP] '8 Treatise, loc. cit. xix'
+  [Page 148]
+  [LLM FOOTNOTE] '1 Novum Organum ii, 36. Concerning Berkeley, see my Note on Berkeley as a Precursor of Mach, Conject'
+  [Page 149]
+  [Page 150]
+  → attempt 1 rejected: Cleaned text size differs by more than 10% (original printable=3508, cleaned=659)
+  original: Indeed, in Berkeley's sense of 'occult', all our scientific concepts are occult: they are used to describe unseen, and indeed invisible, structural properties of an unseen and invisible world. 4 But this does not mean that the theories formulated with the help of these concepts are 'occult' or 'metaphysical' or 'non-empirical' : they may well have testable consequences. I am not afraid of ' occult' scientific concepts precisely because I have a criterion of demarcation which allows me to detect non-scientific theories by means that are more effective than any alleged criterion of the empirical or non-empirical character of the concepts or words involved. s Turning now to criticize Berkeley's instrumentalist interpretation of scientific theories, I may perhaps say first that he did not go far enough in his criticism of theoretical concepts. Although he realized the non-existence of what he called 'abstract general ideas', he failed to realize that most predicates of ordinary language are also abstract in his sense. Berkeley himself, when using language, constantly uses abstract terms. Thus, where he speaks of 'infidelity' (in the sense of unbelief), as for example in that last thrust of The Analyst against ' the modern growth of infidelity', he clearly does not intend to designate by the word 'infidel' merely an increasing collection of his fellow men whom he dislikes (and who, say, behave in a certain observable manner), but he uses it as a name of a truly abstract property of these men. Universal terms in ordinary language are not merely general names, shared (as one might think in view of such words as 'table' or 'dog') by a concrete collection of concrete things, but they denote, like 'copper', 'crystal', 'apple', 'food', 'poison' or ' money', structural or relational or 'dispositional' properties of things which are 'abstract' precisely in Berkeley's sense. All universal concepts incorporate theories. And although some of these can be tested, they can never be exhaustively tested (and can never be verified). The statement 'Here is a glass of water' is open to an indefinite and inexhaustible number of tests-chemical tests, for example - because water, like anything else, is recognizable only by its law-like behaviour (cp. the end of section 25 of L.Sc.D.). Thus ' water' is dispositional, like every other universal concept. Even ' red' is dispositional, for 'This surface is red' asserts that this surface has a disposition to reflect red light. (The fact that there are no such things as non - dispositional universals invalidates, incidentally, the programme, proposed in Carnap's 'Testability and Meaning', of ' reducing' dispositions to non - dispositional observable proper- section-! thought; optimistically, that positivists had become aware of the fact that statements and not concepts are important and that they had given up the attempt to demarcate metaphysics from science on the basis of the character of the concepts or words used. But I was mistaken. The operational analysis of the meaning of concepts is still very influential. And even members of the former Vienna Circle still continue in the ways of 'the older positivists', as I called them in 1 934. For instance Carnap in his paper ('The Methodological Character of Theoretical Concepts', in Minnesota Studies in the Philosophy of Science, Vol. I, ed. Herbert Feigl and Michael Scriven, 195 1), bases his definition of significant sentences (p. 60) upon that of significant concepts (p. 51).
+  cleaned:  Indeed, in Berkeley's sense of 'occult', all our scientific concepts are occult: they are used to describe unseen, and indeed invisible, structural properties of an unseen and invisible world. But this does not mean that the theories formulated with the help of these concepts are 'occult' or 'metaphysical' or 'non-empirical': they may well have testable consequences. I am not afraid of ' occult' scientific concepts precisely because I have a criterion of demarcation which allows me to detect non-scientific theories by means that are more effective than any alleged criterion of the empirical or non-empirical character of the concepts or words involved.
+  → attempt 2 rejected: Cleaned text size differs by more than 10% (original printable=3508, cleaned=658)
+  original: Indeed, in Berkeley's sense of 'occult', all our scientific concepts are occult: they are used to describe unseen, and indeed invisible, structural properties of an unseen and invisible world. 4 But this does not mean that the theories formulated with the help of these concepts are 'occult' or 'metaphysical' or 'non-empirical' : they may well have testable consequences. I am not afraid of ' occult' scientific concepts precisely because I have a criterion of demarcation which allows me to detect non-scientific theories by means that are more effective than any alleged criterion of the empirical or non-empirical character of the concepts or words involved. s Turning now to criticize Berkeley's instrumentalist interpretation of scientific theories, I may perhaps say first that he did not go far enough in his criticism of theoretical concepts. Although he realized the non-existence of what he called 'abstract general ideas', he failed to realize that most predicates of ordinary language are also abstract in his sense. Berkeley himself, when using language, constantly uses abstract terms. Thus, where he speaks of 'infidelity' (in the sense of unbelief), as for example in that last thrust of The Analyst against ' the modern growth of infidelity', he clearly does not intend to designate by the word 'infidel' merely an increasing collection of his fellow men whom he dislikes (and who, say, behave in a certain observable manner), but he uses it as a name of a truly abstract property of these men. Universal terms in ordinary language are not merely general names, shared (as one might think in view of such words as 'table' or 'dog') by a concrete collection of concrete things, but they denote, like 'copper', 'crystal', 'apple', 'food', 'poison' or ' money', structural or relational or 'dispositional' properties of things which are 'abstract' precisely in Berkeley's sense. All universal concepts incorporate theories. And although some of these can be tested, they can never be exhaustively tested (and can never be verified). The statement 'Here is a glass of water' is open to an indefinite and inexhaustible number of tests-chemical tests, for example - because water, like anything else, is recognizable only by its law-like behaviour (cp. the end of section 25 of L.Sc.D.). Thus ' water' is dispositional, like every other universal concept. Even ' red' is dispositional, for 'This surface is red' asserts that this surface has a disposition to reflect red light. (The fact that there are no such things as non - dispositional universals invalidates, incidentally, the programme, proposed in Carnap's 'Testability and Meaning', of ' reducing' dispositions to non - dispositional observable proper- section-! thought; optimistically, that positivists had become aware of the fact that statements and not concepts are important and that they had given up the attempt to demarcate metaphysics from science on the basis of the character of the concepts or words used. But I was mistaken. The operational analysis of the meaning of concepts is still very influential. And even members of the former Vienna Circle still continue in the ways of 'the older positivists', as I called them in 1 934. For instance Carnap in his paper ('The Methodological Character of Theoretical Concepts', in Minnesota Studies in the Philosophy of Science, Vol. I, ed. Herbert Feigl and Michael Scriven, 195 1), bases his definition of significant sentences (p. 60) upon that of significant concepts (p. 51).
+  cleaned:  Indeed, in Berkeley's sense of 'occult', all our scientific concepts are occult: they are used to describe unseen, and indeed invisible, structural properties of an unseen and invisible world. But this does not mean that the theories formulated with the help of these concepts are 'occult' or 'metaphysical' or 'non-empirical': they may well have testable consequences. I am not afraid of 'occult' scientific concepts precisely because I have a criterion of demarcation which allows me to detect non-scientific theories by means that are more effective than any alleged criterion of the empirical or non-empirical character of the concepts or words involved.
+  → attempt 3 rejected: Cleaned text size differs by more than 10% (original printable=3508, cleaned=659)
+  original: Indeed, in Berkeley's sense of 'occult', all our scientific concepts are occult: they are used to describe unseen, and indeed invisible, structural properties of an unseen and invisible world. 4 But this does not mean that the theories formulated with the help of these concepts are 'occult' or 'metaphysical' or 'non-empirical' : they may well have testable consequences. I am not afraid of ' occult' scientific concepts precisely because I have a criterion of demarcation which allows me to detect non-scientific theories by means that are more effective than any alleged criterion of the empirical or non-empirical character of the concepts or words involved. s Turning now to criticize Berkeley's instrumentalist interpretation of scientific theories, I may perhaps say first that he did not go far enough in his criticism of theoretical concepts. Although he realized the non-existence of what he called 'abstract general ideas', he failed to realize that most predicates of ordinary language are also abstract in his sense. Berkeley himself, when using language, constantly uses abstract terms. Thus, where he speaks of 'infidelity' (in the sense of unbelief), as for example in that last thrust of The Analyst against ' the modern growth of infidelity', he clearly does not intend to designate by the word 'infidel' merely an increasing collection of his fellow men whom he dislikes (and who, say, behave in a certain observable manner), but he uses it as a name of a truly abstract property of these men. Universal terms in ordinary language are not merely general names, shared (as one might think in view of such words as 'table' or 'dog') by a concrete collection of concrete things, but they denote, like 'copper', 'crystal', 'apple', 'food', 'poison' or ' money', structural or relational or 'dispositional' properties of things which are 'abstract' precisely in Berkeley's sense. All universal concepts incorporate theories. And although some of these can be tested, they can never be exhaustively tested (and can never be verified). The statement 'Here is a glass of water' is open to an indefinite and inexhaustible number of tests-chemical tests, for example - because water, like anything else, is recognizable only by its law-like behaviour (cp. the end of section 25 of L.Sc.D.). Thus ' water' is dispositional, like every other universal concept. Even ' red' is dispositional, for 'This surface is red' asserts that this surface has a disposition to reflect red light. (The fact that there are no such things as non - dispositional universals invalidates, incidentally, the programme, proposed in Carnap's 'Testability and Meaning', of ' reducing' dispositions to non - dispositional observable proper- section-! thought; optimistically, that positivists had become aware of the fact that statements and not concepts are important and that they had given up the attempt to demarcate metaphysics from science on the basis of the character of the concepts or words used. But I was mistaken. The operational analysis of the meaning of concepts is still very influential. And even members of the former Vienna Circle still continue in the ways of 'the older positivists', as I called them in 1 934. For instance Carnap in his paper ('The Methodological Character of Theoretical Concepts', in Minnesota Studies in the Philosophy of Science, Vol. I, ed. Herbert Feigl and Michael Scriven, 195 1), bases his definition of significant sentences (p. 60) upon that of significant concepts (p. 51).
+  cleaned:  Indeed, in Berkeley's sense of 'occult', all our scientific concepts are occult: they are used to describe unseen, and indeed invisible, structural properties of an unseen and invisible world. But this does not mean that the theories formulated with the help of these concepts are 'occult' or 'metaphysical' or 'non-empirical': they may well have testable consequences. I am not afraid of ' occult' scientific concepts precisely because I have a criterion of demarcation which allows me to detect non-scientific theories by means that are more effective than any alleged criterion of the empirical or non-empirical character of the concepts or words involved.
+  [Page 151]
+  [Page 152]
+  [Page 153]
+  [Page 154]
+  → restored 'computation' (LLM tried 'computational')
+  [Page 155]
+  → restored 'computation' (LLM tried 'computational')
+  [Page 156]
+  [Page 157]
+  [Page 158]
+  [Page 159]
+  [Page 160]
+  [Page 161]
+  [Page 162]
+  [Page 163]
+  [Page 164]
+  [Page 165]
+  → attempt 1 rejected: Cleaned text size differs by more than 10% (original printable=1943, cleaned=2197)
+  original: He is a Berkeleyan or Humean idealist; and like a Berkeleyan instrumentalist, he is better informed about the objects treated by physics than is physics itself. For his whole analysis of quantum physics is based upon the distinction between the observed phenomena, such as this tree outside my window whilst I am looking at it, and the interpolations between these phenomena, called by him ' i nterphenomena', such as the same tree after I have dropped my eyes in order to write down this sentence.'If we say that a tree exists while we do not look at it', Reichenbach writes, '... we interpolate an unobserved object between observables; and we select the interpolated objl!ct in such a way that it allows us to carry through the... postulate of identical causality for observed and unobserved objects....'4 And he continues : 'If we abandon this postulate, we arrive at different descriptions of the unobservables. These descriptions are not false.... The usual language, according to which the object persists when observation ceases, is constructed by singling out one description among this class; this normal description, or normal system, is determined by the postulate of identical causality for observed and unobserved objects. The postulate is neither true nor f alse but a rule which we use to simplif y our language.' 5 Now let us consider this doctrine for a moment. What Reichenbach says - and what he wants to say, as his book and the article show-is this. The objects which we interpolate between observations are more or less arbitrarily chosen or 'selected'. The 'normal system' consists in selecting the objects in such a way that the causal laws for observed and unobserved objects remain the same. But this ' normal' choice is merely the free adoption of a postulate which is neither true nor false; and we prefer it merely because we wish to simplify our language. (Thus the 'postulate' may be described as a convention.)
+  cleaned:  He is a Berkeleyan or Humean idealist; and like a Berkeleyan instrumentalist, he is better informed about the objects treated by physics than is physics itself. For his whole analysis of quantum physics is based upon the distinction between the observed phenomena, such as this tree outside my window whilst I am looking at it, and the interpolations between these phenomena, called by him 'interphenomena', such as the same tree after I have dropped my eyes in order to write down this sentence. If we say that a tree exists while we do not look at it', Reichenbach writes, '... we interpolate an unobserved object between observables; and we select the interpolated object in such a way that it allows us to carry through the... postulate of identical causality for observed and unobserved objects....'4 And he continues: 'If we abandon this postulate, we arrive at different descriptions of the unobservables. These descriptions are not false.... The usual language, according to which the object persists when observation ceases, is constructed by singling out one description among this class; this normal description, or normal system, is determined by the postulate of identical causality for observed and unobserved objects. The postulate is neither true nor false but a rule which we use to simplify our language.'5 Now let us consider this doctrine for a moment. What Reichenbach says - and what he wants to say, as his book and the article show-is this. The objects which we interpolate between observations are more or less arbitrarily chosen or 'selected'. The 'normal system' consists in selecting the objects in such a way that the causal laws for observed and unobserved objects remain the same. But this ' normal' choice is merely the free adoption of a postulate which is neither true nor false; and we prefer it merely because we wish to simplify our language. (Thus the 'postulate' may be described as a convention.) Reichenbach uses the following example: '... we could assume', he writes, 'that the unobserved tree splits into two trees.'6 But in this case, he explains, we may have to alter our causal laws, as far as unobserved objects are concerned; for we may observe the
+  → attempt 2 rejected: Cleaned text size differs by more than 10% (original printable=1943, cleaned=2194)
+  original: He is a Berkeleyan or Humean idealist; and like a Berkeleyan instrumentalist, he is better informed about the objects treated by physics than is physics itself. For his whole analysis of quantum physics is based upon the distinction between the observed phenomena, such as this tree outside my window whilst I am looking at it, and the interpolations between these phenomena, called by him ' i nterphenomena', such as the same tree after I have dropped my eyes in order to write down this sentence.'If we say that a tree exists while we do not look at it', Reichenbach writes, '... we interpolate an unobserved object between observables; and we select the interpolated objl!ct in such a way that it allows us to carry through the... postulate of identical causality for observed and unobserved objects....'4 And he continues : 'If we abandon this postulate, we arrive at different descriptions of the unobservables. These descriptions are not false.... The usual language, according to which the object persists when observation ceases, is constructed by singling out one description among this class; this normal description, or normal system, is determined by the postulate of identical causality for observed and unobserved objects. The postulate is neither true nor f alse but a rule which we use to simplif y our language.' 5 Now let us consider this doctrine for a moment. What Reichenbach says - and what he wants to say, as his book and the article show-is this. The objects which we interpolate between observations are more or less arbitrarily chosen or 'selected'. The 'normal system' consists in selecting the objects in such a way that the causal laws for observed and unobserved objects remain the same. But this ' normal' choice is merely the free adoption of a postulate which is neither true nor false; and we prefer it merely because we wish to simplify our language. (Thus the 'postulate' may be described as a convention.)
+  cleaned:  He is a Berkeleyan or Humean idealist; and like a Berkeleyan instrumentalist, he is better informed about the objects treated by physics than is physics itself. For his whole analysis of quantum physics is based upon the distinction between the observed phenomena, such as this tree outside my window whilst I am looking at it, and the interpolations between these phenomena, called by him 'interphenomena', such as the same tree after I have dropped my eyes in order to write down this sentence. If we say that a tree exists while we do not look at it', Reichenbach writes, '... we interpolate an unobserved object between observables; and we select the interpolated object in such a way that it allows us to carry through the... postulate of identical causality for observed and unobserved objects....' And he continues: 'If we abandon this postulate, we arrive at different descriptions of the unobservables. These descriptions are not false.... The usual language, according to which the object persists when observation ceases, is constructed by singling out one description among this class; this normal description, or normal system, is determined by the postulate of identical causality for observed and unobserved objects. The postulate is neither true nor false but a rule which we use to simplify our language.' Now let us consider this doctrine for a moment. What Reichenbach says - and what he wants to say, as his book and the article show-is this. The objects which we interpolate between observations are more or less arbitrarily chosen or 'selected'. The 'normal system' consists in selecting the objects in such a way that the causal laws for observed and unobserved objects remain the same. But this ' normal' choice is merely the free adoption of a postulate which is neither true nor false; and we prefer it merely because we wish to simplify our language. (Thus the 'postulate' may be described as a convention.) Reichenbach uses the following example: '... we could assume', he writes, 'that the unobserved tree splits into two trees'. But in this case, he explains, we may have to alter our causal laws, as far as unobserved objects are concerned; for we may observe the
+  [Page 166]
+  [Page 167]
+  [Page 168]
+  [Page 169]
+  [Page 170]
+  [Page 171]
+  [Page 172]
+  [Page 173]
+  → restored 'one' (LLM tried 'other')
+  [Page 174]
+  [Page 175]
+  [Page 176]
+  [Page 177]
+  → restored 'y' (LLM tried 'by')
+  [Page 178]
+  [LLM FOOTNOTE] "Section V; see also notes 19 and 20, and text. The failure of Aristotle's theory to perform this fun"
+  [Page 179]
+  [Page 180]
+  [Page 181]
+  → attempt 1 rejected: Cleaned text size differs by more than 10% (original printable=881, cleaned=979)
+  original: I shall now briefly indicate the contradictions between Newton's theory and those of his predecessors. Galileo asserts that a thrown stone or a projectile moves in a parabola, except in the case of a free vertical fall when it moves, with constant acceleration, in a straight line. (We neglect air resistance throughout this discussion.) From the point of view of Newton's theory, both these assertions are false, for two distinct reasons. The first is false because the path of a long-range projectile, such as an inter-continental missile {thrown in an upward or horizontal direction) will be not even approximately parabolic: it will be elliptic. It becomes approximately a parabola only if the total distance of the flight of the projectile is negligible, compared with the radius of the earth. This point was made by Newton himself, in the Principia as well as in his popular-
+  cleaned:  I shall now briefly indicate the contradictions between Newton's theory and those of his predecessors. Galileo asserts that a thrown stone or a projectile moves in a parabola, except in the case of a free vertical fall when it moves, with constant acceleration, in a straight line. (We neglect air resistance throughout this discussion.) From the point of view of Newton's theory, both these assertions are false, for two distinct reasons. The first is false because the path of a long-range projectile, such as an intercontinental missile thrown in an upward or horizontal direction, will be not even approximately parabolic: it will be elliptic. It becomes approximately a parabola only if the total distance of the flight of the projectile is negligible, compared with the radius of the earth. This point was made by Newton himself, in the Principia as well as in his popularized version, The System of the World, where he illustrates it with the help of the following figure.
+  → attempt 2 rejected: Cleaned text size differs by more than 10% (original printable=881, cleaned=980)
+  original: I shall now briefly indicate the contradictions between Newton's theory and those of his predecessors. Galileo asserts that a thrown stone or a projectile moves in a parabola, except in the case of a free vertical fall when it moves, with constant acceleration, in a straight line. (We neglect air resistance throughout this discussion.) From the point of view of Newton's theory, both these assertions are false, for two distinct reasons. The first is false because the path of a long-range projectile, such as an inter-continental missile {thrown in an upward or horizontal direction) will be not even approximately parabolic: it will be elliptic. It becomes approximately a parabola only if the total distance of the flight of the projectile is negligible, compared with the radius of the earth. This point was made by Newton himself, in the Principia as well as in his popular-
+  cleaned:  I shall now briefly indicate the contradictions between Newton's theory and those of his predecessors. Galileo asserts that a thrown stone or a projectile moves in a parabola, except in the case of a free vertical fall when it moves, with constant acceleration, in a straight line. (We neglect air resistance throughout this discussion.) From the point of view of Newton's theory, both these assertions are false, for two distinct reasons. The first is false because the path of a long-range projectile, such as an inter-continental missile thrown in an upward or horizontal direction, will be not even approximately parabolic: it will be elliptic. It becomes approximately a parabola only if the total distance of the flight of the projectile is negligible, compared with the radius of the earth. This point was made by Newton himself, in the Principia as well as in his popularised version, The System of the World, where he illustrates it with the help of the following figure.
+  [Page 182]
+  → attempt 1 rejected: Cleaned text size differs by more than 10% (original printable=101, cleaned=122)
+  original: ized version, The System of the World, where he illustrates it with the help of the following figure.
+  cleaned:  A version of this chapter, The System of the World, appears where he illustrates it with the help of the following figure.
+  [Page 183]
+  [Page 184]
+  → restored 'hold' (LLM tried 'holds')
+  [Page 185]
+  [Page 186]
+  [Page 187]
+  [Page 188]
+  → attempt 1 rejected: Invalid control character at: line 2 column 789 (char 790)
+  → attempt 2 rejected: Cleaned text size differs by more than 10% (original printable=969, cleaned=314)
+  original: '�(It has also now been reprinted in Objective Knowledge as Chapter 5. The idea discussed in this section that theories may correct an 'observational' or 'phenomenal' law which they are supposed to explain (such as, for example, Kepler's third law) was repeatedly expounded in my lectures from my New Zealand days on. One of these lectures stimulated the correction of a supposed phenomenal law (see the 1 94 1 paper referred to in my Poverty of Historicism, 1 957, 1 960, footnote on pp. 1 34 [). Another of these lectures was published in Simon Moser's volume Gesetz und Wirklichkeit (1 948), 1 9'*9 (see especially pp. 57f.), and reprinted in Hans Albert: Theone und Realitiit, 1 964, (see especially p. 1 00), an English translation of which is published as an Appendix, 'The Bucket and the Searchlight: Two Theories by such men as Isaac Newton and Max Born, that Newton's theory can be derived from Kepler's laws, either by an inductive or by a deductive argument.
+  cleaned:  It has also now been reprinted in Objective Knowledge as Chapter 5. The idea discussed in this section that theories may correct an 'observational' or 'phenomenal' law which they are supposed to explain (such as, for example, Kepler's third law) was repeatedly expounded in my lectures from my New Zealand days on.
+  [LLM FOOTNOTE] "of Knowledge', to Objective Knowledge. The same idea of mine was also the 'starting-point' (as he pu"
+  [Page 189]
+  → attempt 1 rejected: Invalid \escape: line 2 column 27 (char 28)
+  → attempt 1 rejected: Cleaned text size differs by more than 10% (original printable=132, cleaned=165)
+  original: (5) This kind of situation is typical of the history of science. The relationship between Newton's theory of gravitation and that of
+  cleaned:  (5) This kind of situation is typical of the history of science. The relationship between Newton's theory of gravitation and Einstein's theory of general relativity.
+  → attempt 2 rejected: Cleaned text size differs by more than 10% (original printable=132, cleaned=185)
+  original: (5) This kind of situation is typical of the history of science. The relationship between Newton's theory of gravitation and that of
+  cleaned:  (5) This kind of situation is typical of the history of science. The relationship between Newton's theory of gravitation and that of Einstein's general relativity is a very similar one.
+  → attempt 3 rejected: Cleaned text size differs by more than 10% (original printable=132, cleaned=247)
+  original: (5) This kind of situation is typical of the history of science. The relationship between Newton's theory of gravitation and that of
+  cleaned:  (5) This kind of situation is typical of the history of science. The relationship between Newton's theory of gravitation and that of Einstein is very similar to that between the classical mechanics of his time and the special theory of relativity.
+  [Page 190]
+  [Page 191]
+  [Page 192]
+  [LLM FOOTNOTE] 'ZLoc. cit., 6. 361.'
+  [Page 193]
+  [Page 194]
+  [Page 195]
+  [Page 196]
+  [Page 197]
+  → restored 'wat' (LLM tried 'that')
+  [Page 198]
+  [Page 199]
+  [Page 200]
+  [Page 201]
+  [Page 202]
+  [Page 203]
+  [Page 204]
+  → attempt 1 rejected: Cleaned text size differs by more than 10% (original printable=144, cleaned=214)
+  original: SIGMUND FREUD The purpose of this section is to show, by analyzing a famous case, that the problem of demarcation is not merely one of classify-
+  cleaned:  Sigmund Freud. The purpose of this section is to show, by analyzing a famous case, that the problem of demarcation is not merely one of classification, but involves also the appraisal of alleged facts and theories.
+  [Page 205]
+  [Page 206]
+  [LLM FOOTNOTE] '4 Loc. cit.'
+  [Page 207]
+  [Page 208]
+  → restored ['wish-f', 'l', 'fil', 'u', 'm', 'e', 'n', 'ts.'] (LLM tried 'wish-fullfilment.')
+  → restored ['wish-ful', 'filment,'] (LLM tried 'wish-fulfillment,')
+  [Page 209]
+  [Page 210]
+  [Page 211]
+  [Page 212]
+  → attempt 1 rejected: Cleaned text size differs by more than 10% (original printable=64, cleaned=26)
+  original: Even without this decisive objection, the jigsaw puzzle argument
+  cleaned:  the jigsaw puzzle argument
+  → attempt 2 rejected: Cleaned text size differs by more than 10% (original printable=64, cleaned=26)
+  original: Even without this decisive objection, the jigsaw puzzle argument
+  cleaned:  The jigsaw puzzle argument
+  → attempt 3 rejected: Cleaned text size differs by more than 10% (original printable=64, cleaned=26)
+  original: Even without this decisive objection, the jigsaw puzzle argument
+  cleaned:  The jigsaw puzzle argument
+  [Page 213]
+  [Page 214]
+  [LLM FOOTNOTE] "This idea is taken from the last sentence of section III of Freud's 'On Dreams', 1901; Standard Ed.,"
+  [Page 215]
+  → restored 'theo-' (LLM tried 'theories.')
+  [Page 216]
+  [Page 217]
+  [Page 218]
+  → restored 'a' (LLM tried 'à')
+  [LLM FOOTNOTE] "Acf note 3 on p. 76 of W. Kneale's Probability and Induction. [Cf Unended Quest, section 17. Ed.]"
+  → restored ''exactness'' (LLM tried 'this')
+  → restored 'i' (LLM tried 'exactness')
+  → restored 's' (LLM tried 'is')
+  [Page 219]
+  [Page 220]
+  [Page 221]
+  [Page 222]
+  → restored 'criticize' (LLM tried 'criticise')
+  [Page 223]
+  [Page 224]
+  [Page 225]
+  [Page 226]
+  [Page 227]
+  [Page 228]
+  [Page 229]
+  [Page 230]
+  [Page 231]
+  [Page 232]
+  [Page 233]
+  [LLM FOOTNOTE] 'Each of these metaphysical theories served, before it became 3 Diels, Vorsokratiker ii, 6th ed., 195'
+  [LLM FOOTNOTE] '4 Cp. Democritus, Fragm. 125. (Diels, op. cit., p. 168.)'
+  [LLM FOOTNOTE] "'But in fact, nothing do we know from having seen it; for the truth is hidden in the deep.' Democrit"
+  [LLM FOOTNOTE] 'Cf section 26, below.'
+  [Page 234]
+  [Page 235]
+  [Page 236]
+  [Page 237]
+  [LLM FOOTNOTE] 'Since my discussion has given rise to misunderstandings (cp. footnote 2 to section 66 of L.Sc.D.), a'
+  [Page 238]
+  → restored 'evert' (LLM tried 'even')
+  → restored 'f' (LLM tried '[This')
+  → restored 'his' (LLM tried 'from')
+  [LLM FOOTNOTE] '2 f his Proofs and Refutations, 1976. Ed.]'
+  [Page 239]
+  → attempt 1 rejected: Cleaned text size differs by more than 10% (original printable=39, cleaned=32)
+  original: (G) (x)(Ey)(P(x + y) & P((2 + x) - y)).
+  cleaned:  (G) (x)(Ey)(P(x+y) & P((2+x)-y))
+  [Page 240]
+  → restored ["'Etp", "'"] (LLM tried ''Etp',')
+  [Page 241]
+  [Page 242]
+  → restored 'x' (LLM tried 'x+2')
+  [Page 243]
+  → restored ['wp', '(x)'] (LLM tried 'wp(x))')
+  → restored '(HI)' (LLM tried '(H1)')
+  → restored '(HI)' (LLM tried '(H1)')
+  → attempt 1 rejected: Cleaned text size differs by more than 10% (original printable=54, cleaned=48)
+  original: (G') (x)(E y),(x ·. > 1 -+ P(x + y) & P((2 + x) - y)).
+  cleaned:  (G') (x)(Ey)(x > 1 -> P(x + y) & P((2 + x) - y))
+  [Page 244]
+  [Page 245]
+  [Page 246]
+  [Page 247]
+  [Page 248]
+  [Page 249]
+  [Page 250]
+  [Page 251]
+  → attempt 1 rejected: Invalid \escape: line 2 column 55 (char 56)
+  [Page 252]
+  [LLM FOOTNOTE] 'Let x be a person (or an animal, or a plant, or another thing). We 13L.Sc.D., end of section 25; see'
+  [Page 253]
+  [Page 254]
+  [Page 255]
+  [Page 256]
+  [Page 257]
+  [Page 258]
+  [Page 259]
+  [Page 260]
+  → restored '-o' (LLM tried 'or')
+  → restored 'r' (LLM tried 'not')
+  → restored ['=', 'p(b,b)', '1.'] (LLM tried 'p(b,b).')
+  [Page 261]
+  [Page 262]
+  [Page 263]
+  [Page 264]
+  [Page 265]
+  [Page 266]
+  → restored 'teste' (LLM tried 'tested')
+  → restored 'd' (LLM tried '-')
+  [Page 267]
+  → restored ["'", "probability'-the"] (LLM tried ''probability'—the')
+  → attempt 1 rejected: Invalid \escape: line 2 column 101 (char 102)
+  [Page 268]
+  [Page 269]
+  [Page 270]
+  [LLM FOOTNOTE] "I found this situation a little embarrassing, and when I published a paper (entitled 'Degree of Conf"
+  [Page 271]
+  [LLM FOOTNOTE] 'Cf. Philosophy of Science 12 (1945), note 2 on p. 99.'
+  [Page 272]
+  [LLM FOOTNOTE] '(2) Since testability in its turn can be measured by the content of the theory, and since content, i'
+  [Page 273]
+  [Page 274]
+  [Page 275]
+  [Page 276]
+  → restored ['relationship--instantiation', '-', 'whose'] (LLM tried 'relationship—instantiation—whose')
+  [Page 277]
+  → restored 'which' (LLM tried 'that')
+  [Page 278]
+  [Page 279]
+  → restored 'realize' (LLM tried 'realise')
+  [Page 280]
+  → attempt 1 rejected: Invalid \escape: line 2 column 18 (char 19)
+  → restored 'p.' (LLM tried 'page')
+  [Page 281]
+  [Page 282]
+  → restored ["''", "'", 'i', 'v'] (LLM tried ''iv'')
+  [Page 283]
+  [Page 284]
+  [Page 285]
+  [Page 286]
+  → restored ['tautology-an', 'analytic'] (LLM tried 'tautology-analytic')
+  [LLM FOOTNOTE] '(4) A tautology-an analytic statement - cannot be empirically tested. This may be expressed by the d'
+  → restored ['self', '-', 'coatradictory'] (LLM tried 'self-contradictory')
+  [Page 287]
+  → attempt 1 rejected: Cleaned text size differs by more than 10% (original printable=1012, cleaned=617)
+  original: 1 See Appendix ·:·ix of L.Sc.D., where my three papers on 'Degree of Confirmation' are reprinted. (Brit.]ourn. Phil. Science 5, 1 954, pp. 1 43!f. See also corrections in 5, pp. 334 and 359; 6, 1 955, pp. 1 57 f f ; 7, 1 956, pp. 244 f, 249 f f, and 350 f f) Note that in these papers I used the term 'confirmation' instead of 'corroboration', and that I used the symbol ' C(x) ' for the content of x, while I use here the symbol ' Ct(x) '. In the first of these papers, several desiderata are stated which are not mentioned here. See also Appendices ''ii and ·:·iv. [See also the Addenda to Conjectures and Refutations. Ed.) I (7) This is advisable since in view of the convention of ma in k g the factor of proportionality e qual to 1, formulated i n po int (3,) the maximal degree of corroboration which even the most testable hypothesis can obtain is + 1. Thus w e o btai n s ymmetr c i al l im t i s, - 1 and + 1, for degree of corroboration, while 0 means no corroboration, as in the case of the tautology.
+  cleaned:  See Appendix ·:·ix of L.Sc.D., where my three papers on 'Degree of Confirmation' are reprinted. (Brit.) Journ. Phil. Science 5, 1954, pp. 143-ff. See also corrections in 5, pp. 334 and 359; 6, 1955, pp. 157-ff.; 7, 1956, pp. 244 ff., 249 ff., and 350 ff.) Note that in these papers I used the term 'confirmation' instead of 'corroboration', and that I used the symbol 'C(x)' for the content of x, while I use here the symbol 'Ct(x)'. In the first of these papers, several desiderata are stated which are not mentioned here. See also Appendices 'ii and ·:·iv. [See also the Addenda to Conjectures and Refutations. Ed.)
+  → attempt 2 rejected: Cleaned text size differs by more than 10% (original printable=1012, cleaned=622)
+  original: 1 See Appendix ·:·ix of L.Sc.D., where my three papers on 'Degree of Confirmation' are reprinted. (Brit.]ourn. Phil. Science 5, 1 954, pp. 1 43!f. See also corrections in 5, pp. 334 and 359; 6, 1 955, pp. 1 57 f f ; 7, 1 956, pp. 244 f, 249 f f, and 350 f f) Note that in these papers I used the term 'confirmation' instead of 'corroboration', and that I used the symbol ' C(x) ' for the content of x, while I use here the symbol ' Ct(x) '. In the first of these papers, several desiderata are stated which are not mentioned here. See also Appendices ''ii and ·:·iv. [See also the Addenda to Conjectures and Refutations. Ed.) I (7) This is advisable since in view of the convention of ma in k g the factor of proportionality e qual to 1, formulated i n po int (3,) the maximal degree of corroboration which even the most testable hypothesis can obtain is + 1. Thus w e o btai n s ymmetr c i al l im t i s, - 1 and + 1, for degree of corroboration, while 0 means no corroboration, as in the case of the tautology.
+  cleaned:  See Appendix ·:·ix of L.Sc.D., where my three papers on 'Degree of Confirmation' are reprinted. (British) Philosophical Science 5, 1954, pp. 143-154. See also corrections in 5, pp. 334 and 359; 6, 1955, pp. 157-ff; 7, 1956, pp. 244-ff, 249-ff, and 350-ff) Note that in these papers I used the term 'confirmation' instead of 'corroboration', and that I used the symbol ' C(x) ' for the content of x, while I use here the symbol ' Ct(x) '. In the first of these papers, several desiderata are stated which are not mentioned here. See also Appendices ''ii and ·:·iv. [See also the Addenda to Conjectures and Refutations. Ed.)
+  → attempt 3 rejected: Cleaned text size differs by more than 10% (original printable=1012, cleaned=625)
+  original: 1 See Appendix ·:·ix of L.Sc.D., where my three papers on 'Degree of Confirmation' are reprinted. (Brit.]ourn. Phil. Science 5, 1 954, pp. 1 43!f. See also corrections in 5, pp. 334 and 359; 6, 1 955, pp. 1 57 f f ; 7, 1 956, pp. 244 f, 249 f f, and 350 f f) Note that in these papers I used the term 'confirmation' instead of 'corroboration', and that I used the symbol ' C(x) ' for the content of x, while I use here the symbol ' Ct(x) '. In the first of these papers, several desiderata are stated which are not mentioned here. See also Appendices ''ii and ·:·iv. [See also the Addenda to Conjectures and Refutations. Ed.) I (7) This is advisable since in view of the convention of ma in k g the factor of proportionality e qual to 1, formulated i n po int (3,) the maximal degree of corroboration which even the most testable hypothesis can obtain is + 1. Thus w e o btai n s ymmetr c i al l im t i s, - 1 and + 1, for degree of corroboration, while 0 means no corroboration, as in the case of the tautology.
+  cleaned:  1 See Appendix ·:·ix of L.Sc.D., where my three papers on 'Degree of Confirmation' are reprinted. (Brit.]ourn. Phil. Science 5, 1954, pp. 143-154; See also corrections in 5, pp. 334 and 359; 6, 1955, pp. 157 ff.; 7, 1956, pp. 244 ff., 249 fff., and 350 fff.) Note that in these papers I used the term 'confirmation' instead of 'corroboration', and that I used the symbol ' C(x) ' for the content of x, while I use here the symbol ' Ct(x) '. In the first of these papers, several desiderata are stated which are not mentioned here. See also Appendices ''ii and ·:·iv. [See also the Addenda to Conjectures and Refutations. Ed.)
+  [Page 288]
+  [Page 289]
+  [Page 290]
+  → restored 'be,' (LLM tried 'bc,')
+  → restored 'be,' (LLM tried 'bc,')
+  → restored 'be,' (LLM tried 'bc,')
+  [Page 291]
+  [Page 292]
+  → restored ':s;;' (LLM tried '≤')
+  → restored ':s;;' (LLM tried '≤')
+  [Page 293]
+  [LLM FOOTNOTE] '6 See footnote 4.'
+  [LLM FOOTNOTE] 'See footnote 4.'
+  → restored ['p(b,a}-', 'alled'] (LLM tried 'p(b,a)-alled')
+  [Page 294]
+  → restored ['p(x,z)', ';;.'] (LLM tried 'p(x,z);.')
+  → restored ['p(y,z)', '(by', '1)'] (LLM tried 'p(y,z);')
+  [Page 295]
+  [Page 296]
+  [Page 297]
+  [Page 298]
+  [Page 299]
+  → attempt 1 rejected: Cleaned text size differs by more than 10% (original printable=2159, cleaned=2536)
+  original: Hempel's concept of 'confirmation' or 'confirming instance' Uournal of Symbolic Logic 8, 1 943, pp. 1 22-1 43) is 'verificationist' : the idea is that the statement x confirms the statement y if and only if x describes a verifying instance of y. But owing to the inadequacy of Hempel's 'logical requirements', his definition has the following clearly unintended consequences. Let a be the name of an individual thing. Then the singular statement 'a is a white swan' not only confirms, as intended, 'All swans are white', and 'All non-white things are non-swans', but it also confirms (which is hardly intended) 'All things are white'; 'All things are swans'; 'All things are white swans' ; and except for his ad hoc exclusion of identity (about which see below) 'There is only one white swan'; 'There exists one and only one thing, and this is a white swan'. Moreover, our singular statement confirms only such statements as are compatible with the statements here quoted; so that it confirms 'All swans are white' only in the Pickwickian sense in which it means 'All swans are white because--apart from the a we have seen-there aren't any'. This shows that Hempel's definition is clearly both too narrow and too wide. It confirms statements which are not intended to be confirmed, and it fails to confirm those which ar e intended to be confirmed. For example, the two statements 'Every human being has a human mother' and 'Every female human being has a human mother' are both non-confirmable by human beings (although they are confirmed by 'a is not human'}, according to Hempel's theory (since they have no finite 'development', in Hempel's sense, among human beings); but the statement 'Every ' Nothing even in mathematical science can be more certain than that a collection of scientific facts are of themselves incapable of leading to discovery,' wrote Brewster over a hundred years agoexpressing, perhaps, a more mature attitude towards science than our own. 3 For today, we are told that universal laws and theories are not really needed in science - that science can infer its predictions (with probability) from a mere collection of singular facts.
+  cleaned:  Hempel's concept of 'confirmation' or 'confirming instance', Journal of Symbolic Logic 8, 1943, pp. 122-143, is 'verificationist': the idea is that the statement x confirms the statement y if and only if x describes a verifying instance of y. But owing to the inadequacy of Hempel's 'logical requirements', his definition has the following clearly unintended consequences. Let a be the name of an individual thing. Then the singular statement 'a is a white swan' not only confirms, as intended, 'All swans are white', and 'All non-white things are non-swans', but it also confirms (which is hardly intended) 'All things are white'; 'All things are swans'; 'All things are white swans'; and except for his ad hoc exclusion of identity (about which see below) 'There is only one white swan'; 'There exists one and only one thing, and this is a white swan'. Moreover, our singular statement confirms only such statements as are compatible with the statements here quoted; so that it confirms 'All swans are white' only in the Pickwickian sense in which it means 'All swans are white because--apart from the a we have seen-there aren't any'. This shows that Hempel's definition is clearly both too narrow and too wide. It confirms statements which are not intended to be confirmed, and it fails to confirm those which are intended to be confirmed. For example, the two statements 'Every human being has a human mother' and 'Every female human being has a human mother' are both non-confirmable by human beings (although they are confirmed by 'a is not human'), according to Hempel's theory (since they have no finite 'development', in Hempel's sense, among human beings); but the statement 'male human being has a human mother' is confirmable, for example, by the statement 'Mary is the mother of Edward (and Mary is a female human being and Edward is a male human being)'. As to Hempel's exclusion of identity from his model language, I do not think that a definition can be made more adequate by the attempt to prevent us from expressing in our model language consequences which are palpably counter-intuitive. (Cf. also J. W. N. Watkins, 'Between Analytic and Empirical', Philosophy, 1957, pp. 116-123 and pp. 125-127.) Incidentally, I have been criticized for not giving a 'precise' definition either of the 'instantiation of a law' or of a 'refuting instance of a law'. Yet 'semantic' definitions of these concepts are given in the last footnote of my 'Note on Tarski's Definition of Truth', now in my Objective Knowledge, pp. 335-340.
+  [Page 300]
+  [LLM FOOTNOTE] '6 C. F. Philosophy of Science 12, 1945, note 2 on p. 99. 61. Kant, Was ist Aufklürung? (What Is Enli'
+  [Page 301]
+  [Page 302]
+  → restored 'of' (LLM tried 'on')
+  [Page 303]
+  [Page 304]
+  [Page 305]
+  → attempt 1 rejected: Expecting ',' delimiter: line 2 column 614 (char 615)
+  → attempt 2 rejected: Expecting ',' delimiter: line 2 column 614 (char 615)
+  → restored 'L' (LLM tried 'cetera'.')
+  [Page 306]
+  → restored ['question', '-', 'without'] (LLM tried 'question--without')
+  [Page 307]
+  [Page 308]
+  → attempt 1 rejected: Cleaned text size differs by more than 10% (original printable=901, cleaned=466)
+  original: Macaulay, contrasting the certainty of mathematics with the uncertainty of philosophy, asks who ever heard of a reaction against Taylor's theorem? If he had lived now, he himself might have heard of such a reaction, for this is precisely one of the theorems which modern investigations have overthrown. Such rude shocks to mathematical faith have produced that love of formalism which appears, to those who are ignorant of its motive, to be mere outrageous pedantry.'8 It would perhaps be too much to read into this passage of Russell's his agreement with a view which I hold to be true: that without ' such rude shocks'-that is to say, without the urgent need to remove contradictions - the love of formalism is indeed 'mere outrageous pedantry'. But I think that Russell does convey his view that without an urgent need, an urgent problem to be solved, the mere demand for precision is indefensible.
+  cleaned:  Macaulay, contrasting the certainty of mathematics with the uncertainty of philosophy, asks who ever heard of a reaction against Taylor's theorem? If he had lived now, he himself might have heard of such a reaction, for this is precisely one of the theorems which modern investigations have overthrown. Such rude shocks to mathematical faith have produced that love of formalism which appears, to those who are ignorant of its motive, to be mere outrageous pedantry.
+  → restored 'X' (LLM tried '×')
+  [Page 309]
+  [Page 310]
+  → restored 'realized)' (LLM tried 'realised)')
+  [Page 311]
+  [Page 312]
+  → restored ['di', 'f', 'f', "erentia/is'"] (LLM tried 'differ-entia/lis'')
+  [LLM FOOTNOTE] '13 (See Objective Knowledge, op. cit., 128-40. Ed.)'
+  [Page 313]
+  → restored 'analyzed.' (LLM tried 'analysed.')
+  [Page 314]
+  [Page 315]
+  [Page 316]
+  [Page 317]
+  [Page 318]
+  [Page 319]
+  [Page 322]
+  [LLM FOOTNOTE] "See also Popper's 'On Rules of Detachment and So-called Inductive Logic', and his 'Theories, Experie"
+  [Page 323]
+  [Page 324]
+  [Page 325]
+  → attempt 1 rejected: Cleaned text size differs by more than 10% (original printable=290, cleaned=444)
+  original: On the other hand, p(a) = r can hardly be interpreted in frequency terms (except in a trivial way-by taking the reference class b as 'understood'). For there is no point in saying 'sparrows occur frequently' unless 'among European birds', or something like this, is taken as understood. But
+  cleaned:  On the other hand, p(a) = r can hardly be interpreted in frequency terms (except in a trivial way-by taking the reference class b as 'understood'). For there is no point in saying 'sparrows occur frequently' unless 'among European birds', or something like this, is taken as understood. But p(a) = r can be interpreted without difficulty in other than frequency terms, for example within what I call the 'logical interpretation' of probability.
+  [Page 326]
+  → restored ['a', '(read', "'", 'non-a', "')."] (LLM tried ''non-a'.')
+  [Page 327]
+  [Page 328]
+  [Page 329]
+  [Page 330]
+  [Page 331]
+  → restored 'tions' (LLM tried 'Tensions')
+  [Page 332]
+  → restored 'be' (LLM tried 'bc')
+  → restored ['p', 'a', 'b)', '(;', 'c'] (LLM tried 'p(a;b)')
+  [Page 333]
+  → restored ['p(a', 'b),'] (LLM tried 'p(a,b)')
+  [Page 334]
+  [Page 335]
+  → restored ['p', 'a', 'b', '(,)--say,'] (LLM tried 'p(ab),—say,')
+  [Page 336]
+  [Page 337]
+  → restored 'chose' (LLM tried 'chosen')
+  [Page 338]
+  [Page 339]
+  → attempt 1 rejected: Cleaned text size differs by more than 10% (original printable=151, cleaned=130)
+  original: Thus there is no reason what ev r e wh y in any actual pro b em l of determining the probability of a, the two theories should operate with the same b.
+  cleaned:  There is no reason why, in any actual problem of determining the probability of a, the two theories should operate with the same b
+  → attempt 2 rejected: Cleaned text size differs by more than 10% (original printable=151, cleaned=135)
+  original: Thus there is no reason what ev r e wh y in any actual pro b em l of determining the probability of a, the two theories should operate with the same b.
+  cleaned:  Thus there is no reason why in any actual problem of determining the probability of a, the two theories should operate with the same b.
+  → attempt 3 rejected: Cleaned text size differs by more than 10% (original printable=151, cleaned=135)
+  original: Thus there is no reason what ev r e wh y in any actual pro b em l of determining the probability of a, the two theories should operate with the same b.
+  cleaned:  Thus there is no reason why in any actual problem of determining the probability of a, the two theories should operate with the same b.
+  [Page 340]
+  [LLM FOOTNOTE] '1 See W. Feller, Introduction to Probability Theory, 1950, p. 336, esp. note 9; see third edition, 1'
+  [Page 341]
+  [Page 342]
+  → restored 'Ed.]' (LLM tried 'Editor].')
+  [LLM FOOTNOTE] 'The idea of probability enters into our considerations when we [See Volume III of the Postscript: Qu'
+  [Page 343]
+  [Page 344]
+  → restored 'th,' (LLM tried '1/2,')
+  → restored 'a' (LLM tried 'b')
+  [Page 345]
+  [Page 346]
+  → restored 'which' (LLM tried 'that')
+  → restored 'argued),' (LLM tried 'argued}')
+  [Page 347]
+  → restored 'homogeneous')' (LLM tried 'homogeneous’}')
+  → restored 'extent').' (LLM tried 'extent’}.')
+  [Page 348]
+  [Page 349]
+  → restored 'f' (LLM tried 'of')
+  → restored ["'p(a,b)'.", 'o', 'o'] (LLM tried '.')
+  [Page 350]
+  → restored 'conditions-' (LLM tried 'conditions—')
+  [Page 351]
+  → restored 'absolution' (LLM tried 'absolutio')
+  → restored 'absolution' (LLM tried 'absolutio')
+  [Page 352]
+  → restored 'absolution,' (LLM tried 'absoluteness,')
+  [Page 353]
+  → restored ['p(,b', 'a)'] (LLM tried 'p(,b|a)')
+  [Page 354]
+  → restored 'be,' (LLM tried 'bc,')
+  [Page 355]
+  [Page 356]
+  [Page 357]
+  [Page 358]
+  [Page 359]
+  [Page 360]
+  [Page 361]
+  → restored 'combination' (LLM tried 'combinations')
+  [Page 362]
+  [Page 363]
+  → attempt 1 rejected: Cleaned text size differs by more than 10% (original printable=3296, cleaned=2783)
+  original: Q, At the stage just described, the machine uses the simple inductive rule (as I have called it) in its most primitive form. Against this form the objection has been raised that the early results - of the initial steps of the induction-are unreasonable. For example, if the first ball is blue and of steel, then the machine would have to attribute to the predicates 'blue' and 'steel', and also of course to the predicate 'blue and steel', the probability 1, and to the others the probability zero. The objection raised here appears to have little significance; for if we wish to avoid such early results, we can always construct our machine so that it starts issuing probabilistic predictions only after the 1 000th event, say, or after any other number n which we may choose, bearing in mind the number of different properties in our 'world'. (The problem is so trivial that it is not worth making any effort to solve it systematically; for we know, after all, that applications of the simple inductive rule will never give us more than increasingly good approximations. 1) ' I n h i s Logical Foundations of Probability, 1 949, and its sequel, The Continuum of Inductive Methods, 1 952, Carnap is concerned with constructing 'inductive methods' which correspond closely to what I have here described as the most primitive stage (i) in the evolution of an induction machine; and the various inductive methods contained in his Continuum can be shown to be so many attempts to solve the problem I have just described as trivial; the problem, that is, of how to avoid the counter-intuitive initial results of the simple inductive rule in its most primitive form. See for example, Logical Foundations, p. 227, where Carnap discusses what he calls the 'Straight Rule \ which is our simple rule, interpreted as giving exact results rather than approximate results. (This is why Carnap raises two objections--one in connection with the initial results of the rule, and the other in connection with the fact that we should hardly at every moment of time ascribe an extreme probability such as zero to every event which up to that moment has not been observed; yet this second objection disappears if we replace 'zero' by 'not far from zero'.) Carnap's 'continuum of inductive methods' simply consists of various methods of obtaining not too implausible results even below the number which, in the text, I have called 'n ', and of choosing that number n. Since he believes that the theory of induction must be a logical theory, he attempts in his Logical Foundations (pp. 563f!.) to give a kind of logical justification for choosing a particular solution of this problem. This attempt, it seems, is given up in his Continuum, where the variety of the possible solutions is stressed. (Thus Car nap's (ii) In a second and slightly less primitive stage, the induction machine may, in a similar way, formulate the statistics of consecutive pairs, triplets, etc., of events. It may discover, in this way, that the probability of a copper-steel pair to be followed by a copper event, or by a steel-copper pair, or by any triplet except a steel - steelcopper triplet, is zero. (Which means that the machine has discovered the 'law' that steel events tend to occur, if at all, in a succession of exactly three.)
+  cleaned:  Q. At the stage just described, the machine uses the simple inductive rule (as I have called it) in its most primitive form. Against this form the objection has been raised that the early results - of the initial steps of the induction-are unreasonable. For example, if the first ball is blue and of steel, then the machine would have to attribute to the predicates 'blue' and 'steel', and also of course to the predicate 'blue and steel', the probability 1, and to the others the probability zero. The objection raised here appears to have little significance; for if we wish to avoid such early results, we can always construct our machine so that it starts issuing probabilistic predictions only after the 1000th event, say, or after any other number n which we may choose, bearing in mind the number of different properties in our 'world'. (The problem is so trivial that it is not worth making any effort to solve it systematically; for we know, after all, that applications of the simple inductive rule will never give us more than increasingly good approximations. 1) ' In his Logical Foundations of Probability, 1949, and its sequel, The Continuum of Inductive Methods, 1952, Carnap is concerned with constructing 'inductive methods' which correspond closely to what I have here described as the most primitive stage (i) in the evolution of an induction machine; and the various inductive methods contained in his Continuum can be shown to be so many attempts to solve the problem I have just described as trivial; the problem, that is, of how to avoid the counter-intuitive initial results of the simple inductive rule in its most primitive form. See for example, Logical Foundations, p. 227, where Carnap discusses what he calls the 'Straight Rule', which is our simple rule, interpreted as giving exact results rather than approximate results. (This is why Carnap raises two objections--one in connection with the initial results of the rule, and the other in connection with the fact that we should hardly at every moment of time ascribe an extreme probability such as zero to every event which up to that moment has not been observed; yet this second objection disappears if we replace 'zero' by 'not far from zero'.) Carnap's 'continuum of inductive methods' simply consists of various methods of obtaining not too implausible results even below the number which, in the text, I have called 'n ', and of choosing that number n. Since he believes that the theory of induction must be a logical theory, he attempts in his Logical Foundations (pp. 563f!) to give a kind of logical justification for choosing a particular solution of this problem. This attempt, it seems, is given up in his Continuum, where the variety of the possible solutions is stressed. (Thus Carnap's
+  → attempt 2 rejected: Cleaned text size differs by more than 10% (original printable=3296, cleaned=2766)
+  original: Q, At the stage just described, the machine uses the simple inductive rule (as I have called it) in its most primitive form. Against this form the objection has been raised that the early results - of the initial steps of the induction-are unreasonable. For example, if the first ball is blue and of steel, then the machine would have to attribute to the predicates 'blue' and 'steel', and also of course to the predicate 'blue and steel', the probability 1, and to the others the probability zero. The objection raised here appears to have little significance; for if we wish to avoid such early results, we can always construct our machine so that it starts issuing probabilistic predictions only after the 1 000th event, say, or after any other number n which we may choose, bearing in mind the number of different properties in our 'world'. (The problem is so trivial that it is not worth making any effort to solve it systematically; for we know, after all, that applications of the simple inductive rule will never give us more than increasingly good approximations. 1) ' I n h i s Logical Foundations of Probability, 1 949, and its sequel, The Continuum of Inductive Methods, 1 952, Carnap is concerned with constructing 'inductive methods' which correspond closely to what I have here described as the most primitive stage (i) in the evolution of an induction machine; and the various inductive methods contained in his Continuum can be shown to be so many attempts to solve the problem I have just described as trivial; the problem, that is, of how to avoid the counter-intuitive initial results of the simple inductive rule in its most primitive form. See for example, Logical Foundations, p. 227, where Carnap discusses what he calls the 'Straight Rule \ which is our simple rule, interpreted as giving exact results rather than approximate results. (This is why Carnap raises two objections--one in connection with the initial results of the rule, and the other in connection with the fact that we should hardly at every moment of time ascribe an extreme probability such as zero to every event which up to that moment has not been observed; yet this second objection disappears if we replace 'zero' by 'not far from zero'.) Carnap's 'continuum of inductive methods' simply consists of various methods of obtaining not too implausible results even below the number which, in the text, I have called 'n ', and of choosing that number n. Since he believes that the theory of induction must be a logical theory, he attempts in his Logical Foundations (pp. 563f!.) to give a kind of logical justification for choosing a particular solution of this problem. This attempt, it seems, is given up in his Continuum, where the variety of the possible solutions is stressed. (Thus Car nap's (ii) In a second and slightly less primitive stage, the induction machine may, in a similar way, formulate the statistics of consecutive pairs, triplets, etc., of events. It may discover, in this way, that the probability of a copper-steel pair to be followed by a copper event, or by a steel-copper pair, or by any triplet except a steel - steelcopper triplet, is zero. (Which means that the machine has discovered the 'law' that steel events tend to occur, if at all, in a succession of exactly three.)
+  cleaned:  Q, At the stage just described, the machine uses the simple inductive rule (as I have called it) in its most primitive form. Against this form the objection has been raised that the early results-of the initial steps of the induction-are unreasonable. For example, if the first ball is blue and of steel, then the machine would have to attribute to the predicates 'blue' and 'steel', and also of course to the predicate 'blue and steel', the probability 1, and to the others the probability zero. The objection raised here appears to have little significance; for if we wish to avoid such early results, we can always construct our machine so that it starts issuing probabilistic predictions only after the 1000th event, say, or after any other number n which we may choose, bearing in mind the number of different properties in our 'world'. (The problem is so trivial that it is not worth making any effort to solve it systematically; for we know, after all, that applications of the simple inductive rule will never give us more than increasingly good approximations. 1) In his Logical Foundations of Probability, 1949, and its sequel, The Continuum of Inductive Methods, 1952, Carnap is concerned with constructing 'inductive methods' which correspond closely to what I have here described as the most primitive stage (i) in the evolution of an induction machine; and the various inductive methods contained in his Continuum can be shown to be so many attempts to solve the problem I have just described as trivial; the problem, that is, of how to avoid the counter-intuitive initial results of the simple inductive rule in its most primitive form. See for example, Logical Foundations, p. 227, where Carnap discusses what he calls the 'Straight Rule ', which is our simple rule, interpreted as giving exact results rather than approximate results. (This is why Carnap raises two objections--one in connection with the initial results of the rule, and the other in connection with the fact that we should hardly at every moment of time ascribe an extreme probability such as zero to every event which up to that moment has not been observed; yet this second objection disappears if we replace 'zero' by 'not far from zero'.) Carnap's 'continuum of inductive methods' simply consists of various methods of obtaining not too implausible results even below the number which, in the text, I have called 'n ', and of choosing that number n. Since he believes that the theory of induction must be a logical theory, he attempts in his Logical Foundations (pp. 563f!.) to give a kind of logical justification for choosing a particular solution of this problem. This attempt, it seems, is given up in his Continuum, where the variety of the possible solutions is stressed.
+  → attempt 3 rejected: Cleaned text size differs by more than 10% (original printable=3296, cleaned=2766)
+  original: Q, At the stage just described, the machine uses the simple inductive rule (as I have called it) in its most primitive form. Against this form the objection has been raised that the early results - of the initial steps of the induction-are unreasonable. For example, if the first ball is blue and of steel, then the machine would have to attribute to the predicates 'blue' and 'steel', and also of course to the predicate 'blue and steel', the probability 1, and to the others the probability zero. The objection raised here appears to have little significance; for if we wish to avoid such early results, we can always construct our machine so that it starts issuing probabilistic predictions only after the 1 000th event, say, or after any other number n which we may choose, bearing in mind the number of different properties in our 'world'. (The problem is so trivial that it is not worth making any effort to solve it systematically; for we know, after all, that applications of the simple inductive rule will never give us more than increasingly good approximations. 1) ' I n h i s Logical Foundations of Probability, 1 949, and its sequel, The Continuum of Inductive Methods, 1 952, Carnap is concerned with constructing 'inductive methods' which correspond closely to what I have here described as the most primitive stage (i) in the evolution of an induction machine; and the various inductive methods contained in his Continuum can be shown to be so many attempts to solve the problem I have just described as trivial; the problem, that is, of how to avoid the counter-intuitive initial results of the simple inductive rule in its most primitive form. See for example, Logical Foundations, p. 227, where Carnap discusses what he calls the 'Straight Rule \ which is our simple rule, interpreted as giving exact results rather than approximate results. (This is why Carnap raises two objections--one in connection with the initial results of the rule, and the other in connection with the fact that we should hardly at every moment of time ascribe an extreme probability such as zero to every event which up to that moment has not been observed; yet this second objection disappears if we replace 'zero' by 'not far from zero'.) Carnap's 'continuum of inductive methods' simply consists of various methods of obtaining not too implausible results even below the number which, in the text, I have called 'n ', and of choosing that number n. Since he believes that the theory of induction must be a logical theory, he attempts in his Logical Foundations (pp. 563f!.) to give a kind of logical justification for choosing a particular solution of this problem. This attempt, it seems, is given up in his Continuum, where the variety of the possible solutions is stressed. (Thus Car nap's (ii) In a second and slightly less primitive stage, the induction machine may, in a similar way, formulate the statistics of consecutive pairs, triplets, etc., of events. It may discover, in this way, that the probability of a copper-steel pair to be followed by a copper event, or by a steel-copper pair, or by any triplet except a steel - steelcopper triplet, is zero. (Which means that the machine has discovered the 'law' that steel events tend to occur, if at all, in a succession of exactly three.)
+  cleaned:  Q. At the stage just described, the machine uses the simple inductive rule (as I have called it) in its most primitive form. Against this form the objection has been raised that the early results – of the initial steps of the induction – are unreasonable. For example, if the first ball is blue and of steel, then the machine would have to attribute to the predicates 'blue' and 'steel', and also of course to the predicate 'blue and steel', the probability 1, and to the others the probability zero. The objection raised here appears to have little significance; for if we wish to avoid such early results, we can always construct our machine so that it starts issuing probabilistic predictions only after the 1,000th event, say, or after any other number n which we may choose, bearing in mind the number of different properties in our 'world'. (The problem is so trivial that it is not worth making any effort to solve it systematically; for we know, after all, that applications of the simple inductive rule will never give us more than increasingly good approximations. 1) In his Logical Foundations of Probability, 1949, and its sequel, The Continuum of Inductive Methods, 1952, Carnap is concerned with constructing 'inductive methods' which correspond closely to what I have here described as the most primitive stage (i) in the evolution of an induction machine; and the various inductive methods contained in his Continuum can be shown to be so many attempts to solve the problem I have just described as trivial; the problem, that is, of how to avoid the counter-intuitive initial results of the simple inductive rule in its most primitive form. See for example, Logical Foundations, p. 227, where Carnap discusses what he calls the 'Straight Rule' which is our simple rule, interpreted as giving exact results rather than approximate results. (This is why Carnap raises two objections—one in connection with the initial results of the rule, and the other in connection with the fact that we should hardly at every moment of time ascribe an extreme probability such as zero to every event which up to that moment has not been observed; yet this second objection disappears if we replace 'zero' by 'not far from zero'.) Carnap's 'continuum of inductive methods' simply consists of various methods of obtaining not too implausible results even below the number which, in the text, I have called 'n', and of choosing that number n. Since he believes that the theory of induction must be a logical theory, he attempts in his Logical Foundations (pp. 563f!) to give a kind of logical justification for choosing a particular solution of this problem. This attempt, it seems, is given up in his Continuum, where the variety of the possible solutions is stressed.
+  [Page 364]
+  [LLM FOOTNOTE] "Compare with the last three paragraphs the end of Section V of my paper 'Philosophy of Science: A Pe"
+  [Page 365]
+  [Page 366]
+  → restored 'a.' (LLM tried '¬a.')
+  → restored 'analysing' (LLM tried 'analyzing')
+  [Page 367]
+  → restored 'i:.' (LLM tried '≠')
+  → restored 'i:.' (LLM tried '≠')
+  → restored ['p(x', 'b)'] (LLM tried 'p(x|b)')
+  → restored 'i:.' (LLM tried '≥')
+  → attempt 1 rejected: Cleaned text size differs by more than 10% (original printable=149, cleaned=118)
+  original: But if this interpretation is correct - and it seems to me clear that For the theory 2["'(Added J anuary 1 98 1.) two of which may be mentioned here.
+  cleaned:  But if this interpretation is correct—and it seems to me clear that for the theory—two of which may be mentioned here.
+  → attempt 2 rejected: Cleaned text size differs by more than 10% (original printable=149, cleaned=121)
+  original: But if this interpretation is correct - and it seems to me clear that For the theory 2["'(Added J anuary 1 98 1.) two of which may be mentioned here.
+  cleaned:  But if this interpretation is correct - and it seems to me clear that for the theory: Two of which may be mentioned here.
+  → attempt 3 rejected: Cleaned text size differs by more than 10% (original printable=149, cleaned=121)
+  original: But if this interpretation is correct - and it seems to me clear that For the theory 2["'(Added J anuary 1 98 1.) two of which may be mentioned here.
+  cleaned:  But if this interpretation is correct - and it seems to me clear that for the theory: Two of which may be mentioned here.
+  [Page 368]
+  [Page 369]
+  [Page 370]
+  [Page 371]
+  [Page 372]
+  [Page 373]
+  → restored ['1', 'effreys'] (LLM tried 'Keynes')
+  → restored ['1', 'effreys'] (LLM tried 'Keynes')
+  [Page 374]
+  → restored ['Einstein...', "'", '1'] (LLM tried 'Einstein.'')
+  [Page 375]
+  [Page 376]
+  → restored ['min', '=', 'r'] (LLM tried 'min/r')
+  [Page 377]
+  [Page 378]
+  → attempt 1 rejected: Cleaned text size differs by more than 10% (original printable=736, cleaned=314)
+  original: quency estimates. (Not that I now recommend this particular interpretation : I prefer the propensity interpretation to the frequency interpretation. But this point does not matter here; moreover, we would obtain precisely the same result for 'p/ instead of ' p, ', i. e., for the best estimate of the propensity.) Thus (1) or (2) may be said to explain (or 'explicate') objective probability hypotheses in terms of subjective probability. To do this was, after all, the main task of the subjective theory ; and (1) expresses the (alleged) fact that its task has been carried out. Thus a formula like (1) is essentially implied in all subjective theories, even though it is seldom explicitly stated (as it is, indeed, in Carnap's book5).
+  cleaned:  frequency estimates. Not that I now recommend this particular interpretation : I prefer the propensity interpretation to the frequency interpretation. But this point does not matter here; moreover, we would obtain precisely the same result for 'p/' instead of ' p, ', i.e., for the best estimate of the propensity.
+  [Page 379]
+  [LLM FOOTNOTE] '71 find this tacit suggestion contained in R. Carnaps paper Probability as a Guide in Life, journal '
+  [Page 380]
+  [Page 381]
+  [Page 382]
+  [LLM FOOTNOTE] '2 [See Volumes II and III of the Postscript, where problems of determinism and physics are discussed'
+  [LLM FOOTNOTE] '%This question is asked by Jeffreys, in the sense stated here, in Theory of Probability, first editi'
+  [LLM FOOTNOTE] '4 The two following leading questions are asked by Carnap in his Logical Foundations, p. 189; see al'
+  [Page 383]
+  → attempt 1 rejected: Cleaned text size differs by more than 10% (original printable=86, cleaned=7)
+  original: ·�Addendum Uanuary 1981). A Brief Summary of the Criticism of Probabilistic Induction.
+  cleaned:  January
+  [Page 384]
+  → restored 'h"' (LLM tried 'h₁,')
+  → restored 'h"' (LLM tried 'hₙ')
+  → attempt 1 rejected: Cleaned text size differs by more than 10% (original printable=115, cleaned=56)
+  original: But we also get the trivial yet fundamental theorem (2) (2) p (h ;, e) < p (h ;, e) if, and only if, p(h;) < p(h,).
+  cleaned:  But we also get the trivial yet fundamental theorem (2):
+  → attempt 1 rejected: Cleaned text size differs by more than 10% (original printable=59, cleaned=186)
+  original: h2 says 'Swans in Greece and Italy and France are white; in
+  cleaned:  h2 says 'Swans in Greece, Italy, and France are white; in England and Scandinavia they are red; in Central Asia they are green; in Africa they are blue; and in Australia they are black.'
+  → attempt 2 rejected: Cleaned text size differs by more than 10% (original printable=59, cleaned=186)
+  original: h2 says 'Swans in Greece and Italy and France are white; in
+  cleaned:  h2 says 'Swans in Greece, Italy, and France are white; in England and Scandinavia they are red; in Central Asia they are green; in Africa they are blue; and in Australia they are black.'
+  → attempt 3 rejected: Cleaned text size differs by more than 10% (original printable=59, cleaned=186)
+  original: h2 says 'Swans in Greece and Italy and France are white; in
+  cleaned:  h2 says 'Swans in Greece, Italy, and France are white; in England and Scandinavia they are red; in Central Asia they are green; in Africa they are blue; and in Australia they are black.'
+  [Page 385]
+  → restored ['p(h,', 'eb)'] (LLM tried 'p(h|eb)')
+  → restored ['p(h,,', 'b)'] (LLM tried 'p(h|b)')
+  [Page 386]
+  [Page 387]
+  → restored 'be)' (LLM tried 'e)')
+  [Page 388]
+  [Page 389]
+  [Page 390]
+  → restored 'better',' (LLM tried 'bettor',')
+  [Page 391]
+  [Page 392]
+  [Page 393]
+  [Page 394]
+  [Page 395]
+  [Page 396]
+  → restored 'the' (LLM tried 'a')
+  [Page 397]
+  [Page 398]
+  [Page 399]
+  [Page 400]
+  → attempt 1 rejected: Cleaned text size differs by more than 10% (original printable=131, cleaned=104)
+  original: These results support, and are supported by, the results of our analysis of the role of b - the second argument-in 'p(a, b) ; and '
+  cleaned:  These results support, and are supported by, the results of our analysis of the role of b in p (a ,  b )
+  [Page 401]
+  [Page 402]
+  [Page 403]
+  → restored 'its' (LLM tried 'their')
+  [Page 404]
+  [LLM FOOTNOTE] '8. Alonzo Church, "On the Concept of a Random Sequence", Bull. Am. Math. Soc. 46, 1940, pp. 130-135.'
+  [Page 405]
+  → restored 'terns' (LLM tried 'Terms')
+  [Page 406]
+  → attempt 1 rejected: Cleaned text size differs by more than 10% (original printable=45, cleaned=32)
+  original: Length 2: Number of sequences: 4 00 to 01 1 1
+  cleaned:  Length 2: number of sequences: 4
+  [LLM DROP] 'Length 2: Number of sequences: 4'
+  [Page 407]
+  [Page 408]
+  → restored ["n'", 'In'] (LLM tried 'n'/n')
+  → attempt 1 rejected: Cleaned text size differs by more than 10% (original printable=64, cleaned=72)
+  original: A mathematician will say that n' In has a limit - we may call it
+  cleaned:  A mathematician will say that n' ln has a limit - we may call it p(l,a).
+  → attempt 2 rejected: Cleaned text size differs by more than 10% (original printable=64, cleaned=276)
+  original: A mathematician will say that n' In has a limit - we may call it
+  cleaned:  A mathematician will say that n' ln has a limit - we may call it p(l,a) - if and only if, for every small fraction E, chosen as small as we like but with E > 0, there exists a number m such that, from the mth place on, |n'|ln deviates from p(l,a) by less than E; or m symbols:
+  → attempt 3 rejected: Cleaned text size differs by more than 10% (original printable=64, cleaned=75)
+  original: A mathematician will say that n' In has a limit - we may call it
+  cleaned:  A mathematician will say that \(n' In\) has a limit - we may call it p(l,a)
+  [Page 409]
+  → restored ['p', 'l', '(,'] (LLM tried 'p(l,')
+  → attempt 1 rejected: Cleaned text size differs by more than 10% (original printable=127, cleaned=230)
+  original: (3) m ;;;. (2 E2 4 log E + 4 log 2 -2 log 'll)IE2· Cantelli's theorem (sometimes - for example, by von Mises-called the 'strong
+  cleaned:  (3): ··· (2 E^2 + 4 log(E) + 4 log(2) - 2 log('ll))IE^2. Cantelli's theorem (sometimes, for example, by von Mises, called the 'strong law of large numbers', although stronger laws have been found since by Khinchine and Kolmogorov)
+  → attempt 2 rejected: Invalid \escape: line 2 column 46 (char 47)
+  → attempt 3 rejected: Cleaned text size differs by more than 10% (original printable=127, cleaned=220)
+  original: (3) m ;;;. (2 E2 4 log E + 4 log 2 -2 log 'll)IE2· Cantelli's theorem (sometimes - for example, by von Mises-called the 'strong
+  cleaned:  (3) <m> (2√(4log(E)+4log(2)-2log'(1/ε)) / ε√2) Cantelli's theorem (sometimes, for example, by von Mises called the 'strong law of large numbers'), although stronger laws have been found since by Khinchine and Kolmogorov)
+  [Page 410]
+  → restored ['1J', '-'] (LLM tried 'δ.')
+  [Page 411]
+  [Page 412]
+  [Page 413]
+  → restored ['n-1', '-insensitive'] (LLM tried 'n-insensitive')
+  [Page 414]
+  [Page 415]
+  → restored 'measures' (LLM tried 'measure')
+  [Page 416]
+  [Page 417]
+  → attempt 1 rejected: Cleaned text size differs by more than 10% (original printable=367, cleaned=327)
+  original: Secondly, it may be remembered that many of the classical writers on probability (including Laplace himself) who started from De Moivre's definition, later (sometimes only a few pages later) began to develop a more general theory quite independent of the assumption of equal probabilities ; deriving, for example, the binomial formula immediately in its general form.
+  cleaned:  Secondly, it may be remembered that many of the classical writers on probability (including Laplace himself), later (sometimes only a few pages later) began to develop a more general theory quite independent of the assumption of equal probabilities ; deriving, for example, the binomial formula immediately in its general form.
+  [Page 418]
+  [Page 419]
+  → attempt 1 rejected: Cleaned text size differs by more than 10% (original printable=67, cleaned=166)
+  original: (c) The replacement, in the neo-classical theory, of certain impor-
+  cleaned:  (c) The replacement, in the neo-classical theory, of certain important limit-theorems by theorems showing that certain sets have the measure zero (or the measure one)
+  → attempt 2 rejected: Cleaned text size differs by more than 10% (original printable=67, cleaned=162)
+  original: (c) The replacement, in the neo-classical theory, of certain impor-
+  cleaned:  The replacement, in the neo-classical theory, of certain important limit-theorems by theorems showing that certain sets have the measure zero (or the measure one)
+  → attempt 3 rejected: Cleaned text size differs by more than 10% (original printable=67, cleaned=162)
+  original: (c) The replacement, in the neo-classical theory, of certain impor-
+  cleaned:  (c) The replacement, in the neo-classical theory, of certain important limitations by an explicit consideration of the measure zero has far-reaching consequences.
+  [Page 420]
+  [LLM FOOTNOTE] 'Admittedly, this lack of counter-examples is connected with the fact that the new derivations and ze'
+  → restored ['5C', 'f'] (LLM tried 'Cf.')
+  [LLM FOOTNOTE] '5C f Padrot Nolfi, loc. cit., p. 143.'
+  [Page 421]
+  [Page 422]
+  → attempt 1 rejected: Cleaned text size differs by more than 10% (original printable=62, cleaned=109)
+  original: The main point in this connection is that the new theory genu-
+  cleaned:  The main point in this connection is that the new theory genuinely attributes probabilities to single events.
+  → attempt 2 rejected: Cleaned text size differs by more than 10% (original printable=62, cleaned=109)
+  original: The main point in this connection is that the new theory genu-
+  cleaned:  The main point in this connection is that the new theory genuinely attributes probabilities to single events.
+  → attempt 3 rejected: Cleaned text size differs by more than 10% (original printable=62, cleaned=109)
+  original: The main point in this connection is that the new theory genu-
+  cleaned:  The main point in this connection is that the new theory genuinely attributes probabilities to single events.
+  [Page 423]
+  [Page 424]
+  [Page 425]
+  → restored ['P,', 'is'] (LLM tried 'P—is')
+  [Page 426]
+  [Page 427]
+  [Page 428]
+  [LLM FOOTNOTE] '2 See, for example, E.C. Kemble, loc. cit., and I.J. Good, Probability and the Weighing of Evidence,'
+  [Page 429]
+  → restored 'analysed' (LLM tried 'analyzed')
+  → attempt 1 rejected: Cleaned text size differs by more than 10% (original printable=64, cleaned=137)
+  original: (4) These numbers are intended as measures of the various possi-
+  cleaned:  (4) These numbers are intended as measures of the various possibilities which are left open by the conditions of the event or experiment.
+  → attempt 2 rejected: Cleaned text size differs by more than 10% (original printable=64, cleaned=137)
+  original: (4) These numbers are intended as measures of the various possi-
+  cleaned:  (4) These numbers are intended as measures of the various possibilities which are left open by the conditions of the event or experiment:
+  → attempt 3 rejected: Cleaned text size differs by more than 10% (original printable=64, cleaned=72)
+  original: (4) These numbers are intended as measures of the various possi-
+  cleaned:  (4) These numbers are intended as measures of the various possibilities.
+  [Page 430]
+  → restored 'homogenous,' (LLM tried 'homogeneous,')
+  → restored 'which' (LLM tried 'that')
+  → attempt 1 rejected: Cleaned text size differs by more than 10% (original printable=480, cleaned=404)
+  original: (2) If we are asked 'What do you call a small difference?' the proper answer is, in my opinion, 'I do not know'. I do not think that we can calculate the deviation from equi-probability from the known eccentricity (as Weyl suggests3) ; for the probability distribution is a characteristic, or property, not of the loaded die alone, but of all the relevant conditions ; and it may partly depend, for exam- 3Cf H. Weyl, Philosophy of Mathematics and Natural Science, 1 949, p. 1 97.
+  cleaned:  (2) If we are asked 'What do you call a small difference?' the proper answer is, in my opinion, 'I do not know'. I do not think that we can calculate the deviation from equi-probability from the known eccentricity (as Weyl suggests); for the probability distribution is a characteristic, or property, not of the loaded die alone, but of all the relevant conditions; and it may partly depend, for example,
+  [Page 431]
+  → restored ['(C', 'f.'] (LLM tried '(cf.')
+  [Page 432]
+  [Page 433]
+  [Page 434]
+  → restored 'mis-' (LLM tried 'misconceptions.')
+  [Page 435]
+  [Page 436]
+  → restored ["'", "probability'-still"] (LLM tried ''probability'—still')
+  [Page 437]
+  [Page 438]
+  [Page 439]
+  → restored 'realized' (LLM tried 'realised')
+  [Page 440]
+  [Page 441]
+  [LLM FOOTNOTE] '(2) It is also shown in this chapter that this development is incompatible with the subjective inter'
+  [Page 442]
+  [Page 444]
+  → restored 'Ill,' (LLM tried 'III,')
+  [Page 445]
+  [Page 448]
+  → attempt 1 rejected: Cleaned text size differs by more than 10% (original printable=1994, cleaned=1403)
+  original: Euclid, 203 CAMPBELL, D. T., 98n, 222n Cantelli, F. P., 347n, 368n, 39 1 Cantor, G., 273, 370 Carnap, R., xxq, xxxviii, 1 o8nq, 109&n, 1 1 0nq, 1 2 6, 1 2 7q&n, 1 2 8&n, 1 4 7, 1 79q&n, 1 95 n, 2 1 2, 2 1 5q, 2 1 6nq. 228q&n, 229, 252nq, 2 53nq, 265q&n, 3ooq, 302n, 305nq, 307n, 3 1 5nq, 3 1 9nq, 3 2 1 nq, 324, 328q&n, 3 30, 3 3 1 q, 3 32q, 3 3 3q, 3 34q, 335nq, n 6nq, 337&n, 338n, 340n, 34 1n, 391, 393n Challis, 1., 2 37 Church, A., 348&n, 352n, 360, 363&n, 364q, 365&n, 374 Colodny, R. G., 209n Compton, A. H., xxix, 40 1 Comte, A., 1 5 1 Copeland, A. H., 348&nq, 352n, 36o, 362n, 363&nq, 364nq, 365n Copernicus, N., xxvi, xxx&n, xxxm, xxxvi, 1 07, 1 1 6, 1 90, 1 9 1 n Cotes, R., 1 3 5 Courant, R., 268n Cournot, A., 379 Couturat, L., 225q&n Craig, W., 1 2on Crookes, W., 4 1 DAHRENDORF, R., xviii Darwin, C., xxxvi, 36, 64, 101 Davisson, C. J., xxix Democritus, xxxi, sq. 59· 103, 104, I 9 I1 91q&nq Descartes, R., 6, 59, 84, 1 01, 1 04, 1 3 5 > 1 3 6, 191 Dicke, R. H., xx Diels, H., sn, I Hn, 1 91n Dirac, P., xxix Doob, J. L., 347n, 348n, 363n, 365n, 371&n, 374, 379· 381&n, 386, 391 Duhem, P., 1 1 2, 1 1 7, 1 1 8, 1 41n, 1 8 8, 1 89n, 191 ECCLES, J. C., 45n, 91n Ehrlich, P., 49 Einstein, A., xx, xxvii-xxviii, xxix xxx, xxxiiin, 1 7nq, 2 5&n, 26n, 38&n, 39, 57> 6o, 7 1, 75> 78, 8oq&n, 9 1n, I I I, 1 28, 1 3 1 q, 1 4 5 &n, 1 49, 1 50, 1 5 3, 1 58, 1 6o, 1 8 1, 1 92, 2 2 1, 2 30, 2 3 1, 237, 247, 254, 264n, 3 3 1, 333 · 34 1 ; 3 44, 3 45, 400 Eotvos, L. von, xx Watkins, J. W. N., xvii, xviii, 1 89nq, 258n Weierstrass, K., 266 Weyl, H., xxviii, xxx, 389&n Wheeler, J. A., 26n Whorf, B. L., 1 6&n, 1 5�1 57 Wien, W., xix, xxviii Wiener, N., xxxvn Wiener, P. P., 1 42n Wilde, 0., 46q&n Wilson, E. A., 173n Wisdom, J. 0., 1 64n, 165nq, 1 7 3nq Wittgenstein, L., 1 1 2, 1 1 7, 1 1 8&n, 1 5 oq&n, 1 5 1 q, 1 7 5 nq, 1 94q&nq, 1 95&n, 2 1 4q, 2 1 5q, 263, 265, 274 Wollheim, R. A., 61nq Wrinch, D., 52n, 347n XENOPHANES, xxxi, uq YOUNG, T., xxvii, 70 Yukawa, H., xxiv, xxx ZENO, 3 1 8
+  cleaned:  Euclid, 203; CAMPBELL, D. T., 98n, 222n; Cantelli, F. P., 347n, 368n, 391; Cantor, G., 273, 370; Carnap, R., xxq, xxxviii, 108nq, 109&n, 110nq, 126, 127q&n, 128&n, 147, 179q&n, 195 n, 212, 215q, 216nq. 228q&n, 229, 252nq, 253nq, 265q&n, 300q, 302n, 305nq, 307n, 315nq, 319nq, 321 nq, 324, 328q&n, 330, 331 q, 332q, 333q, 334q, 335nq, 360nq, 337&n, 338n, 340n, 341n, 391, 393n; Challis, 1., 237; Church, A., 348&n, 352n, 360, 363&n, 364q, 365&n, 374; Colodny, R. G., 209n; Compton, A. H., xxix, 401; Comte, A., 151; Copeland, A. H., 348&nq, 352n, 360, 362n, 363&nq, 364nq, 365n; Copernicus, N., xxvi, xxx&n, xxxm, xxxvi, 107, 116, 190, 191 n; Cotes, R., 135; Courant, R., 268n; Cournot, A., 379; Couturat, L., 225q&n; Craig, W., 120; Crookes, W., 41; DAHRENDORF, R., xviii; Darwin, C., xxxvi, 36, 64, 101; Davisson, C. J., xxix; Democritus, xxxi, sq. 59· 103, 104, 1911 91q&nq; Descartes, R., 6, 59, 84, 101, 104, 136 > 136, 191; Dicke, R. H., xx; Diels, H., sn, IHn, 191n; Dirac, P., xxix; Doob, J. L., 347n, 348n, 363n, 365n, 371&n, 374, 379· 381&n, 386, 391; Duhem, P., 112, 117, 118, 141n, 188, 189n, 191; ECCLES, J. C., 45n, 91n; Ehrlich, P., 49; Einstein, A., xx, xxvii-xxviii, xxix xxx, xxxiiin, 17nq, 25&n, 26n, 38&n, 39, 57> 60, 71, 75> 78, 80q&n, 91n, I I I, 128, 131 q, 145 &n, 149, 150, 153, 158, 160, 181, 192, 221, 230, 231, 237, 247, 254, 264n, 333 · 341; 344, 345, 400; Eotvos, L. von, xx
+  → attempt 2 rejected: 'classification'
+  original: Euclid, 203 CAMPBELL, D. T., 98n, 222n Cantelli, F. P., 347n, 368n, 39 1 Cantor, G., 273, 370 Carnap, R., xxq, xxxviii, 1 o8nq, 109&n, 1 1 0nq, 1 2 6, 1 2 7q&n, 1 2 8&n, 1 4 7, 1 79q&n, 1 95 n, 2 1 2, 2 1 5q, 2 1 6nq. 228q&n, 229, 252nq, 2 53nq, 265q&n, 3ooq, 302n, 305nq, 307n, 3 1 5nq, 3 1 9nq, 3 2 1 nq, 324, 328q&n, 3 30, 3 3 1 q, 3 32q, 3 3 3q, 3 34q, 335nq, n 6nq, 337&n, 338n, 340n, 34 1n, 391, 393n Challis, 1., 2 37 Church, A., 348&n, 352n, 360, 363&n, 364q, 365&n, 374 Colodny, R. G., 209n Compton, A. H., xxix, 40 1 Comte, A., 1 5 1 Copeland, A. H., 348&nq, 352n, 36o, 362n, 363&nq, 364nq, 365n Copernicus, N., xxvi, xxx&n, xxxm, xxxvi, 1 07, 1 1 6, 1 90, 1 9 1 n Cotes, R., 1 3 5 Courant, R., 268n Cournot, A., 379 Couturat, L., 225q&n Craig, W., 1 2on Crookes, W., 4 1 DAHRENDORF, R., xviii Darwin, C., xxxvi, 36, 64, 101 Davisson, C. J., xxix Democritus, xxxi, sq. 59· 103, 104, I 9 I1 91q&nq Descartes, R., 6, 59, 84, 1 01, 1 04, 1 3 5 > 1 3 6, 191 Dicke, R. H., xx Diels, H., sn, I Hn, 1 91n Dirac, P., xxix Doob, J. L., 347n, 348n, 363n, 365n, 371&n, 374, 379· 381&n, 386, 391 Duhem, P., 1 1 2, 1 1 7, 1 1 8, 1 41n, 1 8 8, 1 89n, 191 ECCLES, J. C., 45n, 91n Ehrlich, P., 49 Einstein, A., xx, xxvii-xxviii, xxix xxx, xxxiiin, 1 7nq, 2 5&n, 26n, 38&n, 39, 57> 6o, 7 1, 75> 78, 8oq&n, 9 1n, I I I, 1 28, 1 3 1 q, 1 4 5 &n, 1 49, 1 50, 1 5 3, 1 58, 1 6o, 1 8 1, 1 92, 2 2 1, 2 30, 2 3 1, 237, 247, 254, 264n, 3 3 1, 333 · 34 1 ; 3 44, 3 45, 400 Eotvos, L. von, xx Watkins, J. W. N., xvii, xviii, 1 89nq, 258n Weierstrass, K., 266 Weyl, H., xxviii, xxx, 389&n Wheeler, J. A., 26n Whorf, B. L., 1 6&n, 1 5�1 57 Wien, W., xix, xxviii Wiener, N., xxxvn Wiener, P. P., 1 42n Wilde, 0., 46q&n Wilson, E. A., 173n Wisdom, J. 0., 1 64n, 165nq, 1 7 3nq Wittgenstein, L., 1 1 2, 1 1 7, 1 1 8&n, 1 5 oq&n, 1 5 1 q, 1 7 5 nq, 1 94q&nq, 1 95&n, 2 1 4q, 2 1 5q, 263, 265, 274 Wollheim, R. A., 61nq Wrinch, D., 52n, 347n XENOPHANES, xxxi, uq YOUNG, T., xxvii, 70 Yukawa, H., xxiv, xxx ZENO, 3 1 8
+  cleaned:  Euclid, 203 CAMPBELL, D. T., 98n, 222n Cantelli, F. P., 347n, 368n, 391 Cantor, G., 273, 370 Carnap, R., xxq, xxxviii, 108nq, 109&n, 110nq, 126, 127q&n, 128&n, 147, 179q&n, 195n, 212, 215q, 216nq. 228q&n, 229, 252nq, 253nq, 265q&n, 300q, 302n, 305nq, 307n, 315nq, 319nq, 321nq, 324, 328q&n, 330, 331q, 332q, 333q, 334q, 335nq, n6nq, 337&n, 338n, 340n, 341n, 391 Challis, 1., 237 Church, A., 348&n, 352n, 360, 363&n, 364q, 365&n, 374 Colodny, R. G., 209n Compton, A. H., xxix, 401 Comte, A., 151 Copeland, A. H., 348&nq, 352n, 360, 362n, 363&nq, 364nq, 365n Copernicus, N., xxvi, xxx&n, xxxm, xxxvi, 107, 116, 190, 191n Cotes, R., 135 Courant, R., 268n Cournot, A., 379 Couturat, L., 225q&n Craig, W., 120 Crookes, W., 41 DAHRENDORF, R., xviii Darwin, C., xxxvi, 36, 64, 101 Davisson, C. J., xxix Democritus, xxxi, sq. 59· 103, 104, 1911 91q&nq Descartes, R., 6, 59, 84, 101, 104, 135 > 136, 191 Dicke, R. H., xx Diels, H., sn, IHn, 191n Dirac, P., xxix Doob, J. L., 347n, 348n, 363n, 365n, 371&n, 374, 379· 381&n, 386, 391 Duhem, P., 112, 117, 118, 141n, 188, 189n, 191 ECCLES, J. C., 45n, 91n Ehrlich, P., 49 Einstein, A., xx, xxvii-xxviii, xxix xxx, xxxiiin, 17nq, 25&n, 26n, 38&n, 39, 57> 60, 71, 75> 78, 80q&n, 91n, I11, 128, 131q, 145 &n, 149, 150, 153, 158, 160, 181, 192, 221, 230, 231, 237, 247, 254, 264n, 331, 333 · 341; 344, 345, 400 Eotvos, L. von, xx Watkins, J. W. N., xvii, xviii, 189nq, 258n Weierstrass, K., 266 Weyl, H., xxviii, xxx, 389&n Wheeler, J. A., 26n Whorf, B. L., 16&n, 15�1 57 Wien, W., xix, xxviii Wiener, N., xxxvn Wiener, P. P., 142n Wilde, 0., 46q&n Wilson, E. A., 173n Wisdom, J. 0., 164n, 165nq, 173nq Wittgenstein, L., 112, 117, 118&n, 150q&n, 151q, 175q&n, 194q&nq, 195&n, 214q, 215q, 263, 265, 274 Wollheim, R. A., 61nq Wrinch, D., 52n, 347n XENOPHANES, xxxi, uq YOUNG, T., xxvii, 70 Yukawa, H., xxiv, xxx ZENO, 318
+  → attempt 3 rejected: Cleaned text size differs by more than 10% (original printable=1994, cleaned=1098)
+  original: Euclid, 203 CAMPBELL, D. T., 98n, 222n Cantelli, F. P., 347n, 368n, 39 1 Cantor, G., 273, 370 Carnap, R., xxq, xxxviii, 1 o8nq, 109&n, 1 1 0nq, 1 2 6, 1 2 7q&n, 1 2 8&n, 1 4 7, 1 79q&n, 1 95 n, 2 1 2, 2 1 5q, 2 1 6nq. 228q&n, 229, 252nq, 2 53nq, 265q&n, 3ooq, 302n, 305nq, 307n, 3 1 5nq, 3 1 9nq, 3 2 1 nq, 324, 328q&n, 3 30, 3 3 1 q, 3 32q, 3 3 3q, 3 34q, 335nq, n 6nq, 337&n, 338n, 340n, 34 1n, 391, 393n Challis, 1., 2 37 Church, A., 348&n, 352n, 360, 363&n, 364q, 365&n, 374 Colodny, R. G., 209n Compton, A. H., xxix, 40 1 Comte, A., 1 5 1 Copeland, A. H., 348&nq, 352n, 36o, 362n, 363&nq, 364nq, 365n Copernicus, N., xxvi, xxx&n, xxxm, xxxvi, 1 07, 1 1 6, 1 90, 1 9 1 n Cotes, R., 1 3 5 Courant, R., 268n Cournot, A., 379 Couturat, L., 225q&n Craig, W., 1 2on Crookes, W., 4 1 DAHRENDORF, R., xviii Darwin, C., xxxvi, 36, 64, 101 Davisson, C. J., xxix Democritus, xxxi, sq. 59· 103, 104, I 9 I1 91q&nq Descartes, R., 6, 59, 84, 1 01, 1 04, 1 3 5 > 1 3 6, 191 Dicke, R. H., xx Diels, H., sn, I Hn, 1 91n Dirac, P., xxix Doob, J. L., 347n, 348n, 363n, 365n, 371&n, 374, 379· 381&n, 386, 391 Duhem, P., 1 1 2, 1 1 7, 1 1 8, 1 41n, 1 8 8, 1 89n, 191 ECCLES, J. C., 45n, 91n Ehrlich, P., 49 Einstein, A., xx, xxvii-xxviii, xxix xxx, xxxiiin, 1 7nq, 2 5&n, 26n, 38&n, 39, 57> 6o, 7 1, 75> 78, 8oq&n, 9 1n, I I I, 1 28, 1 3 1 q, 1 4 5 &n, 1 49, 1 50, 1 5 3, 1 58, 1 6o, 1 8 1, 1 92, 2 2 1, 2 30, 2 3 1, 237, 247, 254, 264n, 3 3 1, 333 · 34 1 ; 3 44, 3 45, 400 Eotvos, L. von, xx Watkins, J. W. N., xvii, xviii, 1 89nq, 258n Weierstrass, K., 266 Weyl, H., xxviii, xxx, 389&n Wheeler, J. A., 26n Whorf, B. L., 1 6&n, 1 5�1 57 Wien, W., xix, xxviii Wiener, N., xxxvn Wiener, P. P., 1 42n Wilde, 0., 46q&n Wilson, E. A., 173n Wisdom, J. 0., 1 64n, 165nq, 1 7 3nq Wittgenstein, L., 1 1 2, 1 1 7, 1 1 8&n, 1 5 oq&n, 1 5 1 q, 1 7 5 nq, 1 94q&nq, 1 95&n, 2 1 4q, 2 1 5q, 263, 265, 274 Wollheim, R. A., 61nq Wrinch, D., 52n, 347n XENOPHANES, xxxi, uq YOUNG, T., xxvii, 70 Yukawa, H., xxiv, xxx ZENO, 3 1 8
+  cleaned:  Euclid, 203; CAMPBELL, D. T., 98n, 222n; Cantelli, F. P., 347n, 368n, 391; Cantor, G., 273, 370; Carnap, R., xxq, xxxviii, 108nq, 109&n, 110nq, 126, 127q&n, 128&n, 147, 179q&n, 195n, 212, 215q, 216nq. 228q&n, 229, 252nq, 253nq, 265q&n, 300q, 302n, 305nq, 307n, 315nq, 319nq, 321nq, 324, 328q&n, 330, 331q, 332q, 333q, 334q, 335nq, n6nq, 337&n, 338n, 340n, 341n, 391; Challis, 1., 237; Church, A., 348&n, 352n, 360, 363&n, 364q, 365&n, 374; Colodny, R. G., 209n; Compton, A. H., xxix, 401; Comte, A., 151; Copeland, A. H., 348&nq, 352n, 360, 362n, 363&nq, 364nq, 365n; Copernicus, N., xxvi, xxx&n, xxxm, xxxvi, 107, 116, 190, 191n; Cotes, R., 135; Courant, R., 268n; Cournot, A., 379; Couturat, L., 225q&n; Craig, W., 120; Crookes, W., 41; DAHRENDORF, R., xviii; Darwin, C., xxxvi, 36, 64, 101; Davisson, C. J., xxix; Democritus, xxxi, sq. 59· 103, 104, I 91I 91q&nq; Descartes, R., 6, 59, 84, 101, 104, 135 > 136, 191; Dicke, R. H., xx; Diels, H., sn, IHn, 191n; Dirac, P., xxix; Doob, J. L., 347n, 348n, 363n, 365n, 371&n, 374, 379· 381&n, 386, 391; Duhem, P., 112, 117, 118, 141n, 188, 189n, 191;
+  [Page 449]
+  [Page 450]
+  [Page 451]
+  [Page 452]
+  [Page 453]
+  [Page 454]
+  [Page 455]
+  [Page 456]
+  [Page 457]
+  → attempt 1 rejected: Expecting value: line 1 column 1 (char 0)
+  → attempt 2 rejected: Expecting value: line 1 column 1 (char 0)
+  → attempt 3 rejected: Expecting value: line 1 column 1 (char 0)
+  [Page 458]
+  [Page 459]
+  [Page 460]
+  [Page 461]
+  → attempt 1 rejected: Expecting value: line 1 column 1 (char 0)
+  → attempt 2 rejected: Expecting value: line 1 column 1 (char 0)
+  → attempt 3 rejected: Expecting value: line 1 column 1 (char 0)
+  [Page 462]
+  [Page 463]
+  → restored 'Merite' (LLM tried 'Mérite')
+  [Page 464]
+
+[TIMING] validation=3.03s (283 skipped) | llm=9508.10s (1598 calls) | total_timed=9511.13s
+Dry run: Did not generate audio.
+
+Saved to ..\output\Realism and the Aim of Science -- Karl Popper -- 2017_processed_paragraphs.txt
+Commit in GitHub Desktop to record this run.
+
+Process finished with exit code 0
