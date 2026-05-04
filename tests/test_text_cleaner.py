@@ -678,38 +678,19 @@ class TestRestoreValidWordsSymbols:
     spuriously, undoing a correct LLM fix.
     """
 
-    def test_less_than_or_equal_symbol_fix_is_kept(self) -> None:
-        """:s;; is an OCR artifact of ≤. LLM fix must not be reverted.
+    @pytest.mark.parametrize("original,cleaned,expected", [
+        ('For all x :s;; 0.', 'For all x ≤ 0.', 'For all x ≤ 0.'),    # ':s;;' → '≤'
+        ('Such that a i:. b.', 'Such that a ≠ b.', 'Such that a ≠ b.'),  # 'i:.' → '≠'
+        ('Requires that p i:. q.', 'Requires that p ≥ q.', 'Requires that p ≥ q.'),  # 'i:.' → '≥'
+    ])
+    def test_symbol_ocr_fix_is_kept(self, original: str, cleaned: str, expected: str) -> None:
+        """Symbol-heavy OCR artifacts must not be rolled back when the LLM fixes them.
 
-        Seen in the full run: → restored ':s;;' (LLM tried '≤')
+        Seen in the full run: → restored ':s;;' (LLM tried '≤'), etc.
+        These tokens strip to a single letter that passes is_valid_word,
+        triggering a spurious restore without a word-likeness guard.
         """
-        result = _restore_valid_words(
-            'For all x :s;; 0.',
-            'For all x ≤ 0.'
-        )
-        assert result == 'For all x ≤ 0.'
-
-    def test_not_equal_symbol_fix_is_kept(self) -> None:
-        """i:. is an OCR artifact of ≠. LLM fix must not be reverted.
-
-        Seen in the full run: → restored 'i:.' (LLM tried '≠')
-        """
-        result = _restore_valid_words(
-            'Such that a i:. b.',
-            'Such that a ≠ b.'
-        )
-        assert result == 'Such that a ≠ b.'
-
-    def test_greater_than_or_equal_symbol_fix_is_kept(self) -> None:
-        """i:. used as OCR artifact of ≥. LLM fix must not be reverted.
-
-        Seen in the full run: → restored 'i:.' (LLM tried '≥')
-        """
-        result = _restore_valid_words(
-            'Requires that p i:. q.',
-            'Requires that p ≥ q.'
-        )
-        assert result == 'Requires that p ≥ q.'
+        assert _restore_valid_words(original, cleaned) == expected
 
     def test_normal_word_restore_still_works_after_symbol_fix(self) -> None:
         """The symbol guard must not suppress restores of normal valid words."""
