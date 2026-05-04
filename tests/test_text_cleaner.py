@@ -711,6 +711,38 @@ class TestRestoreValidWordsSymbols:
         assert result == 'Choose a, not b.'
 
 
+# --- TestRestoreValidWordsSingleLetter ---
+
+class TestRestoreValidWordsSingleLetter:
+    """Tests that isolated single-letter OCR fragments are not treated as valid words.
+
+    In practice these are always OCR-split function words: 'or' → 'o'+'r',
+    'to' → 't'+'o', 'by' → 'b'+'y'. The LLM correctly recognises and restores
+    them, but _restore_valid_words wrongly reverts the fix because all 26
+    letters pass is_valid_word().
+
+    Real examples from Last Full Run.txt:
+      → restored 'r' (LLM tried 'or')   — Hume quote, page 147
+      → restored 'o' (LLM tried 'to')   — same passage
+      → restored 'y' (LLM tried 'by')   — page 177
+    """
+
+    @pytest.mark.parametrize("original,cleaned,expected", [
+        # Real case: "reason;.,.. r you must allow" — 'r' is the tail of 'or'
+        ('r you must allow that',   'or you must allow that',   'or you must allow that'),
+        # Real case: "allow that o your belief" — 'o' is the tail of 'to'
+        ('allow that o your belief', 'allow that to your belief', 'allow that to your belief'),
+        # Real case (page 177): standalone 'y' — tail of 'by'
+        ('justified y the results',  'justified by the results',  'justified by the results'),
+        # 'a' and 'I' are genuine English words — must still be protected
+        ('a cat sat',               'the cat sat',               'a cat sat'),
+        ('I think so',              'We think so',               'I think so'),
+    ])
+    def test_single_letter_restore_behavior(
+            self, original: str, cleaned: str, expected: str) -> None:
+        assert _restore_valid_words(original, cleaned) == expected
+
+
 # --- TestCoerceClassification ---
 
 class TestCoerceClassification:
