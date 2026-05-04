@@ -3,7 +3,7 @@
 import pytest
 from unittest.mock import patch
 from text_cleaner import (TextCleaner, _has_suspicious_substitutions, _coerce_classification,
-                          _normalize_dashes, _restore_valid_words, _restore_list_prefix)
+                          _is_word_like, _normalize_dashes, _restore_valid_words, _restore_list_prefix)
 
 patch_llm_chat: str = 'text_cleaner.ollama.chat'
 
@@ -651,6 +651,22 @@ class TestRestoreValidWords:
             "published by ‘Ed.’."
         )
         assert result == "published by ‘Ed.’."
+
+
+# --- TestIsWordLike ---
+
+class TestIsWordLike:
+    @pytest.mark.parametrize("token,expected", [
+        (':s;;', False),   # 25% alpha — symbol-heavy OCR artifact
+        ('i:.',  False),   # 33% alpha — symbol-heavy OCR artifact
+        ('its',  True),    # 100% alpha
+        ('a,',   True),    # 50% alpha — at the boundary, word-like
+        ('h.',   True),    # 50% alpha — at the boundary, word-like
+        ('',     False),   # empty string
+        ('1979', False),   # 0% alpha — pure digits
+    ])
+    def test_is_word_like(self, token: str, expected: bool) -> None:
+        assert _is_word_like(token) is expected
 
 
 # --- TestRestoreValidWordsSymbols ---

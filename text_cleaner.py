@@ -79,6 +79,24 @@ def _coerce_classification(raw: str) -> ClassificationType | None:
     return None
 
 
+def _is_word_like(token: str) -> bool:
+    """Return True if the token is predominantly alphabetic.
+
+    Guards against OCR artifacts like ':s;;' being mistakenly treated as
+    valid words after punctuation stripping. ':s;;' strips to 's' (a
+    single letter that passes is_valid_word), but it is clearly a symbol
+    sequence, not a word with surrounding punctuation.
+
+    A token is word-like when at least half its characters are alphabetic.
+    This allows normal cases such as 'a,' (50%) and 'h.' (50%) to pass,
+    while excluding symbol-heavy tokens such as ':s;;' (25%) and 'i:.' (33%).
+    """
+    if not token:
+        return False
+    alpha_count = sum(1 for c in token if c.isalpha())
+    return alpha_count * 2 >= len(token)
+
+
 def _normalize_dashes(word: str) -> str:
     """Normalize em-dashes and en-dashes to hyphens for word comparison.
 
@@ -175,7 +193,9 @@ def _restore_valid_words(original: str, cleaned: str, verbose: bool = False) -> 
                     normalize_quotes(cleaned_lower[j1 + k]).strip('.,;:!?"\'()-[]'))
                 orig_tok = original_lower[i1 + k]
                 new_tok = cleaned_lower[j1 + k]
-                if orig_stripped != new_stripped and word_validator.is_valid_word(orig_stripped):
+                if (orig_stripped != new_stripped
+                        and _is_word_like(orig_tok)
+                        and word_validator.is_valid_word(orig_stripped)):
                     # valid→something: restore the original word
                     vprint(verbose,
                            f"  → restored '{original_split[i1 + k]}' "
