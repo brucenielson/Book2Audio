@@ -668,6 +668,67 @@ class TestRestoreValidWords:
         assert result == "published by ‘Ed.’."
 
 
+# --- TestRestoreValidWordsSymbols ---
+
+class TestRestoreValidWordsSymbols:
+    """Tests that math/symbol OCR fixes by the LLM are not wrongly rolled back.
+
+    The root cause: a token like ':s;;' strips to 's', which passes
+    is_valid_word().  Without a word-likeness guard the restore fires
+    spuriously, undoing a correct LLM fix.
+    """
+
+    def test_less_than_or_equal_symbol_fix_is_kept(self) -> None:
+        """:s;; is an OCR artifact of ≤. LLM fix must not be reverted.
+
+        Seen in the full run: → restored ':s;;' (LLM tried '≤')
+        """
+        result = _restore_valid_words(
+            'For all x :s;; 0.',
+            'For all x ≤ 0.'
+        )
+        assert result == 'For all x ≤ 0.'
+
+    def test_not_equal_symbol_fix_is_kept(self) -> None:
+        """i:. is an OCR artifact of ≠. LLM fix must not be reverted.
+
+        Seen in the full run: → restored 'i:.' (LLM tried '≠')
+        """
+        result = _restore_valid_words(
+            'Such that a i:. b.',
+            'Such that a ≠ b.'
+        )
+        assert result == 'Such that a ≠ b.'
+
+    def test_greater_than_or_equal_symbol_fix_is_kept(self) -> None:
+        """i:. used as OCR artifact of ≥. LLM fix must not be reverted.
+
+        Seen in the full run: → restored 'i:.' (LLM tried '≥')
+        """
+        result = _restore_valid_words(
+            'Requires that p i:. q.',
+            'Requires that p ≥ q.'
+        )
+        assert result == 'Requires that p ≥ q.'
+
+    def test_normal_word_restore_still_works_after_symbol_fix(self) -> None:
+        """The symbol guard must not suppress restores of normal valid words."""
+        result = _restore_valid_words(
+            'He obstructed judiciary powers.',
+            'He obstructed judicial powers.'
+        )
+        assert result == 'He obstructed judiciary powers.'
+
+    def test_word_with_trailing_comma_still_restored(self) -> None:
+        """A word token that is exactly 50% alphabetic (e.g. 'a,') must still be
+        treated as word-like and restored when the LLM substitutes it."""
+        result = _restore_valid_words(
+            'Choose a, not b.',
+            'Choose an, not b.'
+        )
+        assert result == 'Choose a, not b.'
+
+
 # --- TestCoerceClassification ---
 
 class TestCoerceClassification:
