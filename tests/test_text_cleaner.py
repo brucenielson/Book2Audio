@@ -386,21 +386,13 @@ class TestHasSuspiciousSubstitutions:
 # --- TestRestoreListPrefix ---
 
 class TestRestoreListPrefix:
-    def test_parenthesized_number_restored_when_dropped(self) -> None:
-        """(3) prefix dropped by LLM is restored."""
-        result = _restore_list_prefix(
-            "(3) All human actions are egotistic.",
-            "All human actions are egotistic."
-        )
-        assert result == "(3) All human actions are egotistic."
-
-    def test_dot_number_prefix_restored_when_dropped(self) -> None:
-        """'3. ' prefix dropped by LLM is restored."""
-        result = _restore_list_prefix(
-            "3. All human actions are egotistic.",
-            "All human actions are egotistic."
-        )
-        assert result == "3. All human actions are egotistic."
+    @pytest.mark.parametrize("original,cleaned,expected", [
+        ("(3) All human actions are egotistic.", "All human actions are egotistic.", "(3) All human actions are egotistic."),
+        ("3. All human actions are egotistic.",  "All human actions are egotistic.", "3. All human actions are egotistic."),
+    ])
+    def test_prefix_restored_when_dropped(self, original: str, cleaned: str, expected: str) -> None:
+        """Numbered list prefix dropped by LLM is restored."""
+        assert _restore_list_prefix(original, cleaned) == expected
 
     def test_prefix_not_duplicated_when_already_present(self) -> None:
         """Prefix already present in cleaned text is not added again."""
@@ -422,23 +414,16 @@ class TestRestoreListPrefix:
 # --- TestNormalizeDashes ---
 
 class TestNormalizeDashes:
-    def test_em_dash_replaced_with_hyphen(self) -> None:
-        assert _normalize_dashes('well—known') == 'well-known'
-
-    def test_en_dash_replaced_with_hyphen(self) -> None:
-        assert _normalize_dashes('well–known') == 'well-known'
-
-    def test_plain_hyphen_unchanged(self) -> None:
-        assert _normalize_dashes('well-known') == 'well-known'
-
-    def test_no_dash_unchanged(self) -> None:
-        assert _normalize_dashes('hello') == 'hello'
-
-    def test_both_em_and_en_dash_replaced(self) -> None:
-        assert _normalize_dashes('a—b–c') == 'a-b-c'
-
-    def test_empty_string(self) -> None:
-        assert _normalize_dashes('') == ''
+    @pytest.mark.parametrize("input_str,expected", [
+        ('well—known', 'well-known'),   # em-dash replaced
+        ('well–known', 'well-known'),   # en-dash replaced
+        ('well-known', 'well-known'),   # plain hyphen unchanged
+        ('hello',      'hello'),        # no dash unchanged
+        ('a—b–c',      'a-b-c'),        # both em and en dash replaced
+        ('',           ''),             # empty string
+    ])
+    def test_normalizes_dashes(self, input_str: str, expected: str) -> None:
+        assert _normalize_dashes(input_str) == expected
 
 
 # --- TestRestoreValidWords ---
@@ -714,32 +699,19 @@ class TestRestoreValidWordsSymbols:
 
 class TestCoerceClassification:
 
-    def test_footnote_hint_returns_footnote(self) -> None:
-        assert _coerce_classification('footnote') == 'footnote'
-
-    def test_endnote_hint_returns_footnote(self) -> None:
-        assert _coerce_classification('endnote') == 'footnote'
-
-    def test_note_hint_returns_footnote(self) -> None:
-        assert _coerce_classification('note') == 'footnote'
-
-    def test_body_hint_returns_body(self) -> None:
-        assert _coerce_classification('body') == 'body'
-
-    def test_main_hint_returns_body(self) -> None:
-        assert _coerce_classification('main content') == 'body'
-
-    def test_prose_hint_returns_body(self) -> None:
-        assert _coerce_classification('prose') == 'body'
-
-    def test_index_hint_returns_drop(self) -> None:
-        assert _coerce_classification('index') == 'drop'
-
-    def test_bibliography_hint_returns_drop(self) -> None:
-        assert _coerce_classification('bibliograph') == 'drop'
-
-    def test_reference_hint_returns_drop(self) -> None:
-        assert _coerce_classification('reference list') == 'drop'
+    @pytest.mark.parametrize("label,expected", [
+        ('footnote',       'footnote'),
+        ('endnote',        'footnote'),
+        ('note',           'footnote'),
+        ('body',           'body'),
+        ('main content',   'body'),
+        ('prose',          'body'),
+        ('index',          'drop'),
+        ('bibliograph',    'drop'),
+        ('reference list', 'drop'),
+    ])
+    def test_hint_maps_to_classification(self, label: str, expected: str) -> None:
+        assert _coerce_classification(label) == expected
 
     def test_matching_is_case_insensitive(self) -> None:
         assert _coerce_classification('FOOTNOTE') == 'footnote'
