@@ -195,7 +195,8 @@ def _restore_valid_words(original: str, cleaned: str, verbose: bool = False) -> 
                 new_tok = cleaned_lower[j1 + k]
                 if (orig_stripped != new_stripped
                         and _is_word_like(orig_tok)
-                        and word_validator.is_valid_word(orig_stripped)):
+                        and word_validator.is_valid_word(orig_stripped)
+                        and (len(orig_stripped) > 1 or orig_stripped in ('a', 'i'))):
                     # valid→something: restore the original word
                     vprint(verbose,
                            f"  → restored '{original_split[i1 + k]}' "
