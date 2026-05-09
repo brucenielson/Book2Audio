@@ -7,10 +7,12 @@ from text_cleaner import (TextCleaner, _has_suspicious_substitutions, _coerce_cl
 
 patch_llm_chat: str = 'text_cleaner.ollama.chat'
 
+from conftest import TEST_LLM_MODEL
+
 
 # --- Fixtures ---
 
-def make_cleaner(model: str = 'llama3.1:8b', max_retries: int = 3) -> TextCleaner:
+def make_cleaner(model: str = TEST_LLM_MODEL, max_retries: int = 3) -> TextCleaner:
     """Create a TextCleaner instance."""
     return TextCleaner(model=model, max_retries=max_retries, temperature=0)
 
@@ -816,7 +818,7 @@ class TestCoerceClassification:
 class TestIntegration:
     @pytest.mark.integration
     def test_real_llm_call_body(self) -> None:
-        """Integration test — requires a running LLM with llama3.1:8b."""
+        """Integration test — requires a running LLM."""
         cleaner = make_cleaner()
         paragraph = "This is a sample paragraph from a book about philosophy and rationality."
         cleaned, classification = cleaner.clean(paragraph)
@@ -827,7 +829,7 @@ class TestIntegration:
 
     @pytest.mark.integration
     def test_real_llm_call_footnote(self) -> None:
-        """Integration test — requires a running LLM with llama3.1:8b."""
+        """Integration test — requires a running LLM."""
         cleaner = make_cleaner()
         page_context = (
             "Others have found very similar defection rates in various minor religious sects.1\n\n"
@@ -846,7 +848,7 @@ class TestIntegration:
 
     @pytest.mark.integration
     def test_real_llm_call_drop(self) -> None:
-        """Integration test — requires a running LLM with llama3.1:8b."""
+        """Integration test — requires a running LLM."""
         cleaner = make_cleaner()
         cleaned, classification = cleaner.clean(
             "Chapter 1 ... 1\nChapter 2 ... 15\nChapter 3 ... 42"

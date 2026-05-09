@@ -7,6 +7,8 @@ from docling_core.types import DoclingDocument
 from parsers.docling_parser import DoclingParser, _FootnoteContext
 from text_cleaner import TextCleaner
 
+from conftest import TEST_LLM_MODEL
+
 
 # --- Fixtures ---
 
@@ -722,7 +724,7 @@ class TestIntegration:
                 page_no=1
             ),
         ]
-        parser = make_parser(texts, cleaner=TextCleaner(temperature=0), include_notes=False)
+        parser = make_parser(texts, cleaner=TextCleaner(model=TEST_LLM_MODEL, temperature=0), include_notes=False)
         docs, meta = parser.run()
         assert any("religious sects" in d for d in docs)
         assert all("This ignores the interesting question" not in d for d in docs)

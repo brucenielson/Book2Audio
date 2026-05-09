@@ -11,6 +11,8 @@ TEST_CANONICAL = Path(__file__).parent / "test_canonical"
 TEST_DOCUMENTS_LLM = Path(__file__).parent / "test_documents_llm"
 TEST_CANONICAL_LLM = Path(__file__).parent / "test_canonical_llm"
 
+from conftest import TEST_LLM_MODEL
+
 _SPELLING_VARIANT_THRESHOLD = 0.8
 
 
@@ -108,7 +110,7 @@ def process_all_documents_with_cleaner():
         pytest.skip("No PDF or EPUB files found in test_documents/")
 
     TEST_DOCUMENTS_LLM.mkdir(exist_ok=True)
-    cleaner = TextCleaner(temperature=0)
+    cleaner = TextCleaner(model=TEST_LLM_MODEL, temperature=0)
 
     for pdf_path in pdf_files:
         parser = DoclingParser(source=pdf_path, meta_data={"source": pdf_path.name},
