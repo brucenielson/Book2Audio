@@ -50,7 +50,7 @@ main(
     dry_run=True,
     generate_text_file=True,
     llm_cleaner=True,
-    llm_model='gemma4:31b-cloud',
+    llm_model='gpt-oss:120b-cloud',
     verbose=True,
 )
 

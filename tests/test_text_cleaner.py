@@ -743,6 +743,44 @@ class TestRestoreValidWordsSingleLetter:
         assert _restore_valid_words(original, cleaned) == expected
 
 
+# --- TestRestoreValidWordsTrailingHyphen ---
+
+class TestRestoreValidWordsTrailingHyphen:
+    """Tests that tokens with a trailing hyphen are not restored.
+
+    A trailing hyphen always signals either a word-break fragment ('theo-',
+    'deter-', 'mis-') or a mid-sentence dash being upgraded to an em-dash
+    ('conditions-' → 'conditions—'). In both cases the LLM's fix should win.
+
+    Real examples from Last Full Run.txt:
+      → restored 'theo-'      (LLM tried 'theories.')   — context: 'scientific character of theo-'
+      → restored 'deter-'     (LLM tried 'determined')  — context: 'to the classes deter-'
+      → restored 'mis-'       (LLM tried 'misconceptions') — context: 'accounts for these mis-'
+      → restored 'conditions-'(LLM tried 'conditions—') — context: "fetters of its conditions- a 'rule of"
+    """
+
+    @pytest.mark.parametrize("original,cleaned,expected", [
+        # Word-break fragments: LLM completes the word, must not be rolled back
+        ('scientific character of theo-',       'scientific character of theories.',      'scientific character of theories.'),
+        ('to the classes deter-',               'to the classes determined',              'to the classes determined'),
+        ('accounts for these mis-',             'accounts for these misconceptions',      'accounts for these misconceptions'),
+        # Em-dash upgrade: trailing hyphen upgraded to em-dash, must not be rolled back
+        ("fetters of its conditions- a rule of", "fetters of its conditions— a rule of", "fetters of its conditions— a rule of"),
+    ])
+    def test_trailing_hyphen_token_not_restored(
+            self, original: str, cleaned: str, expected: str) -> None:
+        assert _restore_valid_words(original, cleaned) == expected
+
+    def test_mid_hyphen_compound_still_restored(self) -> None:
+        """A hyphen in the middle of a token (compound word) must still trigger restore."""
+        result = _restore_valid_words(
+            'the well-known argument',
+            'the well-known  argument'  # LLM left it unchanged but with extra space
+        )
+        # 'well-known' does not end with '-', so normal restore rules apply
+        assert 'well-known' in result
+
+
 # --- TestCoerceClassification ---
 
 class TestCoerceClassification:
