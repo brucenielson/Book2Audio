@@ -50,7 +50,7 @@ main(
     dry_run=True,
     generate_text_file=True,
     llm_cleaner=True,
-    llm_model='llama3.1:8b',
+    llm_model='gemma4:31b-cloud',
     verbose=True,
 )
 

@@ -198,18 +198,24 @@ def _restore_valid_words(original: str, cleaned: str, verbose: bool = False) -> 
                         and word_validator.is_valid_word(orig_stripped)
                         and (len(orig_stripped) > 1 or orig_stripped in ('a', 'i'))):
                     # valid→something: restore the original word
+                    ctx_start = max(0, i1 + k - 3)
+                    ctx_end = min(len(original_split), i1 + k + 4)
                     vprint(verbose,
                            f"  → restored '{original_split[i1 + k]}' "
-                           f"(LLM tried '{cleaned_split[j1 + k]}')")
+                           f"(LLM tried '{cleaned_split[j1 + k]}')"
+                           f"  context: {' '.join(original_split[ctx_start:ctx_end])!r}")
                     result.append(original_split[i1 + k])
                 elif (orig_stripped == new_stripped
                       and ('—' in orig_tok or '–' in orig_tok)
                       and '—' not in new_tok and '–' not in new_tok):
                     # em/en-dash downgraded to plain hyphen — restore to preserve
                     # typographic quality (upgrade direction is intentionally kept)
+                    ctx_start = max(0, i1 + k - 3)
+                    ctx_end = min(len(original_split), i1 + k + 4)
                     vprint(verbose,
                            f"  → restored '{original_split[i1 + k]}' "
-                           f"(LLM tried '{cleaned_split[j1 + k]}')")
+                           f"(LLM tried '{cleaned_split[j1 + k]}')"
+                           f"  context: {' '.join(original_split[ctx_start:ctx_end])!r}")
                     result.append(original_split[i1 + k])
                 else:
                     result.append(cleaned_split[j1 + k])
@@ -240,9 +246,12 @@ def _restore_valid_words(original: str, cleaned: str, verbose: bool = False) -> 
                     or is_hyphen_compound):
                 result.append(cleaned_split[j1])
             else:
+                ctx_start = max(0, i1 - 3)
+                ctx_end = min(len(original_split), i2 + 3)
                 vprint(verbose,
                        f"  → restored {original_split[i1:i2]} "
-                       f"(LLM tried '{cleaned_split[j1]}')")
+                       f"(LLM tried '{cleaned_split[j1]}')"
+                       f"  context: {' '.join(original_split[ctx_start:ctx_end])!r}")
                 result.extend(original_split[i1:i2])
         else:
             # Other mismatches (1→N splits, N→M) — keep LLM version
