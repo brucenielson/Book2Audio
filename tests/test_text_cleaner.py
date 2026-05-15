@@ -109,6 +109,24 @@ class TestClean:
         system_message = next(m for m in messages if m['role'] == 'system')
         assert system_message['content']
 
+    @pytest.mark.parametrize("paragraph", [
+        "(1) The statement that the earth is at rest.",
+        "(2) This follows directly from the above.",
+        "(12) A longer numbered item in a list.",
+    ])
+    def test_parenthesized_number_prefix_overrides_footnote_classification(
+            self, paragraph: str) -> None:
+        """LLM returning 'footnote' for a (N) prefixed paragraph must be overridden to 'body'.
+
+        Real example: page 37 — '(1) The statement that the earth is at rest...'
+        was wrongly classified as a footnote because the leading number misled the LLM.
+        Paragraphs starting with (N) are always numbered body-text list items.
+        """
+        cleaner = make_cleaner()
+        with patch(patch_llm_chat, return_value=make_response(paragraph, "footnote")):
+            _, classification = cleaner.clean(paragraph)
+        assert classification == "body"
+
 
 # --- TestRetry ---
 

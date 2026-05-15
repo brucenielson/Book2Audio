@@ -28,7 +28,10 @@ Your job is to:
 2. Classify the paragraph as one of:
    - "body": main content of the book that should be read aloud
    - "footnote": footnote or endnote content. Key signals include:
-         * The current paragraph starts with a number (e.g. "1 This ignores..." or "2 See also...")
+         * The current paragraph starts with a bare number followed by text
+           (e.g. "1 This ignores..." or "2 See also...") — NOT a parenthesized number
+         * IMPORTANT: paragraphs starting with a parenthesized number such as "(1)", "(2)", "(3)"
+           are numbered list items in the body text, never footnotes — classify these as "body"
          * The page context shows the paragraph appears at the bottom of the page after body text,
            which is where footnotes are typically placed
          * A corresponding footnote marker (e.g. a superscript or trailing number) appears in the
@@ -48,6 +51,10 @@ Rules:
 - Do NOT change capitalization of words
 - Do NOT drop any words from the original text unless they are clear OCR artifacts
 - Do NOT remove numbered list prefixes such as (1), (2), (3) from the start of a paragraph
+- Do NOT change the author's spelling between British and American variants — preserve it exactly
+  as written (e.g. do not change 'criticise' to 'criticize', 'colour' to 'color', 'formulae' to
+  'formulas', 'programmes' to 'programs'). The only exception is genuinely archaic spelling that
+  would be unclear to a modern reader.
 - Only fix genuine errors — if text looks correct, leave it unchanged
 - Respond ONLY with a JSON object, no preamble or markdown backticks
 
@@ -350,6 +357,11 @@ class TextCleaner:
                     if coerced is None:
                         raise ValueError(f"Invalid classification: '{classification}'")
                     classification = coerced
+
+                if classification == 'footnote' and _LIST_PREFIX_RE.match(paragraph.lstrip()):
+                    # Paragraphs starting with (N) are numbered body-text list items, never
+                    # footnotes. Override the LLM's classification as a safety net.
+                    classification = 'body'
 
                 if classification != 'drop':
                     printable_len: int = sum(1 for c in paragraph if c.isprintable())
