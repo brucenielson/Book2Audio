@@ -39,8 +39,10 @@ class TestClean:
     def test_footnote_classification(self) -> None:
         cleaner = make_cleaner()
         with patch(patch_llm_chat, return_value=make_response("A footnote.", "footnote")):
-            cleaned, classification = cleaner.clean("A footnote.1")
-        assert cleaned == "A footnote."
+        # Real footnotes always start with a reference number, never a letter.
+        with patch(patch_llm_chat, return_value=make_response("A genuine footnote.", "footnote")):
+            cleaned, classification = cleaner.clean("1 A genuine footnote.")
+        assert cleaned == "A genuine footnote."
         assert classification == "footnote"
 
     def test_drop_classification(self) -> None:
@@ -121,6 +123,43 @@ class TestClean:
         Real example: page 37 — '(1) The statement that the earth is at rest...'
         was wrongly classified as a footnote because the leading number misled the LLM.
         Paragraphs starting with (N) are always numbered body-text list items.
+        """
+        cleaner = make_cleaner()
+        with patch(patch_llm_chat, return_value=make_response(paragraph, "footnote")):
+            _, classification = cleaner.clean(paragraph)
+        assert classification == "body"
+
+    @pytest.mark.parametrize("paragraph", [
+        "(i) The first assumption is that all observation is theory-laden.",
+        "(ii) There can be no valid reasoning from singular observation statements.",
+        "(iii) A third point about the nature of induction.",
+        "(iv) Final item in the enumeration.",
+    ])
+    def test_roman_numeral_list_prefix_overrides_footnote_classification(
+            self, paragraph: str) -> None:
+        """LLM returning 'footnote' for a (i)/(ii)/(iii)/(iv) paragraph must be overridden.
+
+        Real example: page 72 — '(ii) There can be no valid reasoning...' was wrongly
+        classified as a footnote. Roman numeral list items are body text, never footnotes.
+        """
+        cleaner = make_cleaner()
+        with patch(patch_llm_chat, return_value=make_response(paragraph, "footnote")):
+            _, classification = cleaner.clean(paragraph)
+        assert classification == "body"
+
+    @pytest.mark.parametrize("paragraph", [
+        "Since my discussion has given rise to misunderstandings, a clarification is needed.",
+        "In order to see that (i) to (iv) are consistent we merely have to consider.",
+        "The argument proceeds from the assumption that all swans are white.",
+        "We can now state the main theorem of this section.",
+    ])
+    def test_letter_start_overrides_footnote_classification(
+            self, paragraph: str) -> None:
+        """Paragraphs starting with a letter can never be footnotes — override the LLM.
+
+        Real footnotes always begin with a reference number or symbol. Body text
+        starting with a letter must never be reclassified as a footnote regardless
+        of what the LLM returns.
         """
         cleaner = make_cleaner()
         with patch(patch_llm_chat, return_value=make_response(paragraph, "footnote")):

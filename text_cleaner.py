@@ -131,7 +131,7 @@ def _normalize_token(word: str) -> str:
     return word.lower()
 
 
-_LIST_PREFIX_RE: re.Pattern[str] = re.compile(r'^(\(\d+\)|\d+[.)]) ')
+_LIST_PREFIX_RE: re.Pattern[str] = re.compile(r'^(\(\d+\)|\([ivxlIVXL]+\)|\d+[.)]) ')
 
 
 def _restore_list_prefix(original: str, cleaned: str) -> str:
@@ -359,8 +359,13 @@ class TextCleaner:
                     classification = coerced
 
                 if classification == 'footnote' and _LIST_PREFIX_RE.match(paragraph.lstrip()):
-                    # Paragraphs starting with (N) are numbered body-text list items, never
-                    # footnotes. Override the LLM's classification as a safety net.
+                    # Paragraphs starting with (N) or (i)/(ii)/... are numbered list items,
+                    # never footnotes. Override the LLM's classification as a safety net.
+                    classification = 'body'
+
+                if classification == 'footnote' and paragraph.lstrip()[:1].isalpha():
+                    # Real footnotes always begin with a reference number or symbol, never
+                    # a letter. Override to protect body text that the LLM mislabelled.
                     classification = 'body'
 
                 if classification != 'drop':
