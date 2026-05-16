@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from typing import TypeGuard
+
+import pypdfium2
 
 from docling_core.types.doc.document import (TextItem,
                                              DocItem,
@@ -379,3 +382,46 @@ def should_skip_element(text: DocItem) -> bool:
     if not is_text_bearing(text):
         return True
     return is_page_footer(text) or is_page_header(text)
+
+
+# Roman numeral pattern — matches lowercase Roman numerals only (as used by pypdfium2).
+_ROMAN_RE = re.compile(
+    r'^m{0,4}(cm|cd|d?c{0,3})(xc|xl|l?x{0,3})(ix|iv|v?i{0,3})$',
+    re.IGNORECASE,
+)
+
+
+def get_pdf_page_labels(path: Path) -> dict[int, str]:
+    """Return a mapping from physical page index (0-based) to its printed label.
+
+    PDF page labels are the logical page numbers visible in the book — e.g.
+    Roman numerals 'i'…'xl' for front matter, then '1', '2'… for the body.
+    Physical indices are always sequential from 0.
+
+    Uses pypdfium2 (already installed as a Docling transitive dependency).
+
+    Args:
+        path: Path to the PDF file.
+
+    Returns:
+        dict mapping physical index → label string, e.g. {0: 'i', 40: '1', …}.
+    """
+    doc = pypdfium2.PdfDocument(path)
+    return {i: doc.get_page_label(i) for i in range(len(doc))}
+
+
+def is_front_matter(label: str) -> bool:
+    """Return True if *label* is a Roman numeral page label (front matter).
+
+    Front-matter pages are labelled with lowercase Roman numerals by convention
+    (i, ii, iii … xl, etc.).  Body pages use Arabic numerals ('1', '2', …).
+
+    Args:
+        label: The page label string returned by get_pdf_page_labels().
+
+    Returns:
+        True if label is a non-empty Roman numeral, False otherwise.
+    """
+    if not label:
+        return False
+    return bool(_ROMAN_RE.fullmatch(label)) and label != ''

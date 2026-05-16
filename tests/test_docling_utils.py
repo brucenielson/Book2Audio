@@ -1,6 +1,8 @@
 """Tests for utils.docling_utils helper functions."""
 
-from unittest.mock import MagicMock
+import pytest
+from pathlib import Path
+from unittest.mock import MagicMock, patch
 from docling_core.types import DoclingDocument
 from docling_core.types.doc.document import SectionHeaderItem, ListItem, TextItem, DocItem, DocItemLabel
 from utils.docling_utils import (
@@ -10,6 +12,7 @@ from utils.docling_utils import (
     get_current_page, should_skip_element,
     compute_single_line_height, compute_median_chars_per_line, is_small_text,
     is_single_line,
+    get_pdf_page_labels, is_front_matter,
 )
 from utils.general_utils import clean_text
 
@@ -526,3 +529,71 @@ class TestIsSingleLine:
         # height=15.0, single_line=10.0, tolerance=1.5 → 15 <= 15 → True
         item = make_text_item_with_bbox(DocItemLabel.SECTION_HEADER.value, height=13.0, charspan_start=0, charspan_end=20)
         assert is_single_line(item, single_line_height=10.0) is True
+
+
+# --- get_pdf_page_labels ---
+
+class TestGetPdfPageLabels:
+    """Tests for get_pdf_page_labels(path) -> dict[int, str].
+
+    Page labels are the logical page numbers printed in the book (e.g. Roman
+    numerals 'i', 'ii'... 'xl' for front matter, then '1', '2'... for body).
+    Physical page indices are sequential from 0 regardless of what's printed.
+    """
+
+    def _make_mock_pdf(self, labels: list[str]) -> MagicMock:
+        """Build a mock PdfDocument that returns the given labels by index."""
+        mock_doc = MagicMock()
+        mock_doc.__len__ = MagicMock(return_value=len(labels))
+        mock_doc.get_page_label = MagicMock(side_effect=lambda i: labels[i])
+        return mock_doc
+
+    def test_returns_mapping_of_index_to_label(self) -> None:
+        """Basic case: physical indices map to their printed labels."""
+        labels = ['i', 'ii', 'iii', '1', '2', '3']
+        mock_doc = self._make_mock_pdf(labels)
+        with patch('utils.docling_utils.pypdfium2.PdfDocument', return_value=mock_doc):
+            result = get_pdf_page_labels(Path('dummy.pdf'))
+        assert result == {0: 'i', 1: 'ii', 2: 'iii', 3: '1', 4: '2', 5: '3'}
+
+    def test_all_arabic_no_front_matter(self) -> None:
+        """PDF with no front matter — all labels are Arabic numerals."""
+        labels = ['1', '2', '3', '4']
+        mock_doc = self._make_mock_pdf(labels)
+        with patch('utils.docling_utils.pypdfium2.PdfDocument', return_value=mock_doc):
+            result = get_pdf_page_labels(Path('dummy.pdf'))
+        assert result == {0: '1', 1: '2', 2: '3', 3: '4'}
+
+    def test_long_roman_numeral_front_matter(self) -> None:
+        """40 pages of Roman numeral front matter (xl) before body text."""
+        roman = ['i', 'ii', 'iii', 'iv', 'v', 'vi', 'vii', 'viii', 'ix', 'x',
+                 'xi', 'xii', 'xiii', 'xiv', 'xv', 'xvi', 'xvii', 'xviii', 'xix', 'xx',
+                 'xxi', 'xxii', 'xxiii', 'xxiv', 'xxv', 'xxvi', 'xxvii', 'xxviii', 'xxix', 'xxx',
+                 'xxxi', 'xxxii', 'xxxiii', 'xxxiv', 'xxxv', 'xxxvi', 'xxxvii', 'xxxviii', 'xxxix', 'xl']
+        labels = roman + ['1', '2', '3']
+        mock_doc = self._make_mock_pdf(labels)
+        with patch('utils.docling_utils.pypdfium2.PdfDocument', return_value=mock_doc):
+            result = get_pdf_page_labels(Path('dummy.pdf'))
+        assert result[0] == 'i'
+        assert result[39] == 'xl'
+        assert result[40] == '1'
+        assert result[42] == '3'
+
+
+# --- is_front_matter ---
+
+class TestIsFrontMatter:
+    """Tests for is_front_matter(label) -> bool."""
+
+    @pytest.mark.parametrize("label,expected", [
+        ('i',      True),
+        ('iv',     True),
+        ('xl',     True),
+        ('xii',    True),
+        ('1',      False),
+        ('42',     False),
+        ('368',    False),
+        ('',       False),
+    ])
+    def test_label_classification(self, label: str, expected: bool) -> None:
+        assert is_front_matter(label) is expected
