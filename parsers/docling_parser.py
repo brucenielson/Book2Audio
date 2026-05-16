@@ -19,7 +19,9 @@ from utils.docling_utils import (is_footnote,
                                  compute_single_line_height,
                                  compute_median_chars_per_line,
                                  is_small_text,
-                                 is_single_line)
+                                 is_single_line,
+                                 get_pdf_page_labels,
+                                 is_front_matter)
 from utils.general_utils import is_sentence_end
 
 
@@ -51,7 +53,9 @@ class DoclingParser(BaseParser):
                  end_page: int | None = None,
                  llm_cleaner: str | TextCleaner | None = None,
                  min_footnote_chars: int = 100,
-                 verbose: bool = False) -> None:
+                 verbose: bool = False,
+                 page_labels: dict[int, str] | None = None,
+                 skip_front_matter: bool = False) -> None:
         """Initialise DoclingParser.
 
         Args:
@@ -81,13 +85,24 @@ class DoclingParser(BaseParser):
                                 document's median characters-per-line baseline.
                                 Defaults to 100.
             verbose: If True, prints progress messages during conversion. Defaults to False.
+            page_labels: Optional pre-loaded mapping from physical page index (0-based,
+                         as returned by pypdfium2) to the printed label string.  When
+                         None and a file path is provided, labels are loaded automatically
+                         from the PDF.  Pass an explicit dict (including {}) to override.
+            skip_front_matter: If True, pages whose PDF label is a Roman numeral are
+                                excluded from output.  Requires page labels to be
+                                available (loaded automatically from the PDF when a file
+                                path is given).  Defaults to False.
         """
         if isinstance(source, DoclingDocument):
             self._doc: DoclingDocument = source
             self._file_path: Path | None = None
+            self._page_labels: dict[int, str] = page_labels if page_labels is not None else {}
         else:
             self._file_path = Path(source)
             self._doc = load_as_document(self._file_path)
+            self._page_labels = (page_labels if page_labels is not None
+                                 else get_pdf_page_labels(self._file_path))
 
         self._min_paragraph_size: int = min_paragraph_size
         self._meta_data: dict[str, str] = meta_data or {}
@@ -97,6 +112,23 @@ class DoclingParser(BaseParser):
         self._cleaner: str | TextCleaner | None = llm_cleaner
         self._short_text_threshold: int = min_footnote_chars
         self._verbose: bool = verbose
+        self._skip_front_matter: bool = skip_front_matter
+
+    def _page_label_for(self, page_no: int) -> str:
+        """Return the printed page label for a Docling page number.
+
+        Docling uses 1-based page numbers; pypdfium2 uses 0-based indices.
+        Falls back to the physical page number string if no label is available.
+
+        Args:
+            page_no: Docling's 1-based physical page number.
+
+        Returns:
+            The PDF label string (e.g. 'i', 'xl', '1', '368'), or str(page_no)
+            if no label table was loaded.
+        """
+        label = self._page_labels.get(page_no - 1)
+        return label or str(page_no)
 
     def _is_in_page_range(self, page_no: int | None) -> bool:
         """Check whether a page number falls within the configured page range.
@@ -171,9 +203,13 @@ class DoclingParser(BaseParser):
             page_no: int = text.prov[0].page_no
             if not self._is_in_page_range(page_no):
                 continue
+            label: str = self._page_label_for(page_no)
+            if self._skip_front_matter and is_front_matter(label):
+                continue
             chunks.append(RawChunk(
                 text=text.text,
-                meta={**self._meta_data, "section_name": "", "page_#": str(page_no)},
+                meta={**self._meta_data, "section_name": "",
+                      "page_#": label, "physical_page_#": str(page_no)},
                 label=text.label
             ))
 

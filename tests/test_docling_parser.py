@@ -58,14 +58,17 @@ def make_parser(texts: list,
                 end_page: int | None = None,
                 include_notes: bool = True,
                 cleaner: TextCleaner | None = None,
-                min_footnote_chars: int = 100) -> DoclingParser:
+                min_footnote_chars: int = 100,
+                page_labels: dict[int, str] | None = None,
+                skip_front_matter: bool = False) -> DoclingParser:
     """Create a DoclingParser with a mocked DoclingDocument."""
     doc = MagicMock(spec=DoclingDocument)
     doc.name = "test_doc"
     doc.texts = texts
     return DoclingParser(source=doc, meta_data=meta_data or {}, min_paragraph_size=min_paragraph_size,
                          start_page=start_page, end_page=end_page, include_footnotes=include_notes,
-                         llm_cleaner=cleaner, min_footnote_chars=min_footnote_chars)
+                         llm_cleaner=cleaner, min_footnote_chars=min_footnote_chars,
+                         page_labels=page_labels, skip_front_matter=skip_front_matter)
 
 
 def make_ctx(
@@ -327,6 +330,12 @@ class TestExtractChunks:
         parser = make_parser([])
         chunks = parser._extract_chunks(texts, [])
         assert chunks[0].meta['page_#'] == '42'
+
+    def test_chunk_meta_contains_physical_page_number(self) -> None:
+        texts = [make_text_item("Text.", page_no=42)]
+        parser = make_parser([])
+        chunks = parser._extract_chunks(texts, [])
+        assert chunks[0].meta['physical_page_#'] == '42'
 
     def test_chunk_label_matches_item_label(self) -> None:
         texts = [make_text_item("Text.")]
@@ -728,3 +737,90 @@ class TestIntegration:
         docs, meta = parser.run()
         assert any("religious sects" in d for d in docs)
         assert all("This ignores the interesting question" not in d for d in docs)
+
+
+# --- TestPageLabels ---
+
+class TestPageLabels:
+    """Tests for PDF page label integration in DoclingParser.
+
+    Docling's page_no is 1-based; pypdfium2 page label indices are 0-based.
+    So page_no N maps to label index N-1.
+    """
+
+    def test_page_meta_uses_pdf_label_when_available(self) -> None:
+        """When labels are provided, chunk metadata uses the label not the physical number."""
+        texts = [make_text_item("Body text.", page_no=1)]
+        parser = make_parser(texts, page_labels={0: 'i'})
+        chunks = parser._extract_chunks(texts, [])
+        assert chunks[0].meta['page_#'] == 'i'
+
+    def test_page_meta_falls_back_to_physical_number_without_labels(self) -> None:
+        """Without page labels, chunk metadata falls back to the physical page number string."""
+        texts = [make_text_item("Body text.", page_no=42)]
+        parser = make_parser(texts)
+        chunks = parser._extract_chunks(texts, [])
+        assert chunks[0].meta['page_#'] == '42'
+
+    def test_empty_string_label_falls_back_to_physical_number(self) -> None:
+        """pypdfium2 returns '' for PDFs with no page label table; must still show physical number."""
+        texts = [make_text_item("Body text.", page_no=5)]
+        parser = make_parser(texts, page_labels={4: ''})   # empty string, not None
+        chunks = parser._extract_chunks(texts, [])
+        assert chunks[0].meta['page_#'] == '5'
+
+    def test_arabic_label_stored_verbatim_in_meta(self) -> None:
+        """Arabic page labels are stored verbatim — the body of a book with 40 front-matter pages."""
+        texts = [make_text_item("Body text.", page_no=41)]
+        parser = make_parser(texts, page_labels={40: '1'})   # Docling page 41 → index 40 → '1'
+        chunks = parser._extract_chunks(texts, [])
+        assert chunks[0].meta['page_#'] == '1'
+
+    def test_front_matter_pages_skipped_when_enabled(self) -> None:
+        """Pages with Roman numeral labels are excluded when skip_front_matter=True."""
+        texts = [
+            make_text_item("Front matter text.", page_no=1),
+            make_text_item("Body text.", page_no=2),
+        ]
+        parser = make_parser(texts, page_labels={0: 'i', 1: '1'}, skip_front_matter=True)
+        chunks = parser._extract_chunks(texts, [])
+        assert len(chunks) == 1
+        assert chunks[0].meta['page_#'] == '1'
+
+    def test_front_matter_included_when_skip_front_matter_false(self) -> None:
+        """Front matter pages are kept when skip_front_matter=False (the default)."""
+        texts = [
+            make_text_item("Front matter text.", page_no=1),
+            make_text_item("Body text.", page_no=2),
+        ]
+        parser = make_parser(texts, page_labels={0: 'i', 1: '1'}, skip_front_matter=False)
+        chunks = parser._extract_chunks(texts, [])
+        assert len(chunks) == 2
+
+    def test_both_page_numbers_present_in_meta(self) -> None:
+        """Both the PDF label and the physical page number appear in chunk metadata."""
+        texts = [make_text_item("Body text.", page_no=41)]
+        parser = make_parser(texts, page_labels={40: '1'})
+        chunks = parser._extract_chunks(texts, [])
+        assert chunks[0].meta['page_#'] == '1'
+        assert chunks[0].meta['physical_page_#'] == '41'
+
+    def test_physical_page_matches_docling_page_no(self) -> None:
+        """physical_page_# always reflects Docling's page_no regardless of label."""
+        texts = [make_text_item("Front matter.", page_no=5)]
+        parser = make_parser(texts, page_labels={4: 'v'})
+        chunks = parser._extract_chunks(texts, [])
+        assert chunks[0].meta['physical_page_#'] == '5'
+        assert chunks[0].meta['page_#'] == 'v'
+
+    def test_multiple_front_matter_pages_all_skipped(self) -> None:
+        """All Roman-numeral-labeled pages are dropped, not just the first."""
+        texts = [
+            make_text_item("Front matter p1.", page_no=1),
+            make_text_item("Front matter p2.", page_no=2),
+            make_text_item("Body text.", page_no=3),
+        ]
+        parser = make_parser(texts, page_labels={0: 'i', 1: 'ii', 2: '1'}, skip_front_matter=True)
+        chunks = parser._extract_chunks(texts, [])
+        assert len(chunks) == 1
+        assert "Body text." in chunks[0].text
