@@ -739,6 +739,41 @@ class TestIntegration:
         assert all("This ignores the interesting question" not in d for d in docs)
 
 
+# --- TestFormatPage ---
+
+class TestFormatPage:
+    """Tests for DoclingParser._format_page(page_no) -> str.
+
+    When the PDF label matches the physical number, show just one.
+    When they differ, show [Page <label> / Page <physical>].
+    """
+
+    def test_no_labels_shows_physical_number_only(self) -> None:
+        """Without a label table, label falls back to physical — show just the number."""
+        parser = make_parser([])
+        assert parser._format_page(42) == '42'
+
+    def test_matching_label_shows_single_number(self) -> None:
+        """When the PDF label equals the physical number string, show it once."""
+        parser = make_parser([], page_labels={4: '5'})   # Docling page 5 → index 4 → '5'
+        assert parser._format_page(5) == '5'
+
+    def test_differing_label_shows_both(self) -> None:
+        """When label and physical differ, show [Page <label> / Page <physical>]."""
+        parser = make_parser([], page_labels={40: '1'})  # Docling page 41 → index 40 → '1'
+        assert parser._format_page(41) == '[Page 1 / Page 41]'
+
+    def test_roman_numeral_label_shows_both(self) -> None:
+        """Roman numeral front-matter labels always differ from the physical number."""
+        parser = make_parser([], page_labels={0: 'i'})
+        assert parser._format_page(1) == '[Page i / Page 1]'
+
+    def test_empty_string_label_falls_back_to_physical(self) -> None:
+        """pypdfium2 empty-string label is treated as no label — show physical only."""
+        parser = make_parser([], page_labels={4: ''})
+        assert parser._format_page(5) == '5'
+
+
 # --- TestPageLabels ---
 
 class TestPageLabels:

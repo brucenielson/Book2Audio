@@ -130,6 +130,25 @@ class DoclingParser(BaseParser):
         label = self._page_labels.get(page_no - 1)
         return label or str(page_no)
 
+    def _format_page(self, page_no: int) -> str:
+        """Format a page reference for display in text output files.
+
+        When the PDF label matches the physical page number, returns just the
+        number.  When they differ (e.g. Roman numeral front matter, or a book
+        whose PDF labels don't start at 1), returns '[Page <label> / Page <physical>]'.
+
+        Args:
+            page_no: Docling's 1-based physical page number.
+
+        Returns:
+            A display string such as '42', 'i', or '[Page 1 / Page 41]'.
+        """
+        label = self._page_label_for(page_no)
+        physical = str(page_no)
+        if label == physical:
+            return label
+        return f'[Page {label} / Page {physical}]'
+
     def _is_in_page_range(self, page_no: int | None) -> bool:
         """Check whether a page number falls within the configured page range.
 
@@ -236,10 +255,12 @@ class DoclingParser(BaseParser):
 
         with open(f"{base_path}_processed_texts.txt", "w", encoding="utf-8") as f:
             for text in regular_texts:
-                f.write(f"{text.prov[0].page_no if text.prov else 'N/A'}: {text.label}: {text.text}\n")
+                page = self._format_page(text.prov[0].page_no) if text.prov else 'N/A'
+                f.write(f"{page}: {text.label}: {text.text}\n")
             f.write("--- FOOTNOTES ---\n")
             for text in notes:
-                f.write(f"{text.prov[0].page_no if text.prov else 'N/A'}: {text.label}: {text.text}\n")
+                page = self._format_page(text.prov[0].page_no) if text.prov else 'N/A'
+                f.write(f"{page}: {text.label}: {text.text}\n")
 
     def _is_footnote(self, text_item: TextItem, ctx: _FootnoteContext) -> bool:
         """Return True if text_item should be classified as a footnote.
