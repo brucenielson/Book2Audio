@@ -316,19 +316,27 @@ class TextProcessor:
     def _report_page_progress(self, chunk: RawChunk) -> None:
         """Print a progress line when processing crosses a 10-page boundary.
 
+        Uses physical_page_# for milestone arithmetic (always an integer string)
+        and falls back to page_# when physical is absent (e.g. EPUB parser).
+        Displays the PDF label alongside the physical number when they differ.
+
         Args:
             chunk: The current chunk whose page number is checked.
         """
-        page_str = chunk.meta.get('page_#', '')
-        if not page_str:
+        physical_str = chunk.meta.get('physical_page_#', '') or chunk.meta.get('page_#', '')
+        if not physical_str:
             return
         try:
-            page = int(page_str)
+            page = int(physical_str)
         except ValueError:
             return
         milestone = page != self._last_reported_page if self._verbose else page // 10 > self._last_reported_page // 10
         if milestone:
-            print(f"  [Page {page}]")
+            label = chunk.meta.get('page_#', physical_str)
+            if label and label != physical_str:
+                print(f"  [Page {label} / Page {page}]")
+            else:
+                print(f"  [Page {page}]")
             self._last_reported_page = page
 
     def _process_chunk(self, chunk: RawChunk, next_chunk: RawChunk | None) -> None:
