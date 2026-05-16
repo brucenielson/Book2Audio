@@ -38,7 +38,6 @@ class TestClean:
 
     def test_footnote_classification(self) -> None:
         cleaner = make_cleaner()
-        with patch(patch_llm_chat, return_value=make_response("A footnote.", "footnote")):
         # Real footnotes always start with a reference number, never a letter.
         with patch(patch_llm_chat, return_value=make_response("A genuine footnote.", "footnote")):
             cleaned, classification = cleaner.clean("1 A genuine footnote.")
