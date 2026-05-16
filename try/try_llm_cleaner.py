@@ -18,8 +18,8 @@ from utils.general_utils import extract_pdf_pages
 
 
 # DOC_NAME = r"Realism and the Aim of Science - Intro Test - 2017"
-# DOC_NAME = r"Realism and the Aim of Science -- Karl Popper -- 2017"
-DOC_NAME = r"Realism and the Aim of Science -- Karl Popper -- 2017 -- extracted 1 to 41"
+DOC_NAME = r"Realism and the Aim of Science -- Karl Popper -- 2017"
+# DOC_NAME = r"Realism and the Aim of Science -- Karl Popper -- 2017 -- extracted 1 to 41"
 
 # Set to a (start, end) tuple of physical page numbers to extract a subset of
 # the PDF before running. Physical pages are 1-indexed from the front of the
