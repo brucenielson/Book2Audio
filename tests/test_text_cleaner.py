@@ -216,6 +216,34 @@ class TestRetry:
         with patch(patch_llm_chat, side_effect=[bad_response, bad_response, good_response]):
             cleaned, classification = cleaner.clean("Some text.")
         assert cleaned == "Some text."
+
+    def test_repairs_invalid_json_escape_without_consuming_retry(self) -> None:
+        """Stray backslash in LLM JSON (e.g. \\alpha) is repaired inline — no retry burned."""
+        cleaner = make_cleaner(max_retries=3)
+        # \alpha in the JSON value: \a is not a valid JSON escape sequence
+        bad_escape = {'message': {'content': '{"cleaned": "formula \\alpha = 0", "classification": "body"}'}}
+        with patch(patch_llm_chat, return_value=bad_escape) as mock_chat:
+            cleaned, classification = cleaner.clean("formula \\alpha = 0")
+        assert classification == "body"
+        assert mock_chat.call_count == 1  # repaired inline, not retried
+
+    def test_repaired_json_escape_preserves_cleaned_text(self) -> None:
+        """After repairing invalid escape, the cleaned text is extracted correctly."""
+        cleaner = make_cleaner(max_retries=3)
+        bad_escape = {'message': {'content': '{"cleaned": "formula \\alpha = 0", "classification": "body"}'}}
+        with patch(patch_llm_chat, return_value=bad_escape):
+            cleaned, _ = cleaner.clean("formula \\alpha = 0")
+        assert "alpha" in cleaned
+
+    def test_non_escape_json_errors_still_trigger_retry(self) -> None:
+        """A JSONDecodeError that isn't an escape issue still goes through the retry loop."""
+        cleaner = make_cleaner(max_retries=3)
+        bad_response = {'message': {'content': 'not valid json at all'}}
+        good_response = make_response("Some text.", "body")
+        with patch(patch_llm_chat, side_effect=[bad_response, good_response]) as mock_chat:
+            cleaned, classification = cleaner.clean("Some text.")
+        assert classification == "body"
+        assert mock_chat.call_count == 2  # one failure, one success
         assert classification == "body"
 
     def test_max_retries_configurable(self) -> None:
