@@ -46,6 +46,8 @@ class _FootnoteContext:
 class DoclingParser(BaseParser):
     """Parser for PDF documents using the Docling library."""
 
+    _SKIP_LABELS: frozenset[str] = frozenset({'footnote', 'page_header', 'too_short'})
+
     def __init__(self, source: str | Path | DoclingDocument,
                  include_footnotes: bool = False,
                  meta_data: dict[str, str] | None = None,
@@ -184,7 +186,10 @@ class DoclingParser(BaseParser):
             A tuple of (docs, meta) where docs is a list of paragraph strings
             and meta is a list of metadata dicts, one per paragraph.
         """
-        regular_texts, notes, classified = self._get_processed_texts()
+        classified: list[tuple[TextItem, str]] = self._get_processed_texts()
+        regular_texts: list[TextItem] = [item for item, label in classified
+                                         if label not in DoclingParser._SKIP_LABELS]
+        notes: list[TextItem] = [item for item, label in classified if label == 'footnote']
         raw_chunks: list[RawChunk] = self._extract_chunks(regular_texts, notes)
 
         output_path: Path | None = None
@@ -379,15 +384,16 @@ class DoclingParser(BaseParser):
         else:
             ctx.prev_ends_mid_sentence = False
 
-    def _get_processed_texts(self) -> tuple[list[TextItem], list[TextItem], list[tuple[TextItem, str]]]:
-        """Separate the document's text items into regular content and footnotes.
+    def _get_processed_texts(self) -> list[tuple[TextItem, str]]:
+        """Classify the document's text items and return them in document order.
 
         Collects valid TextItems, computes document-level font-size baselines,
         then classifies each item using _is_footnote() and _is_page_header().
 
         Returns:
-            A tuple of (regular_texts, notes, classified) where classified is a list of
-            (item, final_label) pairs in document order, used to write the debug file.
+            A list of (item, label) pairs in document order. Label is one of:
+            the original Docling label string (body text / section headers),
+            'footnote', 'page_header', or 'too_short' for suppressed items.
         """
         # Collect all valid TextItems. Page headers and footers are excluded.
         all_text_items: list[TextItem] = [
@@ -401,8 +407,6 @@ class DoclingParser(BaseParser):
 
         boundary_indices: set[int] = self._compute_boundary_indices(all_text_items)
 
-        regular_texts: list[TextItem] = []
-        notes: list[TextItem] = []
         classified: list[tuple[TextItem, str]] = []
         current_page: int | None = None
         ctx: _FootnoteContext = _FootnoteContext(
@@ -423,6 +427,7 @@ class DoclingParser(BaseParser):
                 current_page = page_number
 
             if is_too_short(text_item):
+                classified.append((text_item, 'too_short'))
                 continue
 
             if DoclingParser._is_page_header(i, text_item, boundary_indices, ctx):
@@ -432,14 +437,12 @@ class DoclingParser(BaseParser):
             went_to_notes: bool = self._is_footnote(text_item, ctx)
             if went_to_notes:
                 ctx.found_note_this_page = True
-                notes.append(text_item)
                 classified.append((text_item, 'footnote'))
             else:
-                regular_texts.append(text_item)
                 classified.append((text_item, str(text_item.label)))
                 self._update_text_state(text_item, ctx)
 
             if not went_to_notes and text_item.label == DocItemLabel.TEXT:
                 ctx.text_seen_this_page = True
 
-        return regular_texts, notes, classified
+        return classified
