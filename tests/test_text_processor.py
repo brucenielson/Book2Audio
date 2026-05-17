@@ -550,3 +550,45 @@ class TestReportPageProgress:
         processor._report_page_progress(chunk)
         out = capsys.readouterr().out
         assert out.count('[Page') == 1
+
+
+# --- TestUprfontFootnoteReclassification ---
+
+class TestUpfrontFootnoteReclassification:
+    """Chunks whose text starts with 1-2 digits immediately followed by an uppercase
+    letter are reclassified as footnotes during the upfront preprocessing pass."""
+
+    def test_digit_uppercase_chunk_is_dropped(self) -> None:
+        """A 'text' chunk matching '3See' pattern is reclassified and dropped from output."""
+        processor = make_processor(include_footnotes=False)
+        chunks = [make_chunk("3See my Poverty of Historicism, section 32.")]
+        result = processor.process(chunks)
+        assert result == []
+
+    def test_two_digit_uppercase_chunk_is_dropped(self) -> None:
+        """A 'text' chunk matching '14Cf' pattern is reclassified and dropped."""
+        processor = make_processor(include_footnotes=False)
+        chunks = [make_chunk("14Cf. the earlier discussion on page 42.")]
+        result = processor.process(chunks)
+        assert result == []
+
+    def test_digit_space_uppercase_chunk_is_kept(self) -> None:
+        """A chunk with a space between digit and letter is body text — not reclassified."""
+        processor = make_processor(include_footnotes=False)
+        chunks = [make_chunk("3 Some body text that is complete.")]
+        result = processor.process(chunks)
+        assert len(result) == 1
+
+    def test_digit_lowercase_chunk_is_kept(self) -> None:
+        """Lowercase after digit (e.g. '1st') is not reclassified."""
+        processor = make_processor(include_footnotes=False)
+        chunks = [make_chunk("1st place goes to the fastest runner.")]
+        result = processor.process(chunks)
+        assert len(result) == 1
+
+    def test_reclassified_footnote_included_when_flag_set(self) -> None:
+        """If include_footnotes=True, a reclassified chunk still appears in output."""
+        processor = make_processor(include_footnotes=True)
+        chunks = [make_chunk("3See my Poverty of Historicism, section 32.")]
+        result = processor.process(chunks)
+        assert len(result) == 1

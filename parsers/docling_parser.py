@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import dataclasses
+import re
 from pathlib import Path
 
 from docling_core.types import DoclingDocument
@@ -31,7 +32,7 @@ class _FootnoteContext:
 
     Holds both the per-iteration loop state (which changes as we walk the
     document) and the document-level metrics (computed once before the loop).
-    Bundled here so _is_footnote(), _is_running_head(), and _update_text_state()
+    Bundled here so _is_footnote(), _is_page_header(), and _update_text_state()
     all receive what they need in one argument.
     """
     prev_text_candidate: bool       # last TEXT item was long with no sentence end
@@ -291,8 +292,11 @@ class DoclingParser(BaseParser):
             return False
         has_alpha: bool = any(c.isalpha() for c in text_item.text)
         return (
+            # H4: 1–2 digits immediately followed by an uppercase letter — unconditional footnote
+            # marker (e.g. "3See", "14Cf").  Uppercase avoids ordinals like "1st".
+            bool(re.match(r'^\d{1,2}[A-Z]', text_item.text))
             # H1: follows mid-sentence body text; alpha check excludes index entries like "183-84"
-            (has_alpha and ctx.prev_text_candidate)
+            or (has_alpha and ctx.prev_text_candidate)
             # H2: small font, preceded by body text on this page
             or (len(text_item.text) >= self._short_text_threshold
                 and ctx.text_seen_this_page
@@ -324,8 +328,8 @@ class DoclingParser(BaseParser):
         return set(page_first.values()) | set(page_last.values())
 
     @staticmethod
-    def _is_running_head(i: int, text_item: TextItem,
-                         boundary_indices: set[int], ctx: _FootnoteContext) -> bool:
+    def _is_page_header(i: int, text_item: TextItem,
+                        boundary_indices: set[int], ctx: _FootnoteContext) -> bool:
         """Return True if this section header looks like a mislabeled running page header.
 
         A genuine running head is always: labeled SECTION_HEADER, at the top or
@@ -371,7 +375,7 @@ class DoclingParser(BaseParser):
         """Separate the document's text items into regular content and footnotes.
 
         Collects valid TextItems, computes document-level font-size baselines,
-        then classifies each item using _is_footnote() and _is_running_head().
+        then classifies each item using _is_footnote() and _is_page_header().
 
         Returns:
             A tuple of (regular_texts, notes) where each is a list of TextItems.
@@ -411,7 +415,7 @@ class DoclingParser(BaseParser):
             if is_too_short(text_item):
                 continue
 
-            if DoclingParser._is_running_head(i, text_item, boundary_indices, ctx):
+            if DoclingParser._is_page_header(i, text_item, boundary_indices, ctx):
                 continue
 
             went_to_notes: bool = self._is_footnote(text_item, ctx)

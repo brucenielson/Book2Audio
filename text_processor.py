@@ -124,12 +124,17 @@ class TextProcessor:
         if self._cleaner is not None:
             word_validator.is_valid_word('warm')
 
-        # Clean all chunks upfront
+        # Clean all chunks upfront and reclassify any footnotes that slipped through
+        # the parser's own classifier (e.g. "3See..." — digit(s) immediately followed
+        # by an uppercase letter is an unambiguous footnote reference marker).
+        _FOOTNOTE_MARKER_RE: re.Pattern[str] = re.compile(r'^\d{1,2}[A-Z]')
         for chunk in chunks:
             if _DEBUG_BREAK_TEXT and _DEBUG_BREAK_TEXT in chunk.text:
                 pass
             chunk.text = word_validator.combine_hyphenated_words(chunk.text)
             chunk.text = clean_text(chunk.text, remove_footnotes=True)
+            if chunk.is_body_text and _FOOTNOTE_MARKER_RE.match(chunk.text):
+                chunk.label = 'footnote'
 
         # Build page context strings for LLM-based cleaning
         if self._cleaner is not None:

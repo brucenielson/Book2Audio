@@ -256,6 +256,33 @@ class TestIsFootnote:
         parser = make_parser([])
         assert parser._is_footnote(make_text_item("1 Some text."), make_ctx()) is False
 
+    # --- H4: digit(s) immediately followed by uppercase letter ---
+
+    def test_h4_single_digit_uppercase_returns_true(self) -> None:
+        """'3See' pattern: single digit immediately followed by uppercase → footnote unconditionally."""
+        parser = make_parser([])
+        assert parser._is_footnote(make_text_item("3See my Poverty of Historicism."), make_ctx()) is True
+
+    def test_h4_two_digits_uppercase_returns_true(self) -> None:
+        """Two digits immediately followed by uppercase → footnote unconditionally."""
+        parser = make_parser([])
+        assert parser._is_footnote(make_text_item("14Cf. the earlier discussion."), make_ctx()) is True
+
+    def test_h4_three_digits_not_caught(self) -> None:
+        """Three or more digits before letter should not trigger H4."""
+        parser = make_parser([])
+        assert parser._is_footnote(make_text_item("183See something."), make_ctx()) is False
+
+    def test_h4_digit_lowercase_not_caught(self) -> None:
+        """Lowercase alpha after digit does not trigger H4 — avoids ordinals like '1st'."""
+        parser = make_parser([])
+        assert parser._is_footnote(make_text_item("1st place goes to"), make_ctx()) is False
+
+    def test_h4_digit_space_uppercase_not_caught(self) -> None:
+        """Space between digit and letter means H4 does not fire — uses normal H1/H2/H3 path."""
+        parser = make_parser([])
+        assert parser._is_footnote(make_text_item("3 See my text."), make_ctx()) is False
+
 
 # --- TestIsInPageRange ---
 
@@ -380,45 +407,48 @@ class TestComputeBoundaryIndices:
         assert DoclingParser._compute_boundary_indices([]) == set()
 
 
-# --- TestIsRunningHead ---
+# --- TestIsPageHeader ---
 
-class TestIsRunningHead:
+class TestIsPageHeader:
     def test_all_conditions_met_returns_true(self) -> None:
         header = make_section_header("Running Head")
         parser = make_parser([])
         ctx = make_ctx(prev_text_candidate=True, prev_ends_mid_sentence=True, single_line_height=10.0)
-        assert parser._is_running_head(0, header, {0}, ctx) is True
+        assert parser._is_page_header(0, header, {0}, ctx) is True
 
     def test_not_section_header_returns_false(self) -> None:
         text = make_text_item("Some text")
         parser = make_parser([])
         ctx = make_ctx(prev_text_candidate=True, prev_ends_mid_sentence=True)
-        assert parser._is_running_head(0, text, {0}, ctx) is False
+        assert parser._is_page_header(0, text, {0}, ctx) is False
 
     def test_not_at_boundary_returns_false(self) -> None:
         header = make_section_header("Chapter One")
         parser = make_parser([])
         ctx = make_ctx(prev_text_candidate=True, prev_ends_mid_sentence=True)
-        assert parser._is_running_head(1, header, {0, 2}, ctx) is False
+        assert parser._is_page_header(1, header, {0, 2}, ctx) is False
 
     def test_prev_text_candidate_false_returns_false(self) -> None:
+        """Short preceding text (< min_footnote_chars) must NOT arm the running-head guard.
+        Without the length gate a colon-terminated intro like 'The inference rule has the form:'
+        would suppress the following numbered list item that Docling mislabeled as a section header."""
         header = make_section_header("Running Head")
         parser = make_parser([])
-        ctx = make_ctx(prev_text_candidate=False, prev_ends_mid_sentence=True)
-        assert parser._is_running_head(0, header, {0}, ctx) is False
+        ctx = make_ctx(prev_text_candidate=False, prev_ends_mid_sentence=True, single_line_height=10.0)
+        assert parser._is_page_header(0, header, {0}, ctx) is False
 
     def test_prev_ends_mid_sentence_false_returns_false(self) -> None:
         header = make_section_header("Running Head")
         parser = make_parser([])
         ctx = make_ctx(prev_text_candidate=True, prev_ends_mid_sentence=False)
-        assert parser._is_running_head(0, header, {0}, ctx) is False
+        assert parser._is_page_header(0, header, {0}, ctx) is False
 
     def test_multi_line_header_returns_false(self) -> None:
         header = make_section_header("Running Head")
         header.prov[0].bbox.height = 30.0  # too tall for single-line (10.0 * 1.3 = 13.0)
         parser = make_parser([])
         ctx = make_ctx(prev_text_candidate=True, prev_ends_mid_sentence=True, single_line_height=10.0)
-        assert parser._is_running_head(0, header, {0}, ctx) is False
+        assert parser._is_page_header(0, header, {0}, ctx) is False
 
 
 # --- TestUpdateTextState ---
@@ -575,6 +605,21 @@ class TestRun:
         assert any(long_mid_sentence in d for d in docs)
         assert all("Chapter Two" not in d for d in docs)
 
+    def test_section_header_kept_after_short_colon_text(self) -> None:
+        """A section header after short colon-terminated text must NOT be suppressed.
+        'The inference rule has the form:' (< 100 chars) should not arm the running-head
+        guard even though it ends mid-sentence — the length gate (prev_text_candidate)
+        must prevent false positives like numbered list items Docling mislabels as headers."""
+        short_colon = "The inference rule has the form:"
+        texts = [
+            make_page_header("Running Head"),    # establishes single_line_height = 10.0
+            make_text_item(short_colon),
+            make_section_header("1. If P, then Q;"),  # boundary item, should be kept
+        ]
+        parser = make_parser(texts, min_footnote_chars=100)
+        docs, meta = parser.run()
+        assert any("1. If P, then Q;" in d for d in docs)
+
     def test_skips_page_header(self) -> None:
         texts = [
             make_page_header("Page Header"),
@@ -714,6 +759,87 @@ class TestRun:
         docs, meta = parser.run()
         assert docs == []
         assert meta == []
+
+
+# --- TestProcessedTextsFile ---
+
+class TestProcessedTextsFile:
+    """_processed_texts.txt must contain every DocItem in document order.
+    Reclassified items show 'original_label → new_label:'; unchanged items show just their label."""
+
+    def _make_file_parser(self, texts, tmp_path, **kwargs):
+        parser = make_parser(texts, **kwargs)
+        parser._file_path = tmp_path / "test.pdf"
+        return parser
+
+    def _read_file(self, tmp_path):
+        return (tmp_path / "test_doc_processed_texts.txt").read_text(encoding="utf-8")
+
+    def test_suppressed_page_header_appears_in_file(self, tmp_path) -> None:
+        """A section header suppressed as a running page header must still be written to the file."""
+        long_mid = "A" * 100
+        texts = [
+            make_page_header("PH"),
+            make_text_item(long_mid),
+            make_section_header("Suppressed Head"),
+        ]
+        parser = self._make_file_parser(texts, tmp_path, min_footnote_chars=100)
+        parser.run(generate_text_file=True)
+        assert "Suppressed Head" in self._read_file(tmp_path)
+
+    def test_suppressed_page_header_shows_reclassified_label(self, tmp_path) -> None:
+        """A suppressed section header must show 'section_header → page_header' on its line."""
+        long_mid = "A" * 100
+        texts = [
+            make_page_header("PH"),
+            make_text_item(long_mid),
+            make_section_header("Suppressed Head"),
+        ]
+        parser = self._make_file_parser(texts, tmp_path, min_footnote_chars=100)
+        parser.run(generate_text_file=True)
+        content = self._read_file(tmp_path)
+        assert any(
+            "section_header" in line and "page_header" in line and "Suppressed Head" in line
+            for line in content.splitlines()
+        )
+
+    def test_reclassified_footnote_shows_arrow_label(self, tmp_path) -> None:
+        """A TEXT item reclassified as footnote must show 'text → footnote:' on its line."""
+        long_mid = "A" * 100
+        texts = [
+            make_text_item(long_mid),
+            make_text_item("1 This is a citation reference."),
+        ]
+        parser = self._make_file_parser(texts, tmp_path, min_footnote_chars=100)
+        parser.run(generate_text_file=True)
+        content = self._read_file(tmp_path)
+        assert any(
+            "text" in line and "footnote" in line and "citation reference" in line
+            for line in content.splitlines()
+        )
+
+    def test_unmodified_item_shows_no_arrow(self, tmp_path) -> None:
+        """Regular body text that is not reclassified must appear with no → on its line."""
+        texts = [make_text_item("Regular body text here.")]
+        parser = self._make_file_parser(texts, tmp_path)
+        parser.run(generate_text_file=True)
+        content = self._read_file(tmp_path)
+        body_line = next(l for l in content.splitlines() if "Regular body text here." in l)
+        assert "→" not in body_line
+
+    def test_items_appear_in_document_order(self, tmp_path) -> None:
+        """All items must appear in document order — footnotes must not be moved to the end."""
+        long_mid = "A" * 100
+        texts = [
+            make_text_item("First body.", page_no=1),
+            make_text_item(long_mid, page_no=1),
+            make_text_item("1 A citation.", page_no=1),
+            make_text_item("Second body.", page_no=2),
+        ]
+        parser = self._make_file_parser(texts, tmp_path, min_footnote_chars=100)
+        parser.run(generate_text_file=True)
+        content = self._read_file(tmp_path)
+        assert content.index("A citation.") < content.index("Second body.")
 
 
 # --- TestIntegration ---
