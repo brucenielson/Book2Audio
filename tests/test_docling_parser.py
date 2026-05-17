@@ -520,7 +520,10 @@ class TestGetProcessedTexts:
             make_footnote("Footnote text."),
         ]
         parser = make_parser(texts)
-        regular, notes, _ = parser._get_processed_texts()
+        classified = parser._get_processed_texts()
+        _SKIP = {'footnote', 'page_header', 'too_short'}
+        regular = [item for item, label in classified if label not in _SKIP]
+        notes = [item for item, label in classified if label == 'footnote']
         assert len(regular) == 1
         assert len(notes) == 1
 
@@ -530,25 +533,25 @@ class TestGetProcessedTexts:
             make_text_item("This is a longer sentence."),
         ]
         parser = make_parser(texts)
-        regular, notes, _ = parser._get_processed_texts()
-        assert len(regular) == 1
-        assert regular[0].text == "This is a longer sentence."
+        classified = parser._get_processed_texts()
+        assert len(classified) == 2
+        assert classified[0][1] == 'too_short'
+        assert classified[1][1] != 'too_short'
 
-    def test_regular_texts_before_notes(self) -> None:
+    def test_document_order_preserved(self) -> None:
         texts = [
             make_footnote("Footnote."),
             make_text_item("Regular text."),
         ]
         parser = make_parser(texts)
-        regular, notes, _ = parser._get_processed_texts()
-        assert regular[0].text == "Regular text."
-        assert notes[0].text == "Footnote."
+        classified = parser._get_processed_texts()
+        assert classified[0][0].text == "Footnote."
+        assert classified[1][0].text == "Regular text."
 
     def test_empty_document(self) -> None:
         parser = make_parser([])
-        regular, notes, _ = parser._get_processed_texts()
-        assert regular == []
-        assert notes == []
+        classified = parser._get_processed_texts()
+        assert classified == []
 
 
 # --- TestRun ---
