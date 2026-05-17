@@ -89,7 +89,7 @@ def process_all_documents():
 
     for pdf_path in pdf_files:
         parser = DoclingParser(source=pdf_path, meta_data={"source": pdf_path.name})
-        parser.run(generate_text_file=True)
+        parser.run(generate_text_file=True, annotate_reclassifications=True)
 
     for epub_path in epub_files:
         parser = EpubParser(
