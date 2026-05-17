@@ -167,18 +167,24 @@ class DoclingParser(BaseParser):
             return False
         return True
 
-    def run(self, generate_text_file: bool = False) -> tuple[list[str], list[dict[str, str]]]:
+    def run(self, generate_text_file: bool = False,
+            annotate_reclassifications: bool = False) -> tuple[list[str], list[dict[str, str]]]:
         """Parse the document and return paragraphs and metadata.
 
         Args:
             generate_text_file: If True, saves processed text and paragraph files
                                  alongside the source document.
+            annotate_reclassifications: If True, items whose label was changed by our
+                                        classification show 'original → new' in
+                                        _processed_texts.txt. Defaults to False so
+                                        existing canonical files are unaffected; flip to
+                                        True once canonicals are regenerated.
 
         Returns:
             A tuple of (docs, meta) where docs is a list of paragraph strings
             and meta is a list of metadata dicts, one per paragraph.
         """
-        regular_texts, notes = self._get_processed_texts()
+        regular_texts, notes, classified = self._get_processed_texts()
         raw_chunks: list[RawChunk] = self._extract_chunks(regular_texts, notes)
 
         output_path: Path | None = None
@@ -199,7 +205,7 @@ class DoclingParser(BaseParser):
         )
 
         if generate_text_file and self._file_path is not None:
-            self._save_text_files(regular_texts, notes)
+            self._save_text_files(classified, annotate_reclassifications=annotate_reclassifications)
 
         docs: list[str] = [chunk.text for chunk in parsed_chunks]
         meta: list[dict[str, str]] = [chunk.meta for chunk in parsed_chunks]
@@ -235,16 +241,18 @@ class DoclingParser(BaseParser):
 
         return chunks
 
-    def _save_text_files(self, regular_texts: list[TextItem], notes: list[TextItem]) -> None:
+    def _save_text_files(self, classified: list[tuple[TextItem, str]],
+                         annotate_reclassifications: bool = False) -> None:
         """Write per-item debug text to a file alongside the source document.
 
-        Body text is written first, followed by a separator line, then footnotes.
-        Notes items are always written with the 'footnote' label regardless of their
-        original Docling label, since reclassified items are not mutated.
+        All items are written in document order. When annotate_reclassifications is True,
+        items whose label was changed show 'original_label → new_label:'; otherwise just
+        the original label is shown.
 
         Args:
-            regular_texts: Body text items from _get_processed_texts().
-            notes: Footnote items from _get_processed_texts().
+            classified: List of (item, final_label) pairs in document order,
+                        as returned by _get_processed_texts().
+            annotate_reclassifications: If True, show original → new label for reclassified items.
 
         Raises:
             ValueError: If no file path is available (document was passed directly).
@@ -255,13 +263,13 @@ class DoclingParser(BaseParser):
         base_path: Path = self._file_path.parent / self._doc.name
 
         with open(f"{base_path}_processed_texts.txt", "w", encoding="utf-8") as f:
-            for text in regular_texts:
-                page = self._format_page(text.prov[0].page_no) if text.prov else 'N/A'
-                f.write(f"{page}: {text.label}: {text.text}\n")
-            f.write("--- FOOTNOTES ---\n")
-            for text in notes:
-                page = self._format_page(text.prov[0].page_no) if text.prov else 'N/A'
-                f.write(f"{page}: {text.label}: {text.text}\n")
+            for text_item, final_label in classified:
+                page = self._format_page(text_item.prov[0].page_no) if text_item.prov else 'N/A'
+                original_label = str(text_item.label)
+                if annotate_reclassifications and final_label != original_label:
+                    f.write(f"{page}: {original_label} → {final_label}: {text_item.text}\n")
+                else:
+                    f.write(f"{page}: {original_label}: {text_item.text}\n")
 
     def _is_footnote(self, text_item: TextItem, ctx: _FootnoteContext) -> bool:
         """Return True if text_item should be classified as a footnote.
@@ -371,14 +379,15 @@ class DoclingParser(BaseParser):
         else:
             ctx.prev_ends_mid_sentence = False
 
-    def _get_processed_texts(self) -> tuple[list[TextItem], list[TextItem]]:
+    def _get_processed_texts(self) -> tuple[list[TextItem], list[TextItem], list[tuple[TextItem, str]]]:
         """Separate the document's text items into regular content and footnotes.
 
         Collects valid TextItems, computes document-level font-size baselines,
         then classifies each item using _is_footnote() and _is_page_header().
 
         Returns:
-            A tuple of (regular_texts, notes) where each is a list of TextItems.
+            A tuple of (regular_texts, notes, classified) where classified is a list of
+            (item, final_label) pairs in document order, used to write the debug file.
         """
         # Collect all valid TextItems. Page headers and footers are excluded.
         all_text_items: list[TextItem] = [
@@ -394,6 +403,7 @@ class DoclingParser(BaseParser):
 
         regular_texts: list[TextItem] = []
         notes: list[TextItem] = []
+        classified: list[tuple[TextItem, str]] = []
         current_page: int | None = None
         ctx: _FootnoteContext = _FootnoteContext(
             prev_text_candidate=False,
@@ -416,17 +426,20 @@ class DoclingParser(BaseParser):
                 continue
 
             if DoclingParser._is_page_header(i, text_item, boundary_indices, ctx):
+                classified.append((text_item, 'page_header'))
                 continue
 
             went_to_notes: bool = self._is_footnote(text_item, ctx)
             if went_to_notes:
                 ctx.found_note_this_page = True
                 notes.append(text_item)
+                classified.append((text_item, 'footnote'))
             else:
                 regular_texts.append(text_item)
+                classified.append((text_item, str(text_item.label)))
                 self._update_text_state(text_item, ctx)
 
             if not went_to_notes and text_item.label == DocItemLabel.TEXT:
                 ctx.text_seen_this_page = True
 
-        return regular_texts, notes
+        return regular_texts, notes, classified

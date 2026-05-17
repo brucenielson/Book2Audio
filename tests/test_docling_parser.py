@@ -520,7 +520,7 @@ class TestGetProcessedTexts:
             make_footnote("Footnote text."),
         ]
         parser = make_parser(texts)
-        regular, notes = parser._get_processed_texts()
+        regular, notes, _ = parser._get_processed_texts()
         assert len(regular) == 1
         assert len(notes) == 1
 
@@ -530,7 +530,7 @@ class TestGetProcessedTexts:
             make_text_item("This is a longer sentence."),
         ]
         parser = make_parser(texts)
-        regular, notes = parser._get_processed_texts()
+        regular, notes, _ = parser._get_processed_texts()
         assert len(regular) == 1
         assert regular[0].text == "This is a longer sentence."
 
@@ -540,13 +540,13 @@ class TestGetProcessedTexts:
             make_text_item("Regular text."),
         ]
         parser = make_parser(texts)
-        regular, notes = parser._get_processed_texts()
+        regular, notes, _ = parser._get_processed_texts()
         assert regular[0].text == "Regular text."
         assert notes[0].text == "Footnote."
 
     def test_empty_document(self) -> None:
         parser = make_parser([])
-        regular, notes = parser._get_processed_texts()
+        regular, notes, _ = parser._get_processed_texts()
         assert regular == []
         assert notes == []
 
@@ -784,7 +784,7 @@ class TestProcessedTextsFile:
             make_section_header("Suppressed Head"),
         ]
         parser = self._make_file_parser(texts, tmp_path, min_footnote_chars=100)
-        parser.run(generate_text_file=True)
+        parser.run(generate_text_file=True, annotate_reclassifications=True)
         assert "Suppressed Head" in self._read_file(tmp_path)
 
     def test_suppressed_page_header_shows_reclassified_label(self, tmp_path) -> None:
@@ -796,7 +796,7 @@ class TestProcessedTextsFile:
             make_section_header("Suppressed Head"),
         ]
         parser = self._make_file_parser(texts, tmp_path, min_footnote_chars=100)
-        parser.run(generate_text_file=True)
+        parser.run(generate_text_file=True, annotate_reclassifications=True)
         content = self._read_file(tmp_path)
         assert any(
             "section_header" in line and "page_header" in line and "Suppressed Head" in line
@@ -811,7 +811,7 @@ class TestProcessedTextsFile:
             make_text_item("1 This is a citation reference."),
         ]
         parser = self._make_file_parser(texts, tmp_path, min_footnote_chars=100)
-        parser.run(generate_text_file=True)
+        parser.run(generate_text_file=True, annotate_reclassifications=True)
         content = self._read_file(tmp_path)
         assert any(
             "text" in line and "footnote" in line and "citation reference" in line
@@ -822,7 +822,7 @@ class TestProcessedTextsFile:
         """Regular body text that is not reclassified must appear with no → on its line."""
         texts = [make_text_item("Regular body text here.")]
         parser = self._make_file_parser(texts, tmp_path)
-        parser.run(generate_text_file=True)
+        parser.run(generate_text_file=True, annotate_reclassifications=True)
         content = self._read_file(tmp_path)
         body_line = next(l for l in content.splitlines() if "Regular body text here." in l)
         assert "→" not in body_line
@@ -837,7 +837,7 @@ class TestProcessedTextsFile:
             make_text_item("Second body.", page_no=2),
         ]
         parser = self._make_file_parser(texts, tmp_path, min_footnote_chars=100)
-        parser.run(generate_text_file=True)
+        parser.run(generate_text_file=True, annotate_reclassifications=False)
         content = self._read_file(tmp_path)
         assert content.index("A citation.") < content.index("Second body.")
 
