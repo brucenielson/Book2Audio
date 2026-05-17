@@ -347,7 +347,16 @@ class TextCleaner:
                 )
                 content: str = response['message']['content'].strip()
                 # vprint(self._verbose, f"LLM response: {repr(content)}")
-                parsed = json.loads(content)
+                try:
+                    parsed = json.loads(content)
+                except json.JSONDecodeError as e:
+                    if 'escape' not in str(e):
+                        raise
+                    # LLM included a stray backslash (e.g. \alpha from a formula).
+                    # Escape any backslash not already part of a valid JSON escape
+                    # sequence and retry the parse inline without burning a retry.
+                    fixed = re.sub(r'\\(?!["\\/bfnrtu])', r'\\\\', content)
+                    parsed = json.loads(fixed)  # propagates if still unparseable
 
                 cleaned_candidate = parsed['cleaned']
                 classification: ClassificationType = parsed['classification']
