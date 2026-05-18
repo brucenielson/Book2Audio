@@ -377,10 +377,11 @@ class DoclingParser(BaseParser):
             ctx: The context to update in place.
         """
         if text_item.label == DocItemLabel.TEXT:
+            text_stripped = text_item.text.rstrip()
+            ends_sentence = is_sentence_end(text_stripped) or text_stripped.endswith(':')
             ctx.prev_text_candidate = (len(text_item.text) >= self._short_text_threshold
-                                       and not is_sentence_end(text_item.text))
-            last_char: str = text_item.text.rstrip()[-1] if text_item.text.rstrip() else ''
-            ctx.prev_ends_mid_sentence = last_char.isalpha() or last_char in (',', ':', ';')
+                                       and not ends_sentence)
+            ctx.prev_ends_mid_sentence = not ends_sentence
         else:
             ctx.prev_ends_mid_sentence = False
 
