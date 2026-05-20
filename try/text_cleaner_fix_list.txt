@@ -15,7 +15,7 @@ EASY
 
 3. [DONE] Curly quote stripping in N→1 merge
    Extend the strip string in _restore_valid_words N→1 path to include
-   curly/smart quotes '‘’“”'. Fixes cases like
+   curly/smart quotes '''""'. Fixes cases like
    ["'justify'", ";"] and ["'", "antibodies'-that"].
 
 4. [DONE] is_dash_upgrade first-token guard too strict
@@ -43,25 +43,44 @@ MODERATE
    Detect single-letter or short fragment as line-break artifact. Could check
    if first token is 1-3 characters and the concatenation is a valid word.
 
-9. LLM drops section headers with math notation
-   e.g. "7. The Objectivist... p(a, b)" classified as DROP.
-   Add a guard: if item is a section header, override DROP to BODY.
-   Needs caller to pass item type to clean(), small API change touching
-   multiple files.
+9. Math/logical symbols to spoken equivalents
+   ¬ → "not", ∧ → "and", ∨ → "or", → → "implies", ∀ → "for all",
+   ∃ → "there exists" etc. Build substitution table, run as post-processing
+   step before audio output. Risk: false positives in non-math contexts,
+   but most symbols are unambiguous.
 
-10. Math/logical symbols to spoken equivalents
-    ¬ → "not", ∧ → "and", ∨ → "or", → → "implies", ∀ → "for all",
-    ∃ → "there exists" etc. Build substitution table, run as post-processing
-    step before audio output. Risk: false positives in non-math contexts,
-    but most symbols are unambiguous.
-
-11. Auto-detect index pages
+10. Auto-detect index pages
     Heuristics: high ratio of short lines, comma-separated page number
     references, alphabetical ordering, near end of book.
     Could also feed a sample page to an LLM and ask "Is this an Index?"
 
 HARD
 ----
+
+11. LLM drops multi-line section headers with math notation
+    e.g. "7. The Objectivist a n d Subjectivist Interpretations of 'b ' in
+    'p(a, b) '." — a two-line chapter heading with OCR spacing artifacts and
+    math notation. Three problems stack on top of each other:
+    1. OCR spacing artifacts ('a n d', 'b ') from large display text need
+       rejoining before anything can reason about the content.
+    2. Docling misclassifies the heading as plain 'text' (not SECTION_HEADER)
+       because it spans two physical lines, so _handle_section_header never fires.
+    3. The LLM then sees it as garbled body text and classifies it as DROP.
+    A guard in _flush_paragraph could catch case 3 alone, but cases 1 and 2
+    mean the text arriving may not resemble a heading at all.
+
+    Investigation notes (2026-05-20):
+    - Section headers that Docling does recognise never reach clean() at all.
+      _handle_section_header() appends them directly to _result, bypassing the
+      LLM entirely. So the original fix description ("pass item type to clean()")
+      was wrong — the real problem is upstream in Docling's layout classification.
+    - The original fix list entry said "add a guard: if item is a section header,
+      override DROP to BODY" — but that guard would never fire because recognised
+      headers never enter _flush_paragraph in the first place.
+    - A heuristic guard in _flush_paragraph (e.g. "if text matches numbered-
+      heading pattern, don't drop it") could salvage case 3, but by the time the
+      text reaches _flush_paragraph the OCR spacing artifacts in case 1 likely
+      make the heading unrecognisable as such anyway.
 
 12. Over-conservative 1:1 word restore (be/bc, In/ln, th/1/2, wat/that etc.)
     Both words are valid English so validator can't choose. Options:
