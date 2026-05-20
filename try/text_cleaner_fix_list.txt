@@ -64,10 +64,25 @@ MODERATE
     false positives from chapter titles containing 'index'. When a signal fires,
     that page and all subsequent pages are excluded from output.
 
+11. N→1 merge where LLM introduces a new em-dash between valid words
+    e.g. ['justi', 'fication', 'is'] → 'justification—is'
+    The LLM correctly joins a space-split word AND inserts an em-dash, but
+    _restore_valid_words rejects it because is_dash_upgrade compares the
+    concatenated originals ('justificationis') against the normalized cleaned
+    token ('justification-is') — they don't match, so the merge is rejected
+    and the broken original is restored.
+    Root cause: is_dash_upgrade only handles dashes that already existed in
+    the originals. It cannot handle a dash the LLM introduced between two
+    words that were previously separate tokens.
+    Fix: in the N→1 path, after existing checks fail, split the cleaned token
+    on em/en-dashes and check whether all parts are valid words. If they are,
+    accept the merge. This is safe because we still require all dash-separated
+    parts to be real words — garbage LLM output won't accidentally pass.
+
 HARD
 ----
 
-11. LLM drops multi-line section headers with math notation
+12. LLM drops multi-line section headers with math notation
     e.g. "7. The Objectivist a n d Subjectivist Interpretations of 'b ' in
     'p(a, b) '." — a two-line chapter heading with OCR spacing artifacts and
     math notation. Three problems stack on top of each other:
@@ -92,21 +107,21 @@ HARD
       text reaches _flush_paragraph the OCR spacing artifacts in case 1 likely
       make the heading unrecognisable as such anyway.
 
-12. Over-conservative 1:1 word restore (be/bc, In/ln, th/1/2, wat/that etc.)
+13. Over-conservative 1:1 word restore (be/bc, In/ln, th/1/2, wat/that etc.)
     Both words are valid English so validator can't choose. Options:
     - Maintain a list of known OCR confusion pairs and treat specially
     - If paragraph is math-heavy, prefer LLM version over restore
     Neither approach is clean.
 
-13. Simultaneous OCR fix + merge (self-coatradictory → self-contradictory)
+14. Simultaneous OCR fix + merge (self-coatradictory → self-contradictory)
     Structural checks can't help when spelling is also wrong in the original.
     Would need semantic understanding to recover.
 
-14. Split paragraph reconstruction around footnote-heavy pages
+15. Split paragraph reconstruction around footnote-heavy pages
     Orphaned fragments like 'terns' appearing at paragraph starts near
     footnote-heavy pages. Needs investigation before fix can be designed.
 
-15. Math formula handling / JSON failures
+16. Math formula handling / JSON failures
     Math-heavy paragraphs cause LLM JSON serialization failures (same column
     position across all retries) and bad cleaning. Options:
     - Detect math-heavy paragraphs by density of operators/Greek/digits
@@ -115,7 +130,7 @@ HARD
     - Pre-sanitize special characters before sending to LLM
     Deepest architectural problem on the list.
 
-16. · (middle dot) as footnote marker
+17. · (middle dot) as footnote marker
     OCR turns superscript footnote numerals into ·, merging footnotes into
     body text. Simple prefix detection is problematic across different books.
     Needs more nuanced approach — possibly combining with is_small_text check.
