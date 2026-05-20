@@ -21,6 +21,7 @@ def make_doc_item(spec, label: str, text: str, page_no: int = 1) -> MagicMock:
     prov.page_no = page_no
     prov.bbox = MagicMock()
     prov.bbox.height = 10.0
+    prov.bbox.t = 0.0
     prov.charspan = (0, 10)
     item.prov = [prov]
     return item
@@ -51,6 +52,22 @@ def make_page_footer(text: str, page_no: int = 1) -> MagicMock:
     return make_doc_item(TextItem, DocItemLabel.PAGE_FOOTER.value, text, page_no)
 
 
+def make_section_header_at(text: str, page_no: int = 1,
+                            bbox_t: float = 0.0, bbox_height: float = 10.0) -> MagicMock:
+    """Create a mock section header with explicit bbox.t and height."""
+    item = make_section_header(text, page_no)
+    item.prov[0].bbox.t = bbox_t
+    item.prov[0].bbox.height = bbox_height
+    return item
+
+
+def make_page_header_at(text: str, page_no: int = 1, bbox_t: float = 0.0) -> MagicMock:
+    """Create a mock page header with explicit bbox.t."""
+    item = make_page_header(text, page_no)
+    item.prov[0].bbox.t = bbox_t
+    return item
+
+
 def make_parser(texts: list,
                 meta_data: dict | None = None,
                 min_paragraph_size: int = 0,
@@ -73,20 +90,22 @@ def make_parser(texts: list,
 
 def make_ctx(
     prev_text_candidate: bool = False,
-    prev_ends_mid_sentence: bool = False,
     text_seen_this_page: bool = False,
     found_note_this_page: bool = False,
     single_line_height: float = 10.0,
     median_chars_per_line: float = 50.0,
+    header_top_y: float | None = None,
+    median_page_height: float = 0.0,
 ) -> _FootnoteContext:
     """Create a _FootnoteContext with sensible defaults for unit testing."""
     return _FootnoteContext(
         prev_text_candidate=prev_text_candidate,
-        prev_ends_mid_sentence=prev_ends_mid_sentence,
         text_seen_this_page=text_seen_this_page,
         found_note_this_page=found_note_this_page,
         single_line_height=single_line_height,
         median_chars_per_line=median_chars_per_line,
+        header_top_y=header_top_y,
+        median_page_height=median_page_height,
     )
 
 
@@ -371,84 +390,129 @@ class TestExtractChunks:
         assert chunks[0].label == DocItemLabel.TEXT
 
 
-# --- TestComputeBoundaryIndices ---
 
-class TestComputeBoundaryIndices:
-    def test_single_page_first_and_last_are_boundary(self) -> None:
-        items = [make_text_item("A"), make_text_item("B"), make_text_item("C")]
-        result = DoclingParser._compute_boundary_indices(items)
-        assert 0 in result   # first on page 1
-        assert 2 in result   # last on page 1
 
-    def test_middle_item_not_boundary(self) -> None:
-        items = [make_text_item("A"), make_text_item("B"), make_text_item("C")]
-        result = DoclingParser._compute_boundary_indices(items)
-        assert 1 not in result
+# --- TestCalibrateHeaderTopY ---
 
-    def test_two_pages_each_contributes_boundaries(self) -> None:
-        items = [
-            make_text_item("A", page_no=1),
-            make_text_item("B", page_no=1),
-            make_text_item("C", page_no=2),
-            make_text_item("D", page_no=2),
-        ]
-        result = DoclingParser._compute_boundary_indices(items)
-        assert result == {0, 1, 2, 3}
+class TestCalibrateHeaderTopY:
+    def test_no_page_headers_returns_none(self) -> None:
+        """No PAGE_HEADER items in doc → returns None."""
+        texts = [make_text_item("Body text.")]
+        parser = make_parser(texts)
+        assert parser._calibrate_header_top_y() is None
 
-    def test_single_item_page_is_both_first_and_last(self) -> None:
-        items = [
-            make_text_item("A", page_no=1),
-            make_text_item("B", page_no=2),
-        ]
-        result = DoclingParser._compute_boundary_indices(items)
-        assert result == {0, 1}
+    def test_single_page_header_returns_its_t(self) -> None:
+        """A single PAGE_HEADER → its bbox.t is returned."""
+        header = make_page_header_at("Running Head", page_no=1, bbox_t=20.0)
+        texts = [header]
+        parser = make_parser(texts)
+        assert parser._calibrate_header_top_y() == pytest.approx(20.0)
 
-    def test_empty_list_returns_empty_set(self) -> None:
-        assert DoclingParser._compute_boundary_indices([]) == set()
+    def test_page_header_after_body_text_still_counted(self) -> None:
+        """PAGE_HEADER that appears after body text in doc.texts is still used.
+        Docling does not guarantee page headers are listed first — only the label matters."""
+        body = make_text_item("Some body text.", page_no=1)
+        header = make_page_header_at("Running Head", page_no=1, bbox_t=20.0)
+        texts = [body, header]  # header comes after body in doc.texts
+        parser = make_parser(texts)
+        assert parser._calibrate_header_top_y() == pytest.approx(20.0)
+
+    def test_multiple_page_headers_returns_median(self) -> None:
+        """Multiple PAGE_HEADERs → returns median bbox.t."""
+        h1 = make_page_header_at("Head 1", page_no=1, bbox_t=20.0)
+        h2 = make_page_header_at("Head 2", page_no=2, bbox_t=22.0)
+        h3 = make_page_header_at("Head 3", page_no=3, bbox_t=18.0)
+        texts = [h1, h2, h3]
+        parser = make_parser(texts)
+        result = parser._calibrate_header_top_y()
+        assert result == pytest.approx(20.0)  # median of [18, 20, 22]
 
 
 # --- TestIsPageHeader ---
 
 class TestIsPageHeader:
-    def test_all_conditions_met_returns_true(self) -> None:
-        header = make_section_header("Running Head")
-        parser = make_parser([])
-        ctx = make_ctx(prev_text_candidate=True, prev_ends_mid_sentence=True, single_line_height=10.0)
-        assert parser._is_page_header(0, header, {0}, ctx) is True
 
-    def test_not_section_header_returns_false(self) -> None:
+    # --- Path A: validated PAGE_HEADER reference available ---
+
+    def test_path_a_section_header_at_reference_y_returns_true(self) -> None:
+        """SECTION_HEADER at reference y, single-line, no prior body text → True."""
+        header = make_section_header_at("Running Head", bbox_t=20.0, bbox_height=10.0)
+        ctx = make_ctx(header_top_y=20.0, single_line_height=10.0, text_seen_this_page=False)
+        assert DoclingParser._is_page_header(header, ctx) is True
+
+    def test_path_a_y_within_tolerance_returns_true(self) -> None:
+        """bbox.t within ± single_line_height of reference → True."""
+        header = make_section_header_at("Running Head", bbox_t=26.0, bbox_height=10.0)
+        ctx = make_ctx(header_top_y=20.0, single_line_height=10.0, text_seen_this_page=False)
+        assert DoclingParser._is_page_header(header, ctx) is True
+
+    def test_path_a_y_outside_tolerance_returns_false(self) -> None:
+        """bbox.t more than single_line_height from reference → False."""
+        header = make_section_header_at("Chapter One", bbox_t=200.0, bbox_height=10.0)
+        ctx = make_ctx(header_top_y=20.0, single_line_height=10.0, text_seen_this_page=False)
+        assert DoclingParser._is_page_header(header, ctx) is False
+
+    def test_path_a_not_section_header_returns_false(self) -> None:
+        """Non-SECTION_HEADER items are never running heads."""
         text = make_text_item("Some text")
-        parser = make_parser([])
-        ctx = make_ctx(prev_text_candidate=True, prev_ends_mid_sentence=True)
-        assert parser._is_page_header(0, text, {0}, ctx) is False
+        text.prov[0].bbox.t = 20.0
+        ctx = make_ctx(header_top_y=20.0, single_line_height=10.0, text_seen_this_page=False)
+        assert DoclingParser._is_page_header(text, ctx) is False
 
-    def test_not_at_boundary_returns_false(self) -> None:
-        header = make_section_header("Chapter One")
-        parser = make_parser([])
-        ctx = make_ctx(prev_text_candidate=True, prev_ends_mid_sentence=True)
-        assert parser._is_page_header(1, header, {0, 2}, ctx) is False
+    def test_path_a_suppressed_even_after_body_text(self) -> None:
+        """A section header at the reference y-coordinate is still a running head even when
+        body text appeared before it in Docling's text ordering. Docling does not guarantee
+        that mislabeled running heads appear before body text in doc.texts — the visual
+        position (bbox.t) is the reliable discriminator, not doc.texts order."""
+        header = make_section_header_at("REBUTTAL", bbox_t=20.0, bbox_height=10.0)
+        ctx = make_ctx(header_top_y=20.0, single_line_height=10.0, text_seen_this_page=True)
+        assert DoclingParser._is_page_header(header, ctx) is True
 
-    def test_prev_text_candidate_false_returns_false(self) -> None:
-        """Short preceding text (< min_footnote_chars) must NOT arm the running-head guard.
-        Without the length gate a colon-terminated intro like 'The inference rule has the form:'
-        would suppress the following numbered list item that Docling mislabeled as a section header."""
-        header = make_section_header("Running Head")
-        parser = make_parser([])
-        ctx = make_ctx(prev_text_candidate=False, prev_ends_mid_sentence=True, single_line_height=10.0)
-        assert parser._is_page_header(0, header, {0}, ctx) is False
+    def test_path_a_multi_line_returns_false(self) -> None:
+        """Multi-line item at reference y is a real header, not a running head."""
+        header = make_section_header_at("Running Head", bbox_t=20.0, bbox_height=30.0)
+        ctx = make_ctx(header_top_y=20.0, single_line_height=10.0, text_seen_this_page=False)
+        assert DoclingParser._is_page_header(header, ctx) is False
 
-    def test_prev_ends_mid_sentence_false_returns_false(self) -> None:
-        header = make_section_header("Running Head")
-        parser = make_parser([])
-        ctx = make_ctx(prev_text_candidate=True, prev_ends_mid_sentence=False)
-        assert parser._is_page_header(0, header, {0}, ctx) is False
+    # --- Path B: no validated PAGE_HEADER reference ---
 
-    def test_multi_line_header_returns_false(self) -> None:
-        header = make_section_header("Running Head")
-        header.prov[0].bbox.height = 30.0  # too tall for single-line (10.0 * 1.3 = 13.0)
-        parser = make_parser([])
-        ctx = make_ctx(prev_text_candidate=True, prev_ends_mid_sentence=True, single_line_height=10.0)
-        assert parser._is_page_header(0, header, {0}, ctx) is False
+    def test_path_b_at_top_of_page_returns_true(self) -> None:
+        """Section header in top 15% of page → True when no reference available.
+
+        Docling PDFs use BOTTOMLEFT coordinates: bbox.t increases going up, so
+        a header near the top of the page has a large bbox.t (close to page height)."""
+        header = make_section_header_at("Running Head", bbox_t=900.0, bbox_height=10.0)
+        ctx = make_ctx(header_top_y=None, median_page_height=1000.0,
+                       single_line_height=10.0, text_seen_this_page=False)
+        assert DoclingParser._is_page_header(header, ctx) is True
+
+    def test_path_b_not_at_top_returns_false(self) -> None:
+        """Section header in middle of page → False in Path B."""
+        header = make_section_header_at("Chapter One", bbox_t=500.0, bbox_height=10.0)
+        ctx = make_ctx(header_top_y=None, median_page_height=1000.0,
+                       single_line_height=10.0, text_seen_this_page=False)
+        assert DoclingParser._is_page_header(header, ctx) is False
+
+    def test_path_b_suppressed_even_after_body_text(self) -> None:
+        """Path B also uses position alone — doc.texts ordering is not reliable."""
+        header = make_section_header_at("Running Head", bbox_t=900.0, bbox_height=10.0)
+        ctx = make_ctx(header_top_y=None, median_page_height=1000.0,
+                       single_line_height=10.0, text_seen_this_page=True)
+        assert DoclingParser._is_page_header(header, ctx) is True
+
+    def test_path_b_no_page_height_returns_false(self) -> None:
+        """With no page height info, Path B must not fire (division by zero guard)."""
+        header = make_section_header_at("Running Head", bbox_t=50.0, bbox_height=10.0)
+        ctx = make_ctx(header_top_y=None, median_page_height=0.0,
+                       single_line_height=10.0, text_seen_this_page=False)
+        assert DoclingParser._is_page_header(header, ctx) is False
+
+    def test_path_b_multi_line_returns_false(self) -> None:
+        """Multi-line item near top of page is a real chapter header, not a running head."""
+        header = make_section_header_at("Running Head", bbox_t=50.0, bbox_height=30.0)
+        ctx = make_ctx(header_top_y=None, median_page_height=1000.0,
+                       single_line_height=10.0, text_seen_this_page=False)
+        assert DoclingParser._is_page_header(header, ctx) is False
 
 
 # --- TestUpdateTextState ---
@@ -475,35 +539,17 @@ class TestUpdateTextState:
         parser._update_text_state(text, ctx)
         assert ctx.prev_text_candidate is False
 
-    def test_alpha_ending_sets_prev_ends_mid_sentence(self) -> None:
-        text = make_text_item("ends with alpha")
-        parser = make_parser([])
+    def test_colon_ending_clears_prev_text_candidate(self) -> None:
+        """Text ending with ':' clears prev_text_candidate even when long.
+        A following digit-start item after a colon is a list continuation, not a footnote."""
+        text = make_text_item("A" * 100 + ":")
+        parser = make_parser([], min_footnote_chars=100)
         ctx = make_ctx()
         parser._update_text_state(text, ctx)
-        assert ctx.prev_ends_mid_sentence is True
-
-    def test_comma_ending_sets_prev_ends_mid_sentence(self) -> None:
-        text = make_text_item("ends with comma,")
-        parser = make_parser([])
-        ctx = make_ctx()
-        parser._update_text_state(text, ctx)
-        assert ctx.prev_ends_mid_sentence is True
-
-    def test_period_ending_clears_prev_ends_mid_sentence(self) -> None:
-        text = make_text_item("ends with period.")
-        parser = make_parser([])
-        ctx = make_ctx(prev_ends_mid_sentence=True)
-        parser._update_text_state(text, ctx)
-        assert ctx.prev_ends_mid_sentence is False
-
-    def test_non_text_label_clears_prev_ends_mid_sentence(self) -> None:
-        header = make_section_header("A Chapter")
-        parser = make_parser([])
-        ctx = make_ctx(prev_ends_mid_sentence=True)
-        parser._update_text_state(header, ctx)
-        assert ctx.prev_ends_mid_sentence is False
+        assert ctx.prev_text_candidate is False
 
     def test_non_text_label_does_not_change_prev_text_candidate(self) -> None:
+        """Non-TEXT items (section headers etc.) do not affect the H1 footnote gate."""
         header = make_section_header("A Chapter")
         parser = make_parser([])
         ctx = make_ctx(prev_text_candidate=True)
@@ -590,34 +636,33 @@ class TestRun:
         assert any("First sentence ends here." in d for d in docs)
         assert any("Chapter Two" in d for d in docs)
 
-    def test_section_header_skipped_after_mid_sentence_text(self) -> None:
-        """A section header right after long mid-sentence text is treated as a
-        mislabeled running page header and dropped. Conditions: the preceding text
-        must be >= min_footnote_chars (100), end without sentence-terminating
-        punctuation, and the section header must be single-line (established by
-        including a page header so compute_single_line_height returns a non-zero value)."""
-        long_mid_sentence = "This is a long body paragraph that does not end with punctuation " \
-                            "and continues well past the one hundred character minimum threshold"
+    def test_section_header_skipped_at_top_of_new_page(self) -> None:
+        """A single-line section header that is the first item on a new page,
+        positioned at the same y-coordinate as a validated running PAGE_HEADER,
+        is suppressed as a mislabeled running head."""
+        body = "Body text on page one that clearly belongs there."
         texts = [
-            make_page_header("Running Head"),   # establishes single_line_height = 10.0
-            make_text_item(long_mid_sentence),
-            make_section_header("Chapter Two"), # bbox height 10.0 — qualifies as single-line
+            make_page_header("Running Head", page_no=1),    # validated: first on page 1, bbox.t=0.0
+            make_text_item(body, page_no=1),
+            make_section_header_at("Running Head", page_no=2,  # first on page 2, bbox.t=0.0 → matches
+                                   bbox_t=0.0, bbox_height=10.0),
         ]
         parser = make_parser(texts)
         docs, meta = parser.run()
-        assert any(long_mid_sentence in d for d in docs)
-        assert all("Chapter Two" not in d for d in docs)
+        assert any(body in d for d in docs)
+        assert all("Running Head" not in d for d in docs)
 
-    def test_section_header_kept_after_short_colon_text(self) -> None:
-        """A section header after short colon-terminated text must NOT be suppressed.
-        'The inference rule has the form:' (< 100 chars) should not arm the running-head
-        guard even though it ends mid-sentence — the length gate (prev_text_candidate)
-        must prevent false positives like numbered list items Docling mislabels as headers."""
+    def test_section_header_in_content_area_not_suppressed(self) -> None:
+        """A section header whose bbox.t places it in the content area (far below the
+        header margin) must NOT be suppressed, even when a validated page header exists.
+        The calibration derives header_top_y from the page header's bbox.t; the section
+        header is far enough below it that the position check leaves it alone."""
         short_colon = "The inference rule has the form:"
         texts = [
-            make_page_header("Running Head"),    # establishes single_line_height = 10.0
-            make_text_item(short_colon),
-            make_section_header("1. If P, then Q;"),  # boundary item, should be kept
+            make_page_header("Running Head", page_no=1),                   # calibrated reference at bbox.t=0.0
+            make_text_item(short_colon, page_no=1),
+            make_section_header_at("1. If P, then Q;", page_no=1,
+                                   bbox_t=200.0, bbox_height=10.0),        # content area, far below reference
         ]
         parser = make_parser(texts, min_footnote_chars=100)
         docs, meta = parser.run()
@@ -780,25 +825,25 @@ class TestProcessedTextsFile:
 
     def test_suppressed_page_header_appears_in_file(self, tmp_path) -> None:
         """A section header suppressed as a running page header must still be written to the file."""
-        long_mid = "A" * 100
         texts = [
-            make_page_header("PH"),
-            make_text_item(long_mid),
-            make_section_header("Suppressed Head"),
+            make_page_header_at("PH", page_no=1, bbox_t=0.0),   # validates bbox.t=0.0
+            make_text_item("Body text.", page_no=1),
+            make_section_header_at("Suppressed Head", page_no=2, # first on page 2, same y
+                                   bbox_t=0.0, bbox_height=10.0),
         ]
-        parser = self._make_file_parser(texts, tmp_path, min_footnote_chars=100)
+        parser = self._make_file_parser(texts, tmp_path)
         parser.run(generate_text_file=True, annotate_reclassifications=True)
         assert "Suppressed Head" in self._read_file(tmp_path)
 
     def test_suppressed_page_header_shows_reclassified_label(self, tmp_path) -> None:
         """A suppressed section header must show 'section_header → page_header' on its line."""
-        long_mid = "A" * 100
         texts = [
-            make_page_header("PH"),
-            make_text_item(long_mid),
-            make_section_header("Suppressed Head"),
+            make_page_header_at("PH", page_no=1, bbox_t=0.0),   # validates bbox.t=0.0
+            make_text_item("Body text.", page_no=1),
+            make_section_header_at("Suppressed Head", page_no=2, # first on page 2, same y
+                                   bbox_t=0.0, bbox_height=10.0),
         ]
-        parser = self._make_file_parser(texts, tmp_path, min_footnote_chars=100)
+        parser = self._make_file_parser(texts, tmp_path)
         parser.run(generate_text_file=True, annotate_reclassifications=True)
         content = self._read_file(tmp_path)
         assert any(

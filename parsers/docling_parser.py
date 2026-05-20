@@ -14,6 +14,7 @@ from text_processor import TextProcessor
 from text_cleaner import TextCleaner
 from parsers.base_parser import BaseParser
 from utils.docling_utils import (is_footnote,
+                                 is_text_bearing,
                                  is_too_short,
                                  should_skip_element,
                                  load_as_document,
@@ -35,12 +36,13 @@ class _FootnoteContext:
     Bundled here so _is_footnote(), _is_page_header(), and _update_text_state()
     all receive what they need in one argument.
     """
-    prev_text_candidate: bool       # last TEXT item was long with no sentence end
-    prev_ends_mid_sentence: bool    # last body TEXT item ended with alpha or non-terminal punct
+    prev_text_candidate: bool       # last TEXT item was long with no sentence end (H1 footnote gate)
     text_seen_this_page: bool       # body text has been seen on the current page
     found_note_this_page: bool      # a footnote has been seen on the current page
     single_line_height: float       # median height of one line (from headers/footers)
     median_chars_per_line: float    # median chars-per-estimated-line for the document
+    header_top_y: float | None      # median bbox.t of validated PAGE_HEADER items, or None
+    median_page_height: float       # median page height across the document
 
 
 class DoclingParser(BaseParser):
@@ -318,59 +320,103 @@ class DoclingParser(BaseParser):
             or (has_alpha and ctx.found_note_this_page)
         )
 
-    @staticmethod
-    def _compute_boundary_indices(items: list[TextItem]) -> set[int]:
-        """Return the indices of the first and last item on each page.
+    def _calibrate_header_top_y(self) -> float | None:
+        """Scan the document for PAGE_HEADER items to establish a reference y-coordinate.
 
-        Running page headers/footers mislabeled as section headers always appear
-        at the first or last position on their page.
-
-        Args:
-            items: All text items in document order.
+        Docling's PAGE_HEADER label is used directly — no ordering check is applied,
+        because Docling does not guarantee that page headers appear first in doc.texts
+        even when they are visually at the top of the page.
 
         Returns:
-            A set of indices that are the first or last item on their page.
+            The median bbox.t of all PAGE_HEADER items with valid bbox data, or None
+            if no such items are found.
         """
-        page_first: dict[int, int] = {}
-        page_last: dict[int, int] = {}
-        for i, item in enumerate(items):
-            pno: int = item.prov[0].page_no
-            if pno not in page_first:
-                page_first[pno] = i
-            page_last[pno] = i
-        return set(page_first.values()) | set(page_last.values())
+        top_y_values: list[float] = []
+        for item in self._doc.texts:
+            if not is_text_bearing(item) or not item.prov:
+                continue
+            if item.label != DocItemLabel.PAGE_HEADER:
+                continue
+            bbox = item.prov[0].bbox
+            if bbox is None:
+                continue
+            top_y_values.append(bbox.t)
+
+        if not top_y_values:
+            return None
+        top_y_values.sort()
+        return top_y_values[len(top_y_values) // 2]
+
+    def _compute_median_page_height(self) -> float:
+        """Return the median page height from the document's page size data.
+
+        Returns:
+            Median height in document units, or 0.0 if no page data is available.
+        """
+        heights: list[float] = []
+        if hasattr(self._doc, 'pages') and self._doc.pages:
+            for page in self._doc.pages.values():
+                if hasattr(page, 'size') and page.size is not None:
+                    heights.append(page.size.height)
+        if not heights:
+            return 0.0
+        heights.sort()
+        return heights[len(heights) // 2]
 
     @staticmethod
-    def _is_page_header(i: int, text_item: TextItem,
-                        boundary_indices: set[int], ctx: _FootnoteContext) -> bool:
+    def _is_page_header(text_item: TextItem, ctx: _FootnoteContext) -> bool:
         """Return True if this section header looks like a mislabeled running page header.
 
-        A genuine running head is always: labeled SECTION_HEADER, at the top or
-        bottom of a page, preceded by long mid-sentence body text, and single-line.
-        All four conditions must hold before the item is suppressed.
+        Uses two paths depending on whether validated PAGE_HEADER items were found
+        during calibration:
+
+        Path A (ctx.header_top_y is not None): the item must be within
+        ±single_line_height of the reference y-coordinate established from real
+        PAGE_HEADER items.
+
+        Path B (ctx.header_top_y is None): no reference is available, so the item
+        must appear in the top 15% of the page.
+
+        In both paths the item must be a single-line SECTION_HEADER with no prior
+        body text on the same page.
 
         Args:
-            i: Index of text_item in all_text_items.
             text_item: The item to evaluate.
-            boundary_indices: Indices that are first or last on their page.
-            ctx: Current classification context.
+            ctx: Current classification context including calibrated header position.
 
         Returns:
             True if the item should be suppressed as a running page header.
         """
-        return (text_item.label == DocItemLabel.SECTION_HEADER
-                and i in boundary_indices
-                and ctx.prev_text_candidate
-                and ctx.prev_ends_mid_sentence
-                and is_single_line(text_item, ctx.single_line_height))
+        if text_item.label != DocItemLabel.SECTION_HEADER:
+            return False
+        if not is_single_line(text_item, ctx.single_line_height):
+            return False
+        if not text_item.prov:
+            return False
+        bbox = text_item.prov[0].bbox
+        if bbox is None:
+            return False
+
+        if ctx.header_top_y is not None:
+            # Path A: validated reference — must be within one line-height of reference y
+            return abs(bbox.t - ctx.header_top_y) <= ctx.single_line_height
+        else:
+            # Path B: no reference — must be in the top 15% of the page.
+            # Docling PDFs use BOTTOMLEFT coordinates: bbox.t increases going up, so
+            # "near the top" means a large bbox.t (close to page height). We compute
+            # distance from the top as (page_height - bbox.t) and check if that is
+            # less than 15% of page height.
+            if ctx.median_page_height <= 0:
+                return False
+            return (ctx.median_page_height - bbox.t) / ctx.median_page_height < 0.15
 
     def _update_text_state(self, text_item: TextItem, ctx: _FootnoteContext) -> None:
         """Update tracking state after an item is routed to regular body text.
 
         For TEXT items, refreshes prev_text_candidate (used by the footnote H1
-        heuristic) and prev_ends_mid_sentence (used by the running-head guard).
-        Non-TEXT items reset prev_ends_mid_sentence so subsequent section headers
-        are not incorrectly suppressed.
+        heuristic to detect unlabelled footnotes that follow mid-sentence body text).
+        A sentence-ending text item or a text item ending with a colon clears the
+        candidate flag, since a following digit-start item is not a plausible footnote.
 
         Args:
             text_item: The item just routed to regular_texts.
@@ -381,9 +427,6 @@ class DoclingParser(BaseParser):
             ends_sentence = is_sentence_end(text_stripped) or text_stripped.endswith(':')
             ctx.prev_text_candidate = (len(text_item.text) >= self._short_text_threshold
                                        and not ends_sentence)
-            ctx.prev_ends_mid_sentence = not ends_sentence
-        else:
-            ctx.prev_ends_mid_sentence = False
 
     def _get_processed_texts(self) -> list[tuple[TextItem, str]]:
         """Classify the document's text items and return them in document order.
@@ -406,20 +449,22 @@ class DoclingParser(BaseParser):
             all_text_items, single_line_height, min_charspan=self._short_text_threshold
         )
 
-        boundary_indices: set[int] = self._compute_boundary_indices(all_text_items)
+        header_top_y: float | None = self._calibrate_header_top_y()
+        median_page_height: float = self._compute_median_page_height()
 
         classified: list[tuple[TextItem, str]] = []
         current_page: int | None = None
         ctx: _FootnoteContext = _FootnoteContext(
             prev_text_candidate=False,
-            prev_ends_mid_sentence=False,
             text_seen_this_page=False,
             found_note_this_page=False,
             single_line_height=single_line_height,
             median_chars_per_line=median_chars_per_line,
+            header_top_y=header_top_y,
+            median_page_height=median_page_height,
         )
 
-        for i, text_item in enumerate(all_text_items):
+        for text_item in all_text_items:
             page_number: int = text_item.prov[0].page_no
 
             if page_number != current_page:
@@ -431,7 +476,7 @@ class DoclingParser(BaseParser):
                 classified.append((text_item, 'too_short'))
                 continue
 
-            if DoclingParser._is_page_header(i, text_item, boundary_indices, ctx):
+            if DoclingParser._is_page_header(text_item, ctx):
                 classified.append((text_item, 'page_header'))
                 continue
 
