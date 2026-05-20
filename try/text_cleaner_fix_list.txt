@@ -46,11 +46,13 @@ MODERATE
    an LLM call, so the LLM can join them with the adjacent word. Mirrors the
    existing rule in _restore_valid_words.
 
-9. Math/logical symbols to spoken equivalents
+9. [DONE] Math/logical symbols to spoken equivalents
    ¬ → "not", ∧ → "and", ∨ → "or", → → "implies", ∀ → "for all",
-   ∃ → "there exists" etc. Build substitution table, run as post-processing
-   step before audio output. Risk: false positives in non-math contexts,
-   but most symbols are unambiguous.
+   ∃ → "there exists" etc. Substitution table in substitute_math_symbols()
+   in utils/general_utils.py, called from AudioGenerator.generate() so it
+   applies to all TTS input paths. Also handles ↔, ∴, ∵, ⊥, ⊃, ≡.
+   Symbols padded with spaces before/after and extra whitespace collapsed,
+   so p→q and p → q both produce "p implies q".
 
 10. Auto-detect index pages
     Heuristics: high ratio of short lines, comma-separated page number

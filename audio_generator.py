@@ -2,6 +2,7 @@ import numpy as np
 import soundfile as sf
 
 from engines import TTSEngine
+from utils.general_utils import substitute_math_symbols
 from utils.logging_utils import vprint
 
 
@@ -28,13 +29,16 @@ class AudioGenerator:
     def generate(self, text: str) -> np.ndarray:
         """Generate audio from a text string.
 
+        Substitutes math/logical symbols with spoken English equivalents
+        before passing the text to the TTS engine.
+
         Args:
             text: The text to synthesize into speech.
 
         Returns:
             A numpy array containing the generated audio samples.
         """
-        return self._engine.generate(text)
+        return self._engine.generate(substitute_math_symbols(text))
 
     def save(self, audio: np.ndarray, output_file: str) -> None:
         """Save a numpy audio array to a WAV file.
