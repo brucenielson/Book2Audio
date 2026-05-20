@@ -106,24 +106,41 @@ class WordValidator:
         return False
 
     def combine_hyphenated_words(self, p_str: str) -> str:
-        """Remove soft hyphens (U+00AD) and join the surrounding word parts.
+        """Remove soft hyphens and join hard-hyphen line-break splits.
 
-        Soft hyphens are purely typographic line-break hints and are never
-        meaningful in the text itself. This function strips them — along with
-        any space that immediately follows — so that page-break artifacts like
-        "empiri­ cally" become "empirically".
+        Two cases are handled:
 
-        Regular hyphens are left completely untouched.
+        1. Soft hyphens (U+00AD): purely typographic line-break hints that are
+           never meaningful.  Stripped unconditionally along with any immediately
+           following space, so "empiri­ cally" becomes "empirically".
+
+        2. Hard hyphens followed by whitespace (e.g. "contra- diction"): a line-
+           break artifact where the typesetter used a visible hyphen.  The two
+           parts are joined only when the result is a valid English word according
+           to is_valid_word, so "reexamina- tion" (not in NLTK) is left alone
+           while "contra- diction" becomes "contradiction".
+
+        Genuine compound hyphens without surrounding whitespace (e.g. "well-known")
+        are never touched.
 
         Args:
-            p_str: The input string potentially containing soft hyphens.
+            p_str: The input string potentially containing soft or hard hyphens.
 
         Returns:
-            The string with soft hyphens removed and word parts joined.
+            The string with hyphen artifacts removed and word parts joined.
         """
-        if '­' not in p_str:
-            return p_str
-        return re.sub('­\\s?', '', p_str)
+        # Pass 1 — soft hyphens (unconditional)
+        if '­' in p_str:
+            p_str = re.sub('­\\s?', '', p_str)
+
+        # Pass 2 — hard hyphens followed by whitespace + word (NLTK-gated)
+        if '-' in p_str:
+            def _try_join(m: re.Match) -> str:
+                joined = m.group(1) + m.group(2)
+                return joined if self.is_valid_word(joined) else m.group(0)
+            p_str = re.sub(r'(\w+)-\s+(\w+)', _try_join, p_str)
+
+        return p_str
 
     def combine_hyphenated_words_advanced(self, p_str: str) -> str:
         """Combine hyphenated words if the parts together form a valid word.
