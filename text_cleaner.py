@@ -234,7 +234,7 @@ def _restore_valid_words(original: str, cleaned: str, verbose: bool = False) -> 
             # e.g. "Ph. D" → "Ph.D." or "U. S. A" → "U.S.A.").
             # Also keep em-dash upgrades ("criticism - and" → "criticism—and") and
             # hyphen compounding ("proof reading" → "proof-reading").
-            merged = _normalize_dashes(cleaned_lower[j1].strip('.,;:!?"\'()-[]'))
+            merged = _normalize_dashes(cleaned_lower[j1].strip('.,;:!?"\'‘’“”()-[]'))
             joined_orig = ''.join(original_split[i1:i2])
             cleaned_inner = cleaned_split[j1].strip('.,;:!?"\'()-[]')
             has_internal_period = '.' in cleaned_inner

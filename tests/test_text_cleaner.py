@@ -868,6 +868,56 @@ class TestRestoreValidWordsSingleLetter:
         assert _restore_valid_words(original, cleaned) == expected
 
 
+# --- TestRestoreValidWordsCurlyQuotes ---
+
+class TestRestoreValidWordsCurlyQuotes:
+    """Tests that curly/smart quotes are stripped before is_valid_word in N→1 merges.
+
+    The strip string in the N→1 merge path only includes straight quotes, so curly
+    quotes left on the merged token cause is_valid_word to fail and the originals
+    to be wrongly restored.
+
+    The failing case requires that joined_orig != cleaned_split[j1] so the equality
+    shortcut doesn’t fire — achieved by having the LLM both fix an OCR error AND
+    merge with a curly-quoted token at the same time.
+
+    Real examples:
+      ["‘jistify’", ";"]   → "‘justify’;"   — OCR fix + semicolon merge
+      ["‘", "antibadies’-that"] → "‘antibodies’-that" — OCR fix + stray quote join
+    """
+
+    def test_curly_quoted_word_ocr_fix_and_merge_kept(self) -> None:
+        """LLM fixes OCR error in curly-quoted word AND merges semicolon.
+
+        Without curly-quote stripping, is_valid_word(‘justify’) returns False
+        and the originals are wrongly restored.
+        """
+        # ‘jistify’ is the OCR-mangled original; LLM fixes to ‘justify’
+        # and simultaneously merges the trailing semicolon token.
+        # joined_orig = "‘jistify’;" != "‘justify’;" so equality check
+        # does not fire; is_valid_word is what must save the merge.
+        result = _restore_valid_words(
+            "pragmatic sense of ‘jistify’ ; in other words,",
+            "pragmatic sense of ‘justify’; in other words,",
+        )
+        assert result == "pragmatic sense of ‘justify’; in other words,"
+
+    def test_curly_quoted_word_ocr_fix_and_comma_merge_kept(self) -> None:
+        """LLM fixes OCR error in curly-quoted word AND merges trailing comma.
+
+        joined_orig = "’eficiency’," != "’efficiency’," so equality check
+        does not fire; strip must remove the wrapping curly quotes so that
+        is_valid_word("efficiency") succeeds.
+        """
+        # ‘eficiency’ is an OCR-mangled original; LLM fixes to ‘efficiency’
+        # and simultaneously merges the trailing comma token.
+        result = _restore_valid_words(
+            "she argued that ‘eficiency’ , was key,",
+            "she argued that ‘efficiency’, was key,",
+        )
+        assert result == "she argued that ‘efficiency’, was key,"
+
+
 # --- TestRestoreValidWordsTrailingHyphen ---
 
 class TestRestoreValidWordsTrailingHyphen:

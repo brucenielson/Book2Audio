@@ -8,12 +8,12 @@ EASY
    Extend regex to match a), b), c) style prefixes.
    One-line fix in text_cleaner.py.
 
-2. Guard should check cleaned text for list prefix
+2. [DONE] Guard should check cleaned text for list prefix
    Run _LIST_PREFIX_RE against cleaned_candidate as well as paragraph in the
    footnote override check. Catches OCR-spaced numbers like ( 1 8) that get
    fixed by the LLM before the guard runs.
 
-3. Curly quote stripping in N→1 merge
+3. [DONE] Curly quote stripping in N→1 merge
    Extend the strip string in _restore_valid_words N→1 path to include
    curly/smart quotes '‘’“”'. Fixes cases like
    ["'justify'", ";"] and ["'", "antibodies'-that"].
