@@ -90,3 +90,72 @@ HARD
     OCR turns superscript footnote numerals into ·, merging footnotes into
     body text. Simple prefix detection is problematic across different books.
     Needs more nuanced approach — possibly combining with is_small_text check.
+
+FUTURE (researched but not yet decided)
+----------------------------------------
+
+F1. is_valid_word false positives via obscure NLTK corpus entries (e.g. 'eans')
+
+    Symptom observed 2026-05-20, "Realism and the Aim of Science" page xxviii:
+    OCR produced "of Rayleigh and 1 eans" ('1' is a footnote number). The LLM
+    correctly identified 'Jeans' (physicist James Jeans), but _restore_valid_words
+    overrode it with 'eans' because is_valid_word('eans') returned True.
+
+    Root cause:
+    The NLTK words corpus contains 'ean' — an archaic Scottish word meaning "to
+    give birth to a lamb (ewe)". Two independent paths validate 'eans':
+      - Porter Stemmer: 'eans' → stem 'ean' → 'ean' in corpus → True
+      - Custom suffix stripping: strip 's' → 'ean' → recursive call → direct
+        lookup finds 'ean' in corpus → True
+    There are 546 3-letter and 2478 4-letter NLTK corpus entries with 0 WordNet
+    synsets, each capable of generating false-positive inflections the same way.
+
+    Proposed fix (implemented, all tests passing, then reverted at user request):
+    Add a WordNet synset gate to two places in is_valid_word:
+
+    1. Stemmer path — require synsets(stem) or synsets(word) to be non-empty:
+       elif stem in words_list or stem.lower() in words_list:
+           if wordnet.synsets(stem) or wordnet.synsets(word.lower()):
+               return True
+
+    2. Suffix-stripping path — for stripped base forms of <=4 chars, also require
+       synsets before accepting the result (longer forms like 'testable' are not
+       gated because WordNet doesn't cover all legitimate English words):
+       result = self.is_valid_word(stripped_word)
+       if result:
+           if len(stripped_word) > 4 or wordnet.synsets(stripped_word.lower()):
+               return result
+
+    Also required: move 'from nltk.corpus import wordnet' to the top of the file
+    (it was already used inline in hyphen_is_dash; the fix just makes it
+    module-level instead of repeated inside functions).
+
+    Known tradeoff: 'orcs' becomes a false negative (stem 'orc' has 0 WordNet
+    synsets). Acceptable for a philosophy book converter.
+
+    Unit tests to add to tests/test_word_validator.py inside class TestIsValidWord:
+
+      def test_eans_is_not_valid(self, validator) -> None:
+          """'eans' is not a real English word and should return False.
+
+          Root cause: Porter stemmer reduces 'eans' to 'ean', which is an archaic
+          word (ewe giving birth) in the NLTK corpus but has zero WordNet synsets.
+          Without a synset gate, 'eans' incorrectly passes as valid, causing the
+          validator to override the LLM's correct 'Jeans' (physicist James Jeans)
+          with the non-word 'eans'.
+          """
+          assert validator.is_valid_word("eans") is False
+
+      def test_stemmer_path_preserved_for_common_words(self, validator) -> None:
+          """Common inflected forms that rely on the stemmer path must still be valid."""
+          # These all pass via the stemmer path; a synset gate must not block them.
+          for word in ["runs", "cats", "eyes", "fees", "legs", "beds", "toes"]:
+              assert validator.is_valid_word(word) is not False, (
+                  f"is_valid_word({word!r}) returned False — "
+                  "the synset gate is too aggressive"
+              )
+
+    Why it was reverted:
+    The WordNet synset gate is a blunt instrument — it trusts WordNet coverage as
+    a proxy for "real word", which is imperfect. Needs more consideration before
+    committing to this strategy.
