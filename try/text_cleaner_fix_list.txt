@@ -18,7 +18,7 @@ EASY
    curly/smart quotes '‘’“”'. Fixes cases like
    ["'justify'", ";"] and ["'", "antibodies'-that"].
 
-4. is_dash_upgrade first-token guard too strict
+4. [DONE] is_dash_upgrade first-token guard too strict
    original_split[i1][0].isalpha() blocks valid upgrades where the first
    token is a quote character. Allow quote characters as valid first tokens.
 

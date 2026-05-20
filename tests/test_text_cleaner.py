@@ -735,6 +735,41 @@ class TestRestoreValidWords:
         )
         assert result == "a criterion of demarcation - the criterion of falsifiability."
 
+    # --- Dash upgrade where the first token starts with a quote character ---
+    # original_split[i1][0].isalpha() blocked upgrades where the first token is
+    # a quoted word such as "'meaning'" or '‘meaning’'.  The guard should
+    # only block a leading standalone dash, not quote-prefixed words.
+
+    def test_dash_upgrade_with_curly_quoted_first_token_is_kept(self) -> None:
+        """['‘meaning’', '-', 'laden'] → '‘meaning’—laden': upgrade must be kept."""
+        # The first token starts with a curly open-quote, not a letter.
+        # Before the fix, original_split[i1][0].isalpha() returned False and
+        # the upgrade was wrongly discarded.
+        result = _restore_valid_words(
+            "the ‘meaning’ - laden concept",
+            "the ‘meaning’—laden concept",
+        )
+        assert result == "the ‘meaning’—laden concept"
+
+    def test_dash_upgrade_with_ascii_quoted_first_token_is_kept(self) -> None:
+        """[\"'meaning'\", '-', 'laden'] → \"'meaning'—laden\": upgrade must be kept."""
+        # Same as above but with ASCII single quotes.
+        result = _restore_valid_words(
+            "the 'meaning' - laden concept",
+            "the 'meaning'—laden concept",
+        )
+        assert result == "the 'meaning'—laden concept"
+
+    def test_standalone_dash_first_token_still_blocked(self) -> None:
+        """['-', 'including'] → '—including': guard must still reject this."""
+        # A bare leading '-' token being upgraded and glued to the next word
+        # is not a legitimate em-dash upgrade — the guard must remain active.
+        result = _restore_valid_words(
+            "was - including all",
+            "was —including all",
+        )
+        assert result == "was - including all"
+
     # --- Quote normalization: LLM introduces smart/curly quotes ---
     # The preprocessor normalizes all quotes to ASCII before text reaches _restore_valid_words.
     # The LLM often "improves" straight quotes back to typographic curly quotes. The only

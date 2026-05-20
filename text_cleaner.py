@@ -239,10 +239,14 @@ def _restore_valid_words(original: str, cleaned: str, verbose: bool = False) -> 
             cleaned_inner = cleaned_split[j1].strip('.,;:!?"\'()-[]')
             has_internal_period = '.' in cleaned_inner
             # Em-dash upgrade: dash-normalized cleaned token equals joined originals,
-            # and the first original token starts with a letter (guards against a leading
-            # standalone dash being glued to the next word, e.g. "- including" → "—including").
+            # and the first original token does not start with a bare dash (guards
+            # against a leading standalone dash being glued to the next word,
+            # e.g. "- including" → "—including").  Quote characters are allowed as
+            # valid first tokens (e.g. "'word' - next" → "'word'—next").
+            _QUOTE_CHARS = '"\'‘’“”'
             is_dash_upgrade = (_normalize_dashes(cleaned_split[j1]) == joined_orig
-                               and original_split[i1][0].isalpha())
+                               and (original_split[i1][0].isalpha()
+                                    or original_split[i1][0] in _QUOTE_CHARS))
             # Hyphen compounding: LLM joined two words with a hyphen ("proof reading" →
             # "proof-reading"). The hyphen-joined originals exactly match the cleaned token.
             is_hyphen_compound = '-'.join(original_split[i1:i2]) == cleaned_split[j1]
