@@ -46,6 +46,7 @@ def main(file_path: str | None = None,
          model_size: str | None = None,
          sections_to_skip: list[str] | None = None,
          skip_front_matter: bool = False,
+         skip_index: bool = False,
          llm_cleaner: bool = False,
          llm_model: str = 'llama3.1:8b',
          verbose: bool = False) -> None:
@@ -71,6 +72,8 @@ def main(file_path: str | None = None,
         model_size: Qwen model size: '0.6b' or '1.7b'. Defaults to '0.6b'.
         sections_to_skip: Optional list of EPUB section IDs to skip. EPUB only.
         skip_front_matter: If True, Roman-numeral-labelled pages are skipped. PDF only.
+        skip_index: If True, the back-matter index section is auto-detected and
+                    excluded along with all pages that follow it. PDF only.
         llm_cleaner: If True, enables LLM-based paragraph cleaning. Defaults to False.
         llm_model: Ollama model to use for LLM cleaning. Defaults to 'llama3.1:8b'.
         verbose: If True, prints progress and LLM responses during conversion. Defaults to False.
@@ -89,6 +92,8 @@ def main(file_path: str | None = None,
     parser.add_argument('--sections-to-skip', nargs='*', default=sections_to_skip)
     parser.add_argument('--skip-front-matter', action='store_true', default=skip_front_matter,
                         help='Skip Roman-numeral-labelled front-matter pages (default: off)')
+    parser.add_argument('--skip-index', action='store_true', default=skip_index,
+                        help='Auto-detect and skip back-matter index pages (default: off)')
 
     # LLM cleaner arguments
     parser.add_argument('--llm-cleaner', action='store_true', default=llm_cleaner,
@@ -143,7 +148,8 @@ def main(file_path: str | None = None,
         converter.convert_to_audio(Path(args.file_path), start_page=args.start_page, end_page=args.end_page,
                                    generate_text_file=args.generate_text_file,
                                    sections_to_skip=args.sections_to_skip,
-                                   skip_front_matter=args.skip_front_matter)
+                                   skip_front_matter=args.skip_front_matter,
+                                   skip_index=args.skip_index)
 
 
 # noinspection ALL

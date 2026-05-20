@@ -43,7 +43,8 @@ class BookToAudio:
                          end_page: int | None = None,
                          generate_text_file: bool = False,
                          sections_to_skip: list[str] | None = None,
-                         skip_front_matter: bool = False) -> None:
+                         skip_front_matter: bool = False,
+                         skip_index: bool = False) -> None:
         """Convert text, a PDF, an EPUB, or a TXT file to audio.
 
         Dispatches to the appropriate parser based on the type and extension
@@ -66,6 +67,9 @@ class BookToAudio:
             skip_front_matter: If True, pages whose PDF label is a Roman numeral
                                (i, ii, iii, …) are skipped. PDF only.
                                Defaults to False.
+            skip_index: If True, the back-matter index section is detected
+                        automatically and excluded from output along with all
+                        pages that follow it. PDF only. Defaults to False.
         """
         paragraphs: list[str]
 
@@ -86,6 +90,7 @@ class BookToAudio:
             parser: DoclingParser = DoclingParser(source, include_footnotes=False,
                                                   start_page=start_page, end_page=end_page,
                                                   skip_front_matter=skip_front_matter,
+                                                  skip_index=skip_index,
                                                   llm_cleaner=self._llm_cleaner,
                                                   verbose=self._verbose)
             paragraphs, _ = parser.run(generate_text_file=generate_text_file)

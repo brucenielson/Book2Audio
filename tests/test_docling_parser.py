@@ -77,7 +77,8 @@ def make_parser(texts: list,
                 cleaner: TextCleaner | None = None,
                 min_footnote_chars: int = 100,
                 page_labels: dict[int, str] | None = None,
-                skip_front_matter: bool = False) -> DoclingParser:
+                skip_front_matter: bool = False,
+                skip_index: bool = False) -> DoclingParser:
     """Create a DoclingParser with a mocked DoclingDocument."""
     doc = MagicMock(spec=DoclingDocument)
     doc.name = "test_doc"
@@ -85,7 +86,8 @@ def make_parser(texts: list,
     return DoclingParser(source=doc, meta_data=meta_data or {}, min_paragraph_size=min_paragraph_size,
                          start_page=start_page, end_page=end_page, include_footnotes=include_notes,
                          llm_cleaner=cleaner, min_footnote_chars=min_footnote_chars,
-                         page_labels=page_labels, skip_front_matter=skip_front_matter)
+                         page_labels=page_labels, skip_front_matter=skip_front_matter,
+                         skip_index=skip_index)
 
 
 def make_ctx(
@@ -997,3 +999,222 @@ class TestPageLabels:
         chunks = parser._extract_chunks(texts, [])
         assert len(chunks) == 1
         assert "Body text." in chunks[0].text
+
+
+# --- TestFindIndexStartPage ---
+
+class TestFindIndexStartPage:
+    """Tests for DoclingParser._find_index_start_page().
+
+    The method scans self._doc.texts for two signals that indicate the start of
+    a back-matter index section:
+
+      - PAGE_HEADER: text contains 'index' after all whitespace is stripped
+        (handles OCR-spaced titles like 'I N DEX OF SUBJ ECTS').
+      - SECTION_HEADER: text contains 'index', 'indexes', 'indices', or 'indice'
+        as a complete word (word-boundary anchored, case-insensitive).
+
+    Both signals are subject to a position gate: signals in the first 70% of
+    the document are ignored to prevent false positives (e.g. a chapter titled
+    'Indexical Reference' early in the book). Total page count is estimated
+    from the highest page_no seen across all items in self._doc.texts.
+    """
+
+    def test_returns_none_when_no_index(self) -> None:
+        """No index signals present → None."""
+        texts = [
+            make_text_item("Body text.", page_no=1),
+            make_text_item("More body.", page_no=2),
+        ]
+        parser = make_parser(texts)
+        assert parser._find_index_start_page() is None
+
+    def test_page_header_plain_index(self) -> None:
+        """PAGE_HEADER 'Index' in the last 30% of the book → returns that page number."""
+        texts = [
+            make_text_item("Body.", page_no=1),
+            make_text_item("More body.", page_no=100),  # establishes max_page=100
+            make_page_header("Index", page_no=90),
+        ]
+        parser = make_parser(texts)
+        assert parser._find_index_start_page() == 90
+
+    def test_page_header_ocr_spaced(self) -> None:
+        """PAGE_HEADER 'I N DEX OF SUBJ ECTS' → strip whitespace → 'indexofsubjects' → detected."""
+        texts = [
+            make_text_item("Body.", page_no=1),
+            make_text_item("More body.", page_no=100),
+            make_page_header("I N DEX OF SUBJ ECTS", page_no=90),
+        ]
+        parser = make_parser(texts)
+        assert parser._find_index_start_page() == 90
+
+    def test_page_header_index_of_names(self) -> None:
+        """PAGE_HEADER 'Index of Names' → 'indexofnames' contains 'index' → detected."""
+        texts = [
+            make_text_item("Body.", page_no=1),
+            make_text_item("More body.", page_no=100),
+            make_page_header("Index of Names", page_no=95),
+        ]
+        parser = make_parser(texts)
+        assert parser._find_index_start_page() == 95
+
+    def test_section_header_index(self) -> None:
+        """SECTION_HEADER 'Index' (exact word) in the last 30% → detected."""
+        texts = [
+            make_text_item("Body.", page_no=1),
+            make_text_item("More body.", page_no=100),
+            make_section_header("Index", page_no=90),
+        ]
+        parser = make_parser(texts)
+        assert parser._find_index_start_page() == 90
+
+    def test_section_header_indices(self) -> None:
+        """SECTION_HEADER 'Indices' → word-boundary match on 'indices' → detected."""
+        texts = [
+            make_text_item("Body.", page_no=1),
+            make_text_item("More body.", page_no=100),
+            make_section_header("Indices", page_no=90),
+        ]
+        parser = make_parser(texts)
+        assert parser._find_index_start_page() == 90
+
+    def test_section_header_index_of_names(self) -> None:
+        """SECTION_HEADER 'Index of Names' → 'index' matches as a complete word → detected."""
+        texts = [
+            make_text_item("Body.", page_no=1),
+            make_text_item("More body.", page_no=100),
+            make_section_header("Index of Names", page_no=92),
+        ]
+        parser = make_parser(texts)
+        assert parser._find_index_start_page() == 92
+
+    def test_multiple_signals_returns_minimum_page(self) -> None:
+        """When both SECTION_HEADER and PAGE_HEADER fire, the earliest page wins.
+
+        Typical structure: 'Indices' section header appears on the first index page
+        (page 88); the running page header 'I N DEX OF SUBJ ECTS' appears from
+        page 89 onwards. The section header fires first, so 88 is returned.
+        """
+        texts = [
+            make_text_item("Body.", page_no=1),
+            make_text_item("More body.", page_no=100),
+            make_section_header("Indices", page_no=88),
+            make_page_header("I N DEX OF SUBJ ECTS", page_no=89),
+        ]
+        parser = make_parser(texts)
+        assert parser._find_index_start_page() == 88
+
+    def test_position_gate_rejects_early_section_header(self) -> None:
+        """A section header 'Indices' in the first 70% of the book is ignored.
+
+        Prevents false positives from chapter titles that happen to contain
+        the word 'index' early in the text. Here page 5 of 100 (5%) is well
+        within the first 70%, so the gate fires and None is returned.
+        """
+        texts = [
+            make_text_item("Body.", page_no=1),
+            make_text_item("More body.", page_no=100),  # max_page=100; gate threshold=70
+            make_section_header("Indices", page_no=5),  # page 5 < 70 → rejected
+        ]
+        parser = make_parser(texts)
+        assert parser._find_index_start_page() is None
+
+    def test_position_gate_rejects_early_page_header(self) -> None:
+        """A PAGE_HEADER containing 'index' in the first 70% of the book is ignored."""
+        texts = [
+            make_text_item("Body.", page_no=1),
+            make_text_item("More body.", page_no=100),
+            make_page_header("Index", page_no=10),  # page 10 < 70 → rejected
+        ]
+        parser = make_parser(texts)
+        assert parser._find_index_start_page() is None
+
+    def test_indexical_section_header_not_matched(self) -> None:
+        """'Indexical Reference' contains 'index' as a prefix but not as a whole word.
+
+        The word-boundary regex \\bindex\\b must not match inside 'Indexical'.
+        """
+        texts = [
+            make_text_item("Body.", page_no=1),
+            make_text_item("More body.", page_no=100),
+            make_section_header("Indexical Reference", page_no=90),
+        ]
+        parser = make_parser(texts)
+        assert parser._find_index_start_page() is None
+
+    def test_page_footer_index_not_matched(self) -> None:
+        """PAGE_FOOTER items are not inspected — only PAGE_HEADER and SECTION_HEADER."""
+        texts = [
+            make_text_item("Body.", page_no=1),
+            make_text_item("More body.", page_no=100),
+            make_page_footer("Index", page_no=90),
+        ]
+        parser = make_parser(texts)
+        assert parser._find_index_start_page() is None
+
+    def test_body_text_item_index_not_matched(self) -> None:
+        """A regular TEXT item containing the word 'index' must not trigger detection."""
+        texts = [
+            make_text_item("Body.", page_no=1),
+            make_text_item("See the index for more.", page_no=100),
+        ]
+        parser = make_parser(texts)
+        assert parser._find_index_start_page() is None
+
+
+# --- TestSkipIndex ---
+
+class TestSkipIndex:
+    """Integration tests for skip_index=True end-to-end through run()."""
+
+    def test_skip_index_removes_index_and_later_pages(self) -> None:
+        """With skip_index=True, the detected index page and all pages after are excluded."""
+        texts = [
+            make_text_item("Body text on page one.", page_no=1),
+            make_text_item("More body on page two.", page_no=2),
+            make_text_item("More body.", page_no=100),   # establishes max_page=100
+            make_page_header("Index", page_no=90),        # signals index start at page 90
+            make_text_item("Subject: Popper, 45, 78.", page_no=90),
+            make_text_item("Still index content.", page_no=95),
+        ]
+        parser = make_parser(texts, skip_index=True)
+        docs, _ = parser.run()
+        assert any("Body text on page one." in d for d in docs)
+        assert all("Subject: Popper" not in d for d in docs)
+        assert all("Still index content." not in d for d in docs)
+
+    def test_skip_index_false_keeps_index_pages(self) -> None:
+        """With skip_index=False (explicit), index pages are included in output."""
+        texts = [
+            make_text_item("Body text.", page_no=1),
+            make_text_item("More body.", page_no=100),
+            make_page_header("Index", page_no=90),
+            make_text_item("Subject: Popper, 45, 78.", page_no=90),
+        ]
+        parser = make_parser(texts, skip_index=False)
+        docs, _ = parser.run()
+        assert any("Subject: Popper" in d for d in docs)
+
+    def test_skip_index_default_is_false(self) -> None:
+        """Without the skip_index argument, default is False and index pages are kept."""
+        texts = [
+            make_text_item("Body text.", page_no=1),
+            make_text_item("More body.", page_no=100),
+            make_page_header("Index", page_no=90),
+            make_text_item("Subject: Popper, 45, 78.", page_no=90),
+        ]
+        parser = make_parser(texts)   # no skip_index argument
+        docs, _ = parser.run()
+        assert any("Subject: Popper" in d for d in docs)
+
+    def test_skip_index_no_index_found_keeps_all_content(self) -> None:
+        """With skip_index=True but no detectable index, nothing is dropped."""
+        texts = [
+            make_text_item("Body text on page one.", page_no=1),
+            make_text_item("Body text on page two.", page_no=2),
+        ]
+        parser = make_parser(texts, skip_index=True)
+        docs, _ = parser.run()
+        assert any("Body text on page one." in d for d in docs)
+        assert any("Body text on page two." in d for d in docs)

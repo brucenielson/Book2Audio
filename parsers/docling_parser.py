@@ -62,7 +62,8 @@ class DoclingParser(BaseParser):
                  min_footnote_chars: int = 100,
                  verbose: bool = False,
                  page_labels: dict[int, str] | None = None,
-                 skip_front_matter: bool = False) -> None:
+                 skip_front_matter: bool = False,
+                 skip_index: bool = False) -> None:
         """Initialise DoclingParser.
 
         Args:
@@ -100,6 +101,10 @@ class DoclingParser(BaseParser):
                                 excluded from output.  Requires page labels to be
                                 available (loaded automatically from the PDF when a file
                                 path is given).  Defaults to False.
+            skip_index: If True, the back-matter index section is detected automatically
+                        and excluded from output along with all pages that follow it.
+                        Detection uses _find_index_start_page(); see that method for the
+                        exact rules.  Defaults to False.
         """
         if isinstance(source, DoclingDocument):
             self._doc: DoclingDocument = source
@@ -120,6 +125,7 @@ class DoclingParser(BaseParser):
         self._short_text_threshold: int = min_footnote_chars
         self._verbose: bool = verbose
         self._skip_front_matter: bool = skip_front_matter
+        self._skip_index: bool = skip_index
 
     def _page_label_for(self, page_no: int) -> str:
         """Return the printed page label for a Docling page number.
@@ -136,6 +142,88 @@ class DoclingParser(BaseParser):
         """
         label = self._page_labels.get(page_no - 1)
         return label or str(page_no)
+
+    # Regex for the SECTION_HEADER signal: matches 'index', 'indexes', or 'indices'
+    # as a complete word (word-boundary anchored, case-insensitive).
+    # 'Indexical' is intentionally excluded — after 'index' the next character 'i'
+    # is a word character, so the word boundary \\b does not fire there.
+    _INDEX_SECTION_RE: re.Pattern[str] = re.compile(
+        r'\bindex(?:es)?\b|\bindices\b', re.IGNORECASE
+    )
+
+    def _find_index_start_page(self) -> int | None:
+        """Find the physical page number where the back-matter index section begins.
+
+        Scans self._doc.texts for two types of signals that indicate an index:
+
+        Signal 1 — PAGE_HEADER:
+            The running page header text, after stripping ALL whitespace, contains
+            the substring 'index' (case-insensitive).  This handles OCR-spaced
+            titles such as 'I N DEX OF SUBJ ECTS', which normalise to
+            'indexofsubjects' and clearly contain 'index'.  A plain 'Index of
+            Names' header normalises to 'indexofnames' and also matches.
+
+        Signal 2 — SECTION_HEADER:
+            The section heading text matches the regex \\bindex(?:es)?\\b|\\bindices\\b,
+            which covers 'Index', 'Indexes', and 'Indices' as whole words.
+            The word-boundary anchor prevents 'Indexical' from matching — after
+            'index' in 'Indexical' comes the letter 'i', a word character, so
+            no word boundary fires there.
+            Unlike Signal 1, this check is done on the original text (not
+            whitespace-stripped), because a genuine section heading is unlikely
+            to have OCR spacing artifacts between individual letters.
+
+        Position gate:
+            Both signals are subject to a position gate that rejects matches in
+            the first 70% of the document.  The total page count is estimated
+            from the highest page_no seen across all items in self._doc.texts.
+            This prevents false positives from chapter titles that contain the
+            word 'index' early in the body (e.g. a philosophy chapter on
+            'Indexical Reference').  Only items in the last 30% of the book
+            can trigger index detection.
+
+        Returns:
+            The minimum physical page_no where a signal fires, or None if no
+            index section is detectable.
+        """
+        # First pass: determine the total page count so we can apply the position gate.
+        max_page: int = 0
+        for item in self._doc.texts:
+            if item.prov:
+                max_page = max(max_page, item.prov[0].page_no)
+        if max_page == 0:
+            return None
+
+        # Any signal on a page at or before this threshold is ignored.
+        position_threshold: int = int(max_page * 0.70)
+
+        index_page: int | None = None
+
+        for item in self._doc.texts:
+            if not item.prov:
+                continue
+            page_no: int = item.prov[0].page_no
+            if page_no <= position_threshold:
+                continue  # position gate: ignore the first 70% of the book
+
+            if item.label == DocItemLabel.PAGE_HEADER:
+                # Signal 1: strip all whitespace and look for 'index' as a substring.
+                # Handles both clean titles ('Index') and OCR-spaced ones
+                # ('I N DEX OF SUBJ ECTS' → 'indexofsubjects').
+                normalized: str = re.sub(r'\s+', '', item.text.lower())
+                if 'index' in normalized:
+                    if index_page is None or page_no < index_page:
+                        index_page = page_no
+
+            elif item.label == DocItemLabel.SECTION_HEADER:
+                # Signal 2: word-boundary match on the original text.
+                # Matches 'Index', 'Indices', 'Indexes', 'Indice' as whole words.
+                # Does NOT match 'Indexical' (word boundary after 'x' blocks it).
+                if self._INDEX_SECTION_RE.search(item.text):
+                    if index_page is None or page_no < index_page:
+                        index_page = page_no
+
+        return index_page
 
     def _format_page(self, page_no: int) -> str:
         """Format a page reference for display in text output files.
@@ -233,6 +321,10 @@ class DoclingParser(BaseParser):
         """
         all_items: list[TextItem] = regular_texts + (notes if self._include_notes else [])
 
+        # Compute the index start page once up front (None when skip_index is False
+        # or when no index section is detected).
+        index_start: int | None = self._find_index_start_page() if self._skip_index else None
+
         chunks: list[RawChunk] = []
         for text in all_items:
             page_no: int = text.prov[0].page_no
@@ -241,6 +333,8 @@ class DoclingParser(BaseParser):
             label: str = self._page_label_for(page_no)
             if self._skip_front_matter and is_front_matter(label):
                 continue
+            if index_start is not None and page_no >= index_start:
+                continue  # skip the index section and all back matter that follows
             chunks.append(RawChunk(
                 text=text.text,
                 meta={**self._meta_data, "section_name": "",

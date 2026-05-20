@@ -54,10 +54,15 @@ MODERATE
    Symbols padded with spaces before/after and extra whitespace collapsed,
    so p→q and p → q both produce "p implies q".
 
-10. Auto-detect index pages
-    Heuristics: high ratio of short lines, comma-separated page number
-    references, alphabetical ordering, near end of book.
-    Could also feed a sample page to an LLM and ask "Is this an Index?"
+10. [DONE] Auto-detect index pages
+    New skip_index=False parameter on DoclingParser (and BookToAudio.convert_to_audio).
+    _find_index_start_page() scans self._doc.texts for two signals:
+    - PAGE_HEADER: strip all whitespace → contains 'index' (catches 'I N DEX OF SUBJ ECTS')
+    - SECTION_HEADER: word-boundary regex \bindex(?:es)?\b|\bindices\b (catches 'Index',
+      'Indexes', 'Indices', 'Index of Names'; rejects 'Indexical')
+    Position gate: signals in the first 70% of the book are ignored to prevent
+    false positives from chapter titles containing 'index'. When a signal fires,
+    that page and all subsequent pages are excluded from output.
 
 HARD
 ----
