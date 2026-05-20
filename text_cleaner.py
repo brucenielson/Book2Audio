@@ -293,6 +293,7 @@ class TextCleaner:
 
     def __init__(self, model: str = 'llama3.1:8b', max_retries: int = 3,
                  temperature: float | None = None,
+                 max_length_change: float = 0.20,
                  verbose: bool = False) -> None:
         """Initialise TextCleaner.
 
@@ -302,11 +303,15 @@ class TextCleaner:
             temperature: Sampling temperature passed to Ollama. Set to 0 for
                 deterministic output (useful in tests). Defaults to None,
                 which uses Ollama's built-in default.
+            max_length_change: Maximum fractional difference in character count
+                between the original and cleaned text before the response is
+                rejected and retried. Defaults to 0.20 (20%).
             verbose: If True, prints LLM responses for debugging. Defaults to False.
         """
         self._model: str = model
         self._max_retries: int = max_retries
         self._temperature: float | None = temperature
+        self._max_length_change: float = max_length_change
         self._verbose: bool = verbose
 
     def clean(self, paragraph: str, page_context: str = "") -> tuple[str, ClassificationType]:
@@ -379,8 +384,9 @@ class TextCleaner:
 
                 if classification != 'drop':
                     printable_len: int = sum(1 for c in paragraph if c.isprintable())
-                    if printable_len and abs(len(cleaned_candidate) - printable_len) / printable_len > 0.10:
-                        raise ValueError(f"Cleaned text size differs by more than 10% "
+                    if printable_len and abs(len(cleaned_candidate) - printable_len) / printable_len > self._max_length_change:
+                        pct = int(self._max_length_change * 100)
+                        raise ValueError(f"Cleaned text size differs by more than {pct}% "
                                          f"(original printable={printable_len}, cleaned={len(cleaned_candidate)})")
 
                 cleaned_candidate = _restore_valid_words(
