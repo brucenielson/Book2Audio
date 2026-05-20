@@ -31,6 +31,12 @@ def _all_words_valid(text: str, verbose: bool = False) -> bool:
         if not stripped or not word_validator.is_valid_word(stripped):
             # vprint(verbose, f"  [FAIL TOKEN] {token!r} -> {stripped!r}")
             return False
+        # Single-letter tokens other than 'a' and 'i' are almost certainly
+        # OCR line-break artifacts (e.g. 'p referring' for 'preferring').
+        # Every letter passes is_valid_word, so we gate them explicitly here,
+        # mirroring the rule already used in _restore_valid_words.
+        if len(stripped) == 1 and stripped not in ('a', 'i'):
+            return False
     return True
 
 

@@ -309,6 +309,23 @@ class TestAllWordsValid:
         """Punctuation attached to valid words should be ignored."""
         assert _all_words_valid("Hello, world.") is True
 
+    def test_single_letter_fragment_returns_false(self) -> None:
+        """A lone single-letter token (not 'a' or 'i') is a line-break artifact.
+
+        OCR sometimes splits a word across a line so the last letter of the
+        previous line becomes a standalone token: 'p referring' for 'preferring'.
+        Because every letter is a valid word in NLTK, _all_words_valid would
+        otherwise pass the paragraph and skip the LLM, leaving the fragment
+        unjoined.  Only 'a' and 'i' are legitimate standalone single-letter
+        English words.
+        """
+        assert _all_words_valid("p referring") is False
+        assert _all_words_valid("the s cientific method") is False
+
+    def test_a_and_i_single_letters_are_accepted(self) -> None:
+        """'a' and 'i' are legitimate single-letter English words and must pass."""
+        assert _all_words_valid("I saw a dog") is True
+
 
 # --- TestSkipCleanerWhenAllWordsValid ---
 
