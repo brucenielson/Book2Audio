@@ -22,7 +22,7 @@ EASY
    original_split[i1][0].isalpha() blocks valid upgrades where the first
    token is a quote character. Allow quote characters as valid first tokens.
 
-5. Auto-skip front matter
+5. [DONE] Auto-skip front matter
    skip_front_matter parameter may already exist — if so wire it up properly,
    if not it's a small addition using existing get_pdf_page_labels /
    is_front_matter infrastructure.
