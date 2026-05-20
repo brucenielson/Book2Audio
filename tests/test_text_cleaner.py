@@ -147,6 +147,22 @@ class TestClean:
         assert classification == "body"
 
     @pytest.mark.parametrize("paragraph", [
+        "a) The first item in a lettered list.",
+        "b) The second item.",
+        "c) The replacement, in the neo-classical theory, of certain important limit-theorems.",
+    ])
+    def test_lettered_list_prefix_overrides_footnote_classification(
+            self, paragraph: str) -> None:
+        """LLM returning 'footnote' for an a)/b)/c) prefixed paragraph must be overridden.
+
+        Real example: page 296 — 'c) The replacement, in the neo-classical theory...'
+        was wrongly classified as a footnote. Lettered list items are body text."""
+        cleaner = make_cleaner()
+        with patch(patch_llm_chat, return_value=make_response(paragraph, "footnote")):
+            _, classification = cleaner.clean(paragraph)
+        assert classification == "body"
+
+    @pytest.mark.parametrize("paragraph", [
         "Since my discussion has given rise to misunderstandings, a clarification is needed.",
         "In order to see that (i) to (iv) are consistent we merely have to consider.",
         "The argument proceeds from the assumption that all swans are white.",
@@ -478,6 +494,15 @@ class TestRestoreListPrefix:
     ])
     def test_prefix_restored_when_dropped(self, original: str, cleaned: str, expected: str) -> None:
         """Numbered list prefix dropped by LLM is restored."""
+        assert _restore_list_prefix(original, cleaned) == expected
+
+    @pytest.mark.parametrize("original,cleaned,expected", [
+        ("a) The first item in a lettered list.", "The first item in a lettered list.", "a) The first item in a lettered list."),
+        ("b) The second item.", "The second item.", "b) The second item."),
+        ("c) The replacement, in the neo-classical theory.", "The replacement, in the neo-classical theory.", "c) The replacement, in the neo-classical theory."),
+    ])
+    def test_lettered_prefix_restored_when_dropped(self, original: str, cleaned: str, expected: str) -> None:
+        """Lettered list prefix a)/b)/c) dropped by LLM is restored."""
         assert _restore_list_prefix(original, cleaned) == expected
 
     def test_prefix_not_duplicated_when_already_present(self) -> None:

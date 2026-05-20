@@ -131,7 +131,7 @@ def _normalize_token(word: str) -> str:
     return word.lower()
 
 
-_LIST_PREFIX_RE: re.Pattern[str] = re.compile(r'^(\(\d+\)|\([ivxlIVXL]+\)|\d+[.)]) ')
+_LIST_PREFIX_RE: re.Pattern[str] = re.compile(r'^(\(\d+\)|\([ivxlIVXL]+\)|\d+[.)]|[a-zA-Z][.)]) ')
 
 
 def _restore_list_prefix(original: str, cleaned: str) -> str:
