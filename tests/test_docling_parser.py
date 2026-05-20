@@ -392,42 +392,6 @@ class TestExtractChunks:
 
 
 
-# --- TestCalibrateHeaderTopY ---
-
-class TestCalibrateHeaderTopY:
-    def test_no_page_headers_returns_none(self) -> None:
-        """No PAGE_HEADER items in doc → returns None."""
-        texts = [make_text_item("Body text.")]
-        parser = make_parser(texts)
-        assert parser._calibrate_header_top_y() is None
-
-    def test_single_page_header_returns_its_t(self) -> None:
-        """A single PAGE_HEADER → its bbox.t is returned."""
-        header = make_page_header_at("Running Head", page_no=1, bbox_t=20.0)
-        texts = [header]
-        parser = make_parser(texts)
-        assert parser._calibrate_header_top_y() == pytest.approx(20.0)
-
-    def test_page_header_after_body_text_still_counted(self) -> None:
-        """PAGE_HEADER that appears after body text in doc.texts is still used.
-        Docling does not guarantee page headers are listed first — only the label matters."""
-        body = make_text_item("Some body text.", page_no=1)
-        header = make_page_header_at("Running Head", page_no=1, bbox_t=20.0)
-        texts = [body, header]  # header comes after body in doc.texts
-        parser = make_parser(texts)
-        assert parser._calibrate_header_top_y() == pytest.approx(20.0)
-
-    def test_multiple_page_headers_returns_median(self) -> None:
-        """Multiple PAGE_HEADERs → returns median bbox.t."""
-        h1 = make_page_header_at("Head 1", page_no=1, bbox_t=20.0)
-        h2 = make_page_header_at("Head 2", page_no=2, bbox_t=22.0)
-        h3 = make_page_header_at("Head 3", page_no=3, bbox_t=18.0)
-        texts = [h1, h2, h3]
-        parser = make_parser(texts)
-        result = parser._calibrate_header_top_y()
-        assert result == pytest.approx(20.0)  # median of [18, 20, 22]
-
-
 # --- TestIsPageHeader ---
 
 class TestIsPageHeader:

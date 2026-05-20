@@ -410,6 +410,56 @@ def get_pdf_page_labels(path: Path) -> dict[int, str]:
     return {i: doc.get_page_label(i) for i in range(len(doc))}
 
 
+def calibrate_header_top_y(doc: DoclingDocument) -> float | None:
+    """Scan a document for PAGE_HEADER items and return the median bbox.t.
+
+    Used to establish a reference y-coordinate for detecting mislabeled running
+    page headers. Docling does not guarantee that PAGE_HEADER items appear first
+    in doc.texts, so all PAGE_HEADER items are included regardless of order.
+
+    Args:
+        doc: The DoclingDocument to scan.
+
+    Returns:
+        The median bbox.t of all PAGE_HEADER items with valid bbox data, or None
+        if no such items are found.
+    """
+    top_y_values: list[float] = []
+    for item in doc.texts:
+        if not is_text_bearing(item) or not item.prov:
+            continue
+        if item.label != DocItemLabel.PAGE_HEADER:
+            continue
+        bbox = item.prov[0].bbox
+        if bbox is None:
+            continue
+        top_y_values.append(bbox.t)
+    if not top_y_values:
+        return None
+    top_y_values.sort()
+    return top_y_values[len(top_y_values) // 2]
+
+
+def compute_median_page_height(doc: DoclingDocument) -> float:
+    """Return the median page height from the document's page size data.
+
+    Args:
+        doc: The DoclingDocument to analyse.
+
+    Returns:
+        Median height in document units, or 0.0 if no page data is available.
+    """
+    heights: list[float] = []
+    if hasattr(doc, 'pages') and doc.pages:
+        for page in doc.pages.values():
+            if hasattr(page, 'size') and page.size is not None:
+                heights.append(page.size.height)
+    if not heights:
+        return 0.0
+    heights.sort()
+    return heights[len(heights) // 2]
+
+
 def is_front_matter(label: str) -> bool:
     """Return True if *label* is a Roman numeral page label (front matter).
 

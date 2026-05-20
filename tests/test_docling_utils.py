@@ -13,6 +13,7 @@ from utils.docling_utils import (
     compute_single_line_height, compute_median_chars_per_line, is_small_text,
     is_single_line,
     get_pdf_page_labels, is_front_matter,
+    calibrate_header_top_y, compute_median_page_height,
 )
 from utils.general_utils import clean_text
 
@@ -578,6 +579,119 @@ class TestGetPdfPageLabels:
         assert result[39] == 'xl'
         assert result[40] == '1'
         assert result[42] == '3'
+
+
+# --- Helpers for calibrate_header_top_y / compute_median_page_height ---
+
+def make_page_header_item_with_t(bbox_t: float, page_no: int = 1) -> MagicMock:
+    """Create a mock PAGE_HEADER TextItem with a specific bbox.t value."""
+    item = MagicMock(spec=TextItem)
+    item.label = DocItemLabel.PAGE_HEADER
+    prov = MagicMock()
+    prov.bbox = MagicMock()
+    prov.bbox.t = bbox_t
+    item.prov = [prov]
+    return item
+
+
+def make_doc_with_pages(heights: list[float]) -> MagicMock:
+    """Create a mock DoclingDocument whose pages dict contains pages with the given heights."""
+    doc = MagicMock(spec=DoclingDocument)
+    doc.texts = []
+    pages = {}
+    for i, h in enumerate(heights, start=1):
+        page = MagicMock()
+        page.size = MagicMock()
+        page.size.height = h
+        pages[i] = page
+    doc.pages = pages
+    return doc
+
+
+# --- calibrate_header_top_y ---
+
+class TestCalibrateHeaderTopY:
+    def test_no_page_headers_returns_none(self) -> None:
+        """No PAGE_HEADER items in doc → returns None."""
+        body = make_text_item(DocItemLabel.TEXT.value)
+        doc = make_doc_with_texts([body])
+        assert calibrate_header_top_y(doc) is None
+
+    def test_single_page_header_returns_its_t(self) -> None:
+        """A single PAGE_HEADER → its bbox.t is returned."""
+        header = make_page_header_item_with_t(bbox_t=20.0)
+        doc = make_doc_with_texts([header])
+        assert calibrate_header_top_y(doc) == pytest.approx(20.0)
+
+    def test_page_header_after_body_text_still_counted(self) -> None:
+        """PAGE_HEADER that appears after body text in doc.texts is still used.
+        Docling does not guarantee page headers are listed first — only the label matters."""
+        body = make_text_item(DocItemLabel.TEXT.value)
+        header = make_page_header_item_with_t(bbox_t=20.0)
+        doc = make_doc_with_texts([body, header])  # header comes after body
+        assert calibrate_header_top_y(doc) == pytest.approx(20.0)
+
+    def test_multiple_page_headers_returns_median(self) -> None:
+        """Multiple PAGE_HEADERs → returns median bbox.t."""
+        h1 = make_page_header_item_with_t(bbox_t=20.0)
+        h2 = make_page_header_item_with_t(bbox_t=22.0)
+        h3 = make_page_header_item_with_t(bbox_t=18.0)
+        doc = make_doc_with_texts([h1, h2, h3])
+        assert calibrate_header_top_y(doc) == pytest.approx(20.0)  # median of [18, 20, 22]
+
+    def test_page_header_with_none_bbox_is_skipped(self) -> None:
+        """A PAGE_HEADER whose bbox is None is excluded from the median."""
+        good = make_page_header_item_with_t(bbox_t=20.0)
+        bad = MagicMock(spec=TextItem)
+        bad.label = DocItemLabel.PAGE_HEADER
+        prov = MagicMock()
+        prov.bbox = None
+        bad.prov = [prov]
+        doc = make_doc_with_texts([good, bad])
+        assert calibrate_header_top_y(doc) == pytest.approx(20.0)
+
+    def test_page_header_with_no_prov_is_skipped(self) -> None:
+        """A PAGE_HEADER with no prov is excluded."""
+        good = make_page_header_item_with_t(bbox_t=20.0)
+        bad = MagicMock(spec=TextItem)
+        bad.label = DocItemLabel.PAGE_HEADER
+        bad.prov = []
+        doc = make_doc_with_texts([good, bad])
+        assert calibrate_header_top_y(doc) == pytest.approx(20.0)
+
+
+# --- compute_median_page_height ---
+
+class TestComputeMedianPageHeight:
+    def test_no_pages_returns_zero(self) -> None:
+        """Doc with no pages data → 0.0."""
+        doc = MagicMock(spec=DoclingDocument)
+        doc.pages = {}
+        assert compute_median_page_height(doc) == 0.0
+
+    def test_single_page_returns_its_height(self) -> None:
+        """A single page → its height is returned."""
+        doc = make_doc_with_pages([700.0])
+        assert compute_median_page_height(doc) == pytest.approx(700.0)
+
+    def test_multiple_pages_returns_median(self) -> None:
+        """Three pages → median height returned."""
+        doc = make_doc_with_pages([600.0, 800.0, 700.0])
+        assert compute_median_page_height(doc) == pytest.approx(700.0)  # median of [600, 700, 800]
+
+    def test_page_with_none_size_is_skipped(self) -> None:
+        """Page whose size is None is excluded from the median."""
+        doc = make_doc_with_pages([700.0])
+        bad_page = MagicMock()
+        bad_page.size = None
+        doc.pages[99] = bad_page
+        assert compute_median_page_height(doc) == pytest.approx(700.0)
+
+    def test_no_pages_attribute_returns_zero(self) -> None:
+        """Doc with no 'pages' attribute at all → 0.0."""
+        doc = MagicMock(spec=DoclingDocument)
+        del doc.pages
+        assert compute_median_page_height(doc) == 0.0
 
 
 # --- is_front_matter ---

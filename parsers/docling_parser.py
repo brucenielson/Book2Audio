@@ -23,7 +23,9 @@ from utils.docling_utils import (is_footnote,
                                  is_small_text,
                                  is_single_line,
                                  get_pdf_page_labels,
-                                 is_front_matter)
+                                 is_front_matter,
+                                 calibrate_header_top_y,
+                                 compute_median_page_height)
 from utils.general_utils import is_sentence_end
 
 
@@ -320,49 +322,6 @@ class DoclingParser(BaseParser):
             or (has_alpha and ctx.found_note_this_page)
         )
 
-    def _calibrate_header_top_y(self) -> float | None:
-        """Scan the document for PAGE_HEADER items to establish a reference y-coordinate.
-
-        Docling's PAGE_HEADER label is used directly — no ordering check is applied,
-        because Docling does not guarantee that page headers appear first in doc.texts
-        even when they are visually at the top of the page.
-
-        Returns:
-            The median bbox.t of all PAGE_HEADER items with valid bbox data, or None
-            if no such items are found.
-        """
-        top_y_values: list[float] = []
-        for item in self._doc.texts:
-            if not is_text_bearing(item) or not item.prov:
-                continue
-            if item.label != DocItemLabel.PAGE_HEADER:
-                continue
-            bbox = item.prov[0].bbox
-            if bbox is None:
-                continue
-            top_y_values.append(bbox.t)
-
-        if not top_y_values:
-            return None
-        top_y_values.sort()
-        return top_y_values[len(top_y_values) // 2]
-
-    def _compute_median_page_height(self) -> float:
-        """Return the median page height from the document's page size data.
-
-        Returns:
-            Median height in document units, or 0.0 if no page data is available.
-        """
-        heights: list[float] = []
-        if hasattr(self._doc, 'pages') and self._doc.pages:
-            for page in self._doc.pages.values():
-                if hasattr(page, 'size') and page.size is not None:
-                    heights.append(page.size.height)
-        if not heights:
-            return 0.0
-        heights.sort()
-        return heights[len(heights) // 2]
-
     @staticmethod
     def _is_page_header(text_item: TextItem, ctx: _FootnoteContext) -> bool:
         """Return True if this section header looks like a mislabeled running page header.
@@ -449,8 +408,8 @@ class DoclingParser(BaseParser):
             all_text_items, single_line_height, min_charspan=self._short_text_threshold
         )
 
-        header_top_y: float | None = self._calibrate_header_top_y()
-        median_page_height: float = self._compute_median_page_height()
+        header_top_y: float | None = calibrate_header_top_y(self._doc)
+        median_page_height: float = compute_median_page_height(self._doc)
 
         classified: list[tuple[TextItem, str]] = []
         current_page: int | None = None
