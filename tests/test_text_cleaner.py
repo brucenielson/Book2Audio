@@ -770,6 +770,34 @@ class TestRestoreValidWords:
         )
         assert result == "was - including all"
 
+    def test_llm_downgrades_em_dash_to_double_hyphen_is_restored(self) -> None:
+        """LLM replaces '—' with '--' in a compound token — restore the original em-dash.
+
+        Regression: extending _normalize_dashes to collapse '--' to '-' caused
+        'justifiable—as' and 'justifiable--as' to compare as equal in the 1:1
+        path, silently accepting the LLM's downgrade.  The '--' collapsing must
+        only apply in the N→1 is_dash_upgrade comparison, not in the 1:1 path.
+        """
+        result = _restore_valid_words(
+            "becomes as good–or as justifiable—as any other",
+            "becomes as good-or as justifiable--as any other",
+        )
+        assert result == "becomes as good–or as justifiable—as any other"
+
+    def test_dash_upgrade_when_first_token_contains_double_dash(self) -> None:
+        """['relationship--instantiation', '-', 'whose'] → 'relationship—instantiation—whose'.
+
+        The first original token already contains '--' (a double-dash from OCR).
+        _normalize_dashes collapses '--' to '-' on the cleaned side, so the
+        joined originals must also be normalized before comparison, otherwise
+        the '--' in joined_orig causes a mismatch and the LLM's upgrade is lost.
+        """
+        result = _restore_valid_words(
+            "the relationship--instantiation - whose meaning",
+            "the relationship—instantiation—whose meaning",
+        )
+        assert result == "the relationship—instantiation—whose meaning"
+
     # --- Quote normalization: LLM introduces smart/curly quotes ---
     # The preprocessor normalizes all quotes to ASCII before text reaches _restore_valid_words.
     # The LLM often "improves" straight quotes back to typographic curly quotes. The only

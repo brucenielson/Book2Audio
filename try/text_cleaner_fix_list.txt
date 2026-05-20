@@ -35,9 +35,11 @@ EASY
 MODERATE
 --------
 
-7. 3→1 merge with multiple dash upgrades
+7. [DONE] 3→1 merge with multiple dash upgrades
    ['relationship--instantiation', '-', 'whose'] → relationship—instantiation—whose
-   Generalize is_dash_upgrade beyond 2→1 merges.
+   Fixed by also normalizing joined_orig in the is_dash_upgrade comparison, and
+   extending _normalize_dashes to collapse '--' to '-' so OCR double-hyphens are
+   treated as equivalent to em-dashes on both sides of the comparison.
 
 8. Short fragment joins like ['p', 'referring']
    Detect single-letter or short fragment as line-break artifact. Could check
@@ -113,7 +115,32 @@ HARD
 FUTURE (researched but not yet decided)
 ----------------------------------------
 
-F1. is_valid_word false positives via obscure NLTK corpus entries (e.g. 'eans')
+F1. Send section headers to the LLM with a dedicated prompt
+
+    Discovered 2026-05-20: section headers that Docling correctly labels as
+    SECTION_HEADER are handled by _handle_section_header() in text_processor.py,
+    which appends them directly to _result without ever calling clean(). The LLM
+    never sees them.
+
+    This is probably wrong. Section headers can have the same OCR artifacts as
+    body text (spaced characters, broken words, mangled punctuation) and would
+    benefit from LLM cleanup. The difference is that the LLM must be told it is
+    cleaning a section header, not body text, so it doesn't try to classify it
+    as DROP or FOOTNOTE and doesn't paraphrase or restructure it.
+
+    Proposed approach:
+    - Add a clean_header(text) method to TextCleaner (or a header_prompt
+      parameter to clean()) that uses a different system/user prompt telling
+      the LLM: "This is a section heading. Fix OCR artifacts only. Return the
+      corrected heading text and nothing else."
+    - Call it from _handle_section_header() instead of bypassing the LLM.
+    - _restore_valid_words can still be applied afterwards as a safety net.
+
+    Note: Docling-misclassified multi-line headers (see item #11) would still
+    not be caught by this, since they never reach _handle_section_header at all.
+    This change only helps headers Docling already recognises correctly.
+
+F2. is_valid_word false positives via obscure NLTK corpus entries (e.g. 'eans')
 
     Symptom observed 2026-05-20, "Realism and the Aim of Science" page xxviii:
     OCR produced "of Rayleigh and 1 eans" ('1' is a footnote number). The LLM

@@ -105,12 +105,24 @@ def _is_word_like(token: str) -> bool:
 
 
 def _normalize_dashes(word: str) -> str:
-    """Normalize em-dashes and en-dashes to hyphens for word comparison.
+    """Normalize all dash variants to a single hyphen for comparison.
 
-    Prevents false positives when the LLM correctly converts a hyphen to an
-    em-dash within a compound token (e.g. "false-as" → "false—as").
+    Converts em-dashes and en-dashes to hyphens, then collapses consecutive
+    hyphens (e.g. '--', OCR's common ASCII em-dash substitute) to one.
+
+    This serves two purposes:
+    - In the 1:1 path the elif branch detects em/en-dash downgrades by checking
+      orig_stripped == new_stripped while the original still contains '—'/'–'.
+      Collapsing '--' ensures 'justifiable—as' and 'justifiable--as' both reduce
+      to 'justifiable-as', so the elif fires and the original em-dash is restored.
+    - In the N→1 is_dash_upgrade comparison, collapsing '--' ensures that OCR
+      double-hyphens in joined_orig (e.g. 'relationship--instantiation-whose')
+      match the LLM's em-dash upgrade after normalization of both sides.
     """
-    return word.replace('—', '-').replace('–', '-')
+    normalized = word.replace('—', '-').replace('–', '-')
+    while '--' in normalized:
+        normalized = normalized.replace('--', '-')
+    return normalized
 
 
 def _normalize_token(word: str) -> str:
@@ -244,7 +256,7 @@ def _restore_valid_words(original: str, cleaned: str, verbose: bool = False) -> 
             # e.g. "- including" → "—including").  Quote characters are allowed as
             # valid first tokens (e.g. "'word' - next" → "'word'—next").
             _QUOTE_CHARS = '"\'‘’“”'
-            is_dash_upgrade = (_normalize_dashes(cleaned_split[j1]) == joined_orig
+            is_dash_upgrade = (_normalize_dashes(cleaned_split[j1]) == _normalize_dashes(joined_orig)
                                and (original_split[i1][0].isalpha()
                                     or original_split[i1][0] in _QUOTE_CHARS))
             # Hyphen compounding: LLM joined two words with a hyphen ("proof reading" →
