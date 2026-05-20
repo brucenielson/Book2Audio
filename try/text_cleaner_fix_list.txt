@@ -27,7 +27,7 @@ EASY
    if not it's a small addition using existing get_pdf_page_labels /
    is_front_matter infrastructure.
 
-6. Line-break hyphen join in N→1 merge
+6. [DONE] Line-break hyphen join in N→1 merge
    Add condition: if stripping trailing hyphens from each original token and
    concatenating equals the cleaned token, keep the LLM's join. Fixes
    ['reexamina-', 'tion'] → reexamination, ['classify-', 'ing'] → classifying.

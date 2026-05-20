@@ -250,12 +250,24 @@ def _restore_valid_words(original: str, cleaned: str, verbose: bool = False) -> 
             # Hyphen compounding: LLM joined two words with a hyphen ("proof reading" →
             # "proof-reading"). The hyphen-joined originals exactly match the cleaned token.
             is_hyphen_compound = '-'.join(original_split[i1:i2]) == cleaned_split[j1]
+            # Line-break hyphen join: strip trailing hyphens from each original token and
+            # concatenate — if the result equals the cleaned token, the LLM correctly
+            # rejoined a word that was split across a line break with a hard hyphen
+            # (e.g. ['reexamina-', 'tion'] → 'reexamination').
+            # Also accept when the cleaned token is a hyphenated compound whose
+            # dehyphenated form matches, e.g. ['self-', 'contra-', 'diction'] →
+            # 'self-contradiction' (dehyphen join 'selfcontradiction' matches
+            # cleaned token with hyphens removed 'selfcontradiction').
+            dehyphen_join = ''.join(t.rstrip('-') for t in original_lower[i1:i2])
+            is_line_break_join = (dehyphen_join == cleaned_lower[j1]
+                                  or dehyphen_join == cleaned_lower[j1].replace('-', ''))
             if (word_validator.is_valid_word(merged)
                     or any(c.isdigit() for c in merged)
                     or cleaned_split[j1] == joined_orig
                     or has_internal_period
                     or is_dash_upgrade
-                    or is_hyphen_compound):
+                    or is_hyphen_compound
+                    or is_line_break_join):
                 result.append(cleaned_split[j1])
             else:
                 ctx_start = max(0, i1 - 3)

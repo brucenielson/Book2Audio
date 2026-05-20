@@ -991,6 +991,56 @@ class TestRestoreValidWordsTrailingHyphen:
         assert 'well-known' in result
 
 
+# --- TestRestoreValidWordsLineBreakHyphen ---
+
+class TestRestoreValidWordsLineBreakHyphen:
+    """Tests for the N→1 line-break hyphen join condition.
+
+    When a PDF splits a word at line-end with a hard hyphen, Docling produces
+    two tokens: ['reexamina-', 'tion'].  The LLM correctly rejoins them to
+    'reexamination'.  The N→1 merge must accept this even when is_valid_word
+    fails (e.g. for long compound words not in the dictionary).
+
+    Condition: strip trailing hyphens from each original token, concatenate,
+    and if the result equals the cleaned token, keep the LLM's join.
+    """
+
+    @pytest.mark.parametrize("original,cleaned,expected", [
+        # Core cases from the fix list
+        ('the reexamina- tion of evidence',
+         'the reexamination of evidence',
+         'the reexamination of evidence'),
+        ('they classify- ing the result',
+         'they classifying the result',
+         'they classifying the result'),
+        # Three-part split of a plain word
+        ('a contra- dic- tion here',
+         'a contradiction here',
+         'a contradiction here'),
+        # Hyphenated compound word reassembled: dehyphen join ≠ cleaned token
+        # because the LLM correctly preserves the compound hyphen
+        ('a self- contra- diction here',
+         'a self-contradiction here',
+         'a self-contradiction here'),
+    ])
+    def test_line_break_hyphen_join_kept(
+            self, original: str, cleaned: str, expected: str) -> None:
+        assert _restore_valid_words(original, cleaned) == expected
+
+    def test_non_hyphen_merge_not_accepted(self) -> None:
+        """A 2→1 merge with no trailing hyphens and no match must restore originals.
+
+        joined_orig = 'helloworld', cleaned = 'helloplanet': dehyphen_join is also
+        'helloworld' ≠ 'helloplanet', so is_line_break_join does not fire.
+        is_valid_word('helloplanet') is False and no other check applies either.
+        """
+        result = _restore_valid_words(
+            "hello world today",
+            "helloplanet today",
+        )
+        assert result == "hello world today"
+
+
 # --- TestCoerceClassification ---
 
 class TestCoerceClassification:
