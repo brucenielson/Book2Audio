@@ -146,6 +146,20 @@ class TestClean:
             _, classification = cleaner.clean(paragraph)
         assert classification == "body"
 
+    def test_ocr_spaced_list_prefix_in_cleaned_text_overrides_footnote(self) -> None:
+        """Guard must also check cleaned_candidate, not just the original paragraph.
+
+        Real example: '( 1 8) Anderson's discovery...' — OCR inserts spaces inside
+        the parenthesized number. The original fails _LIST_PREFIX_RE but the LLM
+        correctly fixes it to '(18) Anderson's discovery...', which should trigger
+        the override."""
+        original = "( 1 8) Anderson's discovery of the positron refutes a lot."
+        cleaned  = "(18) Anderson's discovery of the positron refutes a lot."
+        cleaner = make_cleaner()
+        with patch(patch_llm_chat, return_value=make_response(cleaned, "footnote")):
+            _, classification = cleaner.clean(original)
+        assert classification == "body"
+
     @pytest.mark.parametrize("paragraph", [
         "a) The first item in a lettered list.",
         "b) The second item.",

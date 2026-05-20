@@ -372,9 +372,13 @@ class TextCleaner:
                         raise ValueError(f"Invalid classification: '{classification}'")
                     classification = coerced
 
-                if classification == 'footnote' and _LIST_PREFIX_RE.match(paragraph.lstrip()):
-                    # Paragraphs starting with (N) or (i)/(ii)/... are numbered list items,
-                    # never footnotes. Override the LLM's classification as a safety net.
+                if classification == 'footnote' and (
+                        _LIST_PREFIX_RE.match(paragraph.lstrip())
+                        or _LIST_PREFIX_RE.match(cleaned_candidate.lstrip())):
+                    # Paragraphs starting with (N), (i)/(ii)/..., or a)/b)/c) are list items,
+                    # never footnotes. Check both original and cleaned text — OCR artifacts
+                    # like '( 1 8)' fail the regex on the original but the LLM fixes them to
+                    # '(18)' which matches cleanly.
                     classification = 'body'
 
                 if classification == 'footnote' and paragraph.lstrip()[:1].isalpha():

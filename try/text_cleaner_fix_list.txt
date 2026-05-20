@@ -4,7 +4,7 @@ Text Cleaner Fix List — ordered easy to hard
 EASY
 ----
 
-1. Lettered list items not in _LIST_PREFIX_RE
+1. [DONE] Lettered list items not in _LIST_PREFIX_RE
    Extend regex to match a), b), c) style prefixes.
    One-line fix in text_cleaner.py.
 
