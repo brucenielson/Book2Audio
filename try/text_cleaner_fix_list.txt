@@ -230,26 +230,34 @@ HARD
     regression.
 
     Proposed fix:
-    Replace the found_note_this_page boolean in _FootnoteContext with a
-    footnote_zone_top float (initially None, reset at each page boundary).
-    Whenever a footnote is detected by any heuristic, record its bbox.t and
-    keep the running maximum. H3 then fires only on TEXT items whose bbox.t
-    is at or below footnote_zone_top — meaning they are physically in the
-    footnote zone — rather than on all items processed after the first footnote.
-    Items above the zone (higher bbox.t) are unaffected regardless of processing
-    order.
+    Sort each page's items by bbox.t descending (highest on page first) before
+    processing them. This imposes physical top-to-bottom reading order regardless
+    of how Docling emitted the items. Body text near the top of the page is
+    always processed before footnotes at the bottom, so found_note_this_page is
+    never True when body text items are evaluated.
 
-    The single-pass running-max approach works correctly for both Docling output
-    orderings: when footnotes are emitted before body text (p. 252 case), the
-    zone is established and body text above it is correctly excluded; when body
-    text is emitted before footnotes (normal case), the zone is not yet set and
-    body text passes through as usual.
+    This is better than the alternative (a footnote_zone_top float threshold)
+    because it fixes the ordering assumption for ALL heuristics simultaneously —
+    not just H3. In particular, prev_text_candidate for H1 also becomes
+    physically meaningful: the "previous item" is always the one physically
+    above, not whichever item Docling happened to emit first.
+
+    For pages where Docling already emits items top-to-bottom (the normal case),
+    sorting is a no-op and no existing behaviour changes.
+
+    Implementation:
+    In _get_processed_texts(), group all_text_items by page_no, sort each
+    group by bbox.t descending, then flatten back to a single list before
+    the classification loop. The heuristic logic itself is unchanged.
 
     Edge cases to handle:
-    - bbox may be None — skip zone update, don't fire zone-based H3
-    - Multi-column layouts (Y-only threshold) — acceptable limitation for now
-    - Zone must reset at page boundary (same as today)
-    - All H3 unit tests will need updating from boolean ctx to float threshold
+    - Items with no prov or None bbox sort to the end of their page (position
+      unknown; consistent with how they are already treated elsewhere).
+      Use a stable sort so their relative order among themselves is preserved.
+    - Two-column layouts where left/right columns share Y ranges will be
+      interleaved by a Y-only sort — acceptable limitation for now.
+    - found_note_this_page and all other per-page context still reset at the
+      page boundary as today; no changes needed to _FootnoteContext.
 
 FUTURE (researched but not yet decided)
 ----------------------------------------
