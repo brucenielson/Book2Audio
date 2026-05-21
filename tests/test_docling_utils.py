@@ -11,6 +11,7 @@ from utils.docling_utils import (
     is_too_short, is_text_item, get_next_text,
     get_current_page, should_skip_element,
     compute_single_line_height, compute_median_chars_per_line, is_small_text,
+    compute_body_line_height,
     is_single_line,
     get_pdf_page_labels, is_front_matter,
     calibrate_header_top_y, compute_median_page_height,
@@ -438,6 +439,93 @@ class TestComputeMedianCharsPerLine:
         assert compute_median_chars_per_line([item], single_line_height=10.0) == 0.0
 
 
+# --- compute_body_line_height ---
+
+class TestComputeBodyLineHeight:
+
+    def test_returns_75th_percentile_of_single_line_text_items(self) -> None:
+        # All three TEXT items, all single-line (height <= 12.0 * 1.3 = 15.6)
+        # Sorted heights: [10, 11, 12] → 75th percentile index 3*3//4=2 → 12.0
+        items = [
+            make_text_item_with_bbox(DocItemLabel.TEXT.value, height=10.0, charspan_start=0, charspan_end=100),
+            make_text_item_with_bbox(DocItemLabel.TEXT.value, height=11.0, charspan_start=0, charspan_end=100),
+            make_text_item_with_bbox(DocItemLabel.TEXT.value, height=12.0, charspan_start=0, charspan_end=100),
+        ]
+        assert compute_body_line_height(items, single_line_height=12.0) == 12.0
+
+    def test_75th_percentile_resists_footnote_contamination(self) -> None:
+        # 6 items at height 9.0 (footnotes) + 4 items at height 11.0 (body text)
+        # Sorted: [9, 9, 9, 9, 9, 9, 11, 11, 11, 11] (10 items)
+        # Median index 5 → 9.0  (WRONG — dragged down by footnote-sized items)
+        # 75th percentile index 3*10//4=7 → 11.0  (CORRECT — body text height)
+        items = (
+            [make_text_item_with_bbox(DocItemLabel.TEXT.value, height=9.0, charspan_start=0, charspan_end=50)] * 6
+            + [make_text_item_with_bbox(DocItemLabel.TEXT.value, height=11.0, charspan_start=0, charspan_end=100)] * 4
+        )
+        assert compute_body_line_height(items, single_line_height=12.0) == 11.0
+
+    def test_excludes_multi_line_text_items(self) -> None:
+        # single_line_height=12.0; height=10 → single-line (10 <= 15.6) included;
+        # height=30 → multi-line (30 > 15.6) excluded
+        items = [
+            make_text_item_with_bbox(DocItemLabel.TEXT.value, height=10.0, charspan_start=0, charspan_end=100),
+            make_text_item_with_bbox(DocItemLabel.TEXT.value, height=30.0, charspan_start=0, charspan_end=400),
+        ]
+        assert compute_body_line_height(items, single_line_height=12.0) == 10.0
+
+    def test_ignores_non_text_items(self) -> None:
+        # PAGE_HEADER and SECTION_HEADER should be ignored; only TEXT items count
+        items = [
+            make_text_item_with_bbox(DocItemLabel.PAGE_HEADER.value, height=8.0, charspan_start=0, charspan_end=50),
+            make_text_item_with_bbox(DocItemLabel.SECTION_HEADER.value, height=20.0, charspan_start=0, charspan_end=50),
+            make_text_item_with_bbox(DocItemLabel.TEXT.value, height=10.0, charspan_start=0, charspan_end=100),
+        ]
+        assert compute_body_line_height(items, single_line_height=12.0) == 10.0
+
+    def test_ignores_footnote_items(self) -> None:
+        items = [
+            make_text_item_with_bbox(DocItemLabel.FOOTNOTE.value, height=8.0, charspan_start=0, charspan_end=50),
+            make_text_item_with_bbox(DocItemLabel.TEXT.value, height=10.0, charspan_start=0, charspan_end=100),
+        ]
+        assert compute_body_line_height(items, single_line_height=12.0) == 10.0
+
+    def test_returns_zero_when_no_text_items(self) -> None:
+        items = [
+            make_text_item_with_bbox(DocItemLabel.PAGE_HEADER.value, height=10.0, charspan_start=0, charspan_end=50),
+        ]
+        assert compute_body_line_height(items, single_line_height=12.0) == 0.0
+
+    def test_returns_zero_when_single_line_height_is_zero(self) -> None:
+        items = [
+            make_text_item_with_bbox(DocItemLabel.TEXT.value, height=10.0, charspan_start=0, charspan_end=100),
+        ]
+        assert compute_body_line_height(items, single_line_height=0.0) == 0.0
+
+    def test_returns_zero_when_list_is_empty(self) -> None:
+        assert compute_body_line_height([], single_line_height=10.0) == 0.0
+
+    def test_returns_zero_when_all_text_items_are_multi_line(self) -> None:
+        # All heights exceed single_line_height * 1.3 — nothing passes the single-line filter
+        items = [
+            make_text_item_with_bbox(DocItemLabel.TEXT.value, height=50.0, charspan_start=0, charspan_end=400),
+        ]
+        assert compute_body_line_height(items, single_line_height=12.0) == 0.0
+
+    def test_skips_item_with_no_prov(self) -> None:
+        item = MagicMock(spec=TextItem)
+        item.label = DocItemLabel.TEXT.value
+        item.prov = []
+        assert compute_body_line_height([item], single_line_height=10.0) == 0.0
+
+    def test_skips_item_with_none_bbox(self) -> None:
+        item = MagicMock(spec=TextItem)
+        item.label = DocItemLabel.TEXT.value
+        prov = MagicMock()
+        prov.bbox = None
+        item.prov = [prov]
+        assert compute_body_line_height([item], single_line_height=10.0) == 0.0
+
+
 # --- is_small_text ---
 
 class TestIsSmallText:
@@ -485,6 +573,43 @@ class TestIsSmallText:
         # chars/line=200, median=100, threshold=2.5 → 200 is NOT > 250 → False
         item = make_text_item_with_bbox(DocItemLabel.TEXT.value, height=10.0, charspan_start=0, charspan_end=200)
         assert is_small_text(item, single_line_height=10.0, median_chars_per_line=100.0, threshold=2.5) is False
+
+    # --- body_line_height path ---
+
+    def test_body_line_height_fires_for_short_item(self) -> None:
+        # Short item (10 chars): chars-per-line = 10/1 = 10, well below median → not small via chars-per-line.
+        # But bbox.height=8.0 < body_line_height=10.0 * body_threshold=0.85 → 8.5 → True via body path.
+        item = make_text_item_with_bbox(DocItemLabel.TEXT.value, height=8.0, charspan_start=0, charspan_end=10)
+        assert is_small_text(item, single_line_height=10.0, median_chars_per_line=80.0,
+                             body_line_height=10.0) is True
+
+    def test_body_line_height_does_not_fire_when_height_at_threshold(self) -> None:
+        # bbox.height=8.5 is NOT < 10.0 * 0.85 = 8.5 (strict less-than) → body path fails.
+        # Chars-per-line: 10/1=10 << 80*1.25 → False overall.
+        item = make_text_item_with_bbox(DocItemLabel.TEXT.value, height=8.5, charspan_start=0, charspan_end=10)
+        assert is_small_text(item, single_line_height=10.0, median_chars_per_line=80.0,
+                             body_line_height=10.0) is False
+
+    def test_body_line_height_zero_falls_back_to_chars_per_line(self) -> None:
+        # body_line_height=0 → skip body check.
+        # Chars-per-line: 200/1=200 > 80*1.25=100 → True via chars-per-line.
+        item = make_text_item_with_bbox(DocItemLabel.TEXT.value, height=10.0, charspan_start=0, charspan_end=200)
+        assert is_small_text(item, single_line_height=10.0, median_chars_per_line=80.0,
+                             body_line_height=0.0) is True
+
+    def test_custom_body_threshold(self) -> None:
+        # bbox.height=8.5 NOT < 10.0 * 0.85=8.5 with default threshold → False.
+        # With body_threshold=0.9: 8.5 < 10.0*0.9=9.0 → True.
+        item = make_text_item_with_bbox(DocItemLabel.TEXT.value, height=8.5, charspan_start=0, charspan_end=10)
+        assert is_small_text(item, single_line_height=10.0, median_chars_per_line=80.0,
+                             body_line_height=10.0, body_threshold=0.9) is True
+
+    def test_body_line_height_path_takes_priority_over_chars_per_line(self) -> None:
+        # Long item that would pass chars-per-line, but body check fires first.
+        # Both should give True — verifying body path fires first (for correctness, same result).
+        item = make_text_item_with_bbox(DocItemLabel.TEXT.value, height=8.0, charspan_start=0, charspan_end=200)
+        assert is_small_text(item, single_line_height=10.0, median_chars_per_line=80.0,
+                             body_line_height=10.0) is True
 
 
 # --- TestIsSingleLine ---

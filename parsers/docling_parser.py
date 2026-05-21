@@ -20,6 +20,7 @@ from utils.docling_utils import (is_footnote,
                                  load_as_document,
                                  compute_single_line_height,
                                  compute_median_chars_per_line,
+                                 compute_body_line_height,
                                  is_small_text,
                                  is_single_line,
                                  get_pdf_page_labels,
@@ -45,6 +46,8 @@ class _FootnoteContext:
     median_chars_per_line: float    # median chars-per-estimated-line for the document
     header_top_y: float | None      # median bbox.t of validated PAGE_HEADER items, or None
     median_page_height: float       # median page height across the document
+    body_line_height: float         # median bbox.height of single-line body TEXT items
+    in_notes_section: bool          # True once a "Notes" / "Endnotes" section header is seen
 
 
 class DoclingParser(BaseParser):
@@ -397,24 +400,72 @@ class DoclingParser(BaseParser):
         """
         if is_footnote(text_item):
             return True
-        if not (text_item.label == DocItemLabel.TEXT
-                and text_item.text
-                and text_item.text[0].isdigit()):
+        if not (text_item.label in (DocItemLabel.TEXT, DocItemLabel.SECTION_HEADER)
+                and text_item.text):
             return False
+        # H3: propagation — once a footnote has been seen on this page, all subsequent
+        # TEXT items are footnote continuations regardless of first character.
+        # SECTION_HEADERs are excluded: they represent chapter/section titles and
+        # are not swept up by propagation.
+        if text_item.label == DocItemLabel.TEXT and ctx.found_note_this_page:
+            return True
+        # Endnote path: in a dedicated notes/endnotes section (back of book), any
+        # digit-start TEXT item with alpha content is an endnote. No font-size or
+        # page-position requirements — endnote pages may use the same font as body text.
+        if (ctx.in_notes_section
+                and text_item.label == DocItemLabel.TEXT
+                and text_item.text[0].isdigit()
+                and any(c.isalpha() for c in text_item.text)):
+            return True
+        # H4: 1–2 digits immediately against an uppercase letter or opening punctuation
+        # (e.g. "3See", "14Cf", "3[See", "8(See", "13'That").  The tight juxtaposition
+        # of a digit marker and a word/punctuation is almost never body text.
+        # Requires body text to have been seen first on the page.
+        # Uppercase avoids ordinals like "1st". TEXT label only — SECTION_HEADERs are
+        # chapter/section titles and must not be swept up here.
+        if (ctx.text_seen_this_page
+                and text_item.label == DocItemLabel.TEXT
+                and re.match(r'^\d{1,2}[A-Z\[(\'\"]', text_item.text)):
+            return True
+        # H1: digit-start item with alpha content that immediately follows a mid-sentence
+        # body paragraph and sits in the lower half of the page.  No font-size requirement —
+        # footnotes in narrow columns may be typeset at the same size as body text but will
+        # always appear below the main text block.
+        if (text_item.label == DocItemLabel.TEXT
+                and text_item.text[0].isdigit()
+                and any(c.isalpha() for c in text_item.text)
+                and ctx.prev_text_candidate
+                and ctx.median_page_height > 0
+                and text_item.prov
+                and text_item.prov[0].bbox is not None
+                and text_item.prov[0].bbox.t < ctx.median_page_height * 0.5):
+            return True
+        # Gate: footnotes are always smaller than body text, and cannot appear before
+        # body text has been seen on the page.
+        if not (ctx.text_seen_this_page
+                and is_small_text(text_item, ctx.single_line_height,
+                                  ctx.median_chars_per_line,
+                                  body_line_height=ctx.body_line_height)):
+            return False
+        # Gate: first character must be a digit.
+        first: str = text_item.text[0]
+        if not first.isdigit():
+            return False
+        # Numbered list items are not footnotes — "1. Introduction", "2. Method", etc.
+        if re.match(r'^\d+\.\s', text_item.text):
+            return False
+        # H1 (small-text path): small text following a mid-sentence body paragraph.
+        # alpha check excludes pure index entries like "183-84".
         has_alpha: bool = any(c.isalpha() for c in text_item.text)
-        return (
-            # H4: 1–2 digits immediately followed by an uppercase letter — unconditional footnote
-            # marker (e.g. "3See", "14Cf").  Uppercase avoids ordinals like "1st".
-            bool(re.match(r'^\d{1,2}[A-Z]', text_item.text))
-            # H1: follows mid-sentence body text; alpha check excludes index entries like "183-84"
-            or (has_alpha and ctx.prev_text_candidate)
-            # H2: small font, preceded by body text on this page
-            or (len(text_item.text) >= self._short_text_threshold
-                and ctx.text_seen_this_page
-                and is_small_text(text_item, ctx.single_line_height, ctx.median_chars_per_line))
-            # H3: propagation — footnote already seen on this page
-            or (has_alpha and ctx.found_note_this_page)
-        )
+        if has_alpha and ctx.prev_text_candidate:
+            return True
+        # Lower half of page: any digit-start item in small text at the bottom is a footnote.
+        if (ctx.median_page_height > 0
+                and text_item.prov
+                and text_item.prov[0].bbox is not None
+                and text_item.prov[0].bbox.t < ctx.median_page_height * 0.5):
+            return True
+        return False
 
     @staticmethod
     def _is_page_header(text_item: TextItem, ctx: _FootnoteContext) -> bool:
@@ -504,6 +555,9 @@ class DoclingParser(BaseParser):
 
         header_top_y: float | None = calibrate_header_top_y(self._doc)
         median_page_height: float = compute_median_page_height(self._doc)
+        body_line_height: float = compute_body_line_height(
+            list(self._doc.texts), single_line_height
+        )
 
         classified: list[tuple[TextItem, str]] = []
         current_page: int | None = None
@@ -515,6 +569,8 @@ class DoclingParser(BaseParser):
             median_chars_per_line=median_chars_per_line,
             header_top_y=header_top_y,
             median_page_height=median_page_height,
+            body_line_height=body_line_height,
+            in_notes_section=False,
         )
 
         for text_item in all_text_items:
@@ -524,6 +580,13 @@ class DoclingParser(BaseParser):
                 ctx.text_seen_this_page = False
                 ctx.found_note_this_page = False
                 current_page = page_number
+
+            # Detect start of endnotes section — once set, stays True for the rest of the book.
+            if (not ctx.in_notes_section
+                    and text_item.label == DocItemLabel.SECTION_HEADER
+                    and text_item.text
+                    and re.match(r'^\s*(notes?|endnotes?)\b', text_item.text, re.IGNORECASE)):
+                ctx.in_notes_section = True
 
             if is_too_short(text_item):
                 classified.append((text_item, 'too_short'))

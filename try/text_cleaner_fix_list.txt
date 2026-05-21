@@ -130,10 +130,126 @@ HARD
     - Pre-sanitize special characters before sending to LLM
     Deepest architectural problem on the list.
 
-17. · (middle dot) as footnote marker
+17. [DONE] · (middle dot) as footnote marker
     OCR turns superscript footnote numerals into ·, merging footnotes into
     body text. Simple prefix detection is problematic across different books.
     Needs more nuanced approach — possibly combining with is_small_text check.
+
+18. Backslash-escaped quotes in LLM tokens wrongly trigger word restore
+    The JSON escape repair converts \'word\' to Python string \' + word + \'.
+    The word-comparison strip handles ' and curly quotes but not \, so the
+    stripped forms differ and the original is wrongly restored.
+    Examples (page 395):
+      original 'possibility',  (curly-quoted OCR)  LLM tried \'possibility\',
+      original 'probability'   (curly-quoted OCR)  LLM tried \'probability\'
+      original 'frequency')    (curly-quoted OCR)  LLM tried \'frequency\')
+    Fix: before normalize_quotes + strip in the 1:1 comparison (and N→1 merged
+    calculation), collapse \' → ' and \" → " so bare words are exposed.
+    One-liner in each comparison path.
+
+19. "Expecting ',' delimiter" JSON failures burn all retries
+    When the LLM writes bare " around a quoted term inside the cleaned JSON
+    value (e.g. "the word "probability" is used") the parser terminates the
+    string at the first inner ", then finds unexpected text and raises
+    "Expecting ',' delimiter". This is a structural JSON error, not an escape
+    error, so 'escape' is NOT in str(e) and the current inline repair skips it.
+    All 3 retries are consumed and the paragraph falls back to the raw OCR.
+    Fix: add a regex-based fallback in the except handler using greedy matching:
+      re.search(r'"cleaned"\s*:\s*"(.*)"\s*,\s*"classification"\s*:\s*"(\w+)"',
+                content, re.DOTALL)
+    Greedy .* naturally finds the last " before ,"classification", recovering
+    the true cleaned value even with inner unescaped quotes. If the regex fails
+    (completely malformed JSON), re-raise to trigger the normal retry loop.
+
+20. Cross-page hyphen-break not cleaned when footnote is removed in between
+    Example from Realism and the Aim of Science, p. 86:
+    "But guesses, as opposed to this, are pro- posals,"
+    A footnote between the two halves of the hyphenated word was correctly
+    removed, but the soft-hyphen join did not fire — leaving "pro- posals"
+    (hyphen + space) in the output instead of "proposals".
+    Root cause: the footnote removal breaks the continuity that the hyphen-join
+    logic relies on to recognise the two fragments as a single broken word.
+    Needs investigation into whether the join fires before or after footnote
+    filtering, and whether the gap introduced by the removed footnote prevents
+    the fragments from being seen as adjacent.
+
+21. Math/formula paragraphs garbled by LLM in complex ways
+    Example from Realism and the Aim of Science, p. 198:
+    A paragraph containing Goldbach's conjecture in formal notation:
+      (G) (x)(Ey)(P(x + y) & P((2 + x) - y))
+    and surrounding prose was partially mangled — the LLM preserved some
+    content but replaced other parts with reformulated versions, mixing
+    correct and incorrect output. Specifically:
+      - The formal expression "(G)" and its predicate definition were retained
+      - But the conjecture statement "(G') (x) Gdb(x)" was replaced with
+        "x + y, and (2 + x) + y, are both prime." (a correct paraphrase but
+        not the source text)
+    This is a variant of item #16 (math formula handling) but illustrates that
+    the problem is not just JSON failures or dropped content — the LLM can
+    also silently substitute mathematically equivalent but textually different
+    formulations. Fixing this likely requires either skipping LLM cleaning for
+    math-heavy paragraphs or using a constrained prompt that forbids paraphrase.
+
+22. H3 propagation uses processing order, not page position — loses body text
+    Book: Realism and the Aim of Science (Popper)
+    Pages affected: p. 252 (physical p. 293) confirmed; likely other pages too.
+
+    Symptom:
+    In the final output, the entire body text of p. 252 is missing. The output
+    jumps from the last paragraph of p. 251 directly to a formula from a p. 252
+    footnote, then continues at p. 253. Reproducible by diffing output before
+    and after the H3 unconditional-sweep change.
+
+    Root cause:
+    Docling does not always emit items in top-to-bottom reading order within a
+    page. On p. 252 it emits footnotes 6, 7, and 8 BEFORE the body text
+    paragraphs, even though the footnotes are physically at the bottom of the
+    page. The _processed_texts.txt for that page (from old code) shows:
+
+      [Page 252]: text → footnote: 6See footnote 4.      ← emitted first
+      [Page 252]: text → footnote: 7See footnote 4.
+      [Page 252]: text → footnote: 8See also L.Sc.D....
+      [Page 252]: section_header → page_header: CORROBORATION
+      [Page 252]: text: Thus both the problems are solved...   ← body text
+      [Page 252]: text: First, we can generalize...
+      [Page 252]: text: p(b,ac) - p(b,c) C(a,b,c) = ...
+      [Page 252]: text: This corresponds precisely...
+      [Page 252]: text: A technical remark...
+      [Page 252]: text → footnote: 5This presupposes...
+      [Page 252]: formula: Ct(a,c) = C(a,a,c) = 1 - p(a,c).
+
+    When "6See footnote 4." is caught as a footnote (H4: digit + uppercase),
+    found_note_this_page is set to True. Our new unconditional H3 then sweeps
+    every subsequent TEXT item on the page — including all five body text
+    paragraphs — classifying them as footnotes. The formula item (label FORMULA,
+    not TEXT) bypasses H3 and appears in the output, creating the illusion that
+    the page exists when it does not.
+
+    In the old code H3 required digit-start, so "Thus both the problems..."
+    (starts with 'T') was immune. The new unconditional H3 introduced this
+    regression.
+
+    Proposed fix:
+    Replace the found_note_this_page boolean in _FootnoteContext with a
+    footnote_zone_top float (initially None, reset at each page boundary).
+    Whenever a footnote is detected by any heuristic, record its bbox.t and
+    keep the running maximum. H3 then fires only on TEXT items whose bbox.t
+    is at or below footnote_zone_top — meaning they are physically in the
+    footnote zone — rather than on all items processed after the first footnote.
+    Items above the zone (higher bbox.t) are unaffected regardless of processing
+    order.
+
+    The single-pass running-max approach works correctly for both Docling output
+    orderings: when footnotes are emitted before body text (p. 252 case), the
+    zone is established and body text above it is correctly excluded; when body
+    text is emitted before footnotes (normal case), the zone is not yet set and
+    body text passes through as usual.
+
+    Edge cases to handle:
+    - bbox may be None — skip zone update, don't fire zone-based H3
+    - Multi-column layouts (Y-only threshold) — acceptable limitation for now
+    - Zone must reset at page boundary (same as today)
+    - All H3 unit tests will need updating from boolean ctx to float threshold
 
 FUTURE (researched but not yet decided)
 ----------------------------------------
