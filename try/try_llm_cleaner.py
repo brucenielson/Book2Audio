@@ -53,6 +53,8 @@ main(
     llm_cleaner=True,
     llm_model='llama3.1:8b',
     verbose=True,
+    skip_index=True,
+    skip_front_matter=True,
 )
 
 if not SOURCE.exists():
