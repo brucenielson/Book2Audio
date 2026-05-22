@@ -6,7 +6,7 @@ import difflib
 import json
 import re
 import unicodedata
-from typing import Literal, TypeAlias
+from typing import Final, Literal, TypeAlias
 
 import ollama
 
@@ -14,7 +14,11 @@ from utils.general_utils import normalize_quotes
 from utils.logging_utils import vprint
 from word_validator import word_validator
 
-ClassificationType: TypeAlias = Literal['body', 'footnote', 'drop']
+CLASSIFICATION_BODY: Final = 'body'
+CLASSIFICATION_FOOTNOTE: Final = 'footnote'
+CLASSIFICATION_DROP: Final = 'drop'
+
+ClassificationType: TypeAlias = Literal[CLASSIFICATION_BODY, CLASSIFICATION_FOOTNOTE, CLASSIFICATION_DROP]
 
 # noinspection SpellCheckingInspection
 SYSTEM_PROMPT: str = """You are a text cleaning assistant for a book-to-audio conversion system.

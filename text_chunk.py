@@ -2,6 +2,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+LABEL_FOOTNOTE: str = 'footnote'
+LABEL_FORMULA: str = 'formula'
+
 
 @dataclass
 class TextChunk:
@@ -26,7 +29,7 @@ class TextChunk:
     @property
     def is_footnote(self) -> bool:
         """True if this chunk is a footnote."""
-        return self.label == 'footnote'
+        return self.label == LABEL_FOOTNOTE
 
     @property
     def is_page_header(self) -> bool:
@@ -41,7 +44,7 @@ class TextChunk:
     @property
     def is_formula(self) -> bool:
         """True if this chunk is a mathematical or logical formula."""
-        return self.label == 'formula'
+        return self.label == LABEL_FORMULA
 
     @property
     def is_too_short(self) -> bool:

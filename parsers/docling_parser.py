@@ -648,12 +648,12 @@ class DoclingParser(BaseParser):
                 ctx.found_note_this_page = True
                 chunks.append(RawChunk(
                     text=text_item.text, meta=base_meta, label='footnote',
-                    original_label=docling_label if docling_label != 'footnote' else '',
+                    original_label='' if text_item.label == DocItemLabel.FOOTNOTE else docling_label,
                 ))
             else:
                 label: str = docling_label
                 original_label: str = ''
-                if (docling_label not in ('section_header', 'formula')
+                if (text_item.label not in (DocItemLabel.SECTION_HEADER, DocItemLabel.FORMULA)
                         and is_math_heavy(text_item.text)):
                     original_label = docling_label
                     label = 'formula'

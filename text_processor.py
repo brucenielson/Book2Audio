@@ -4,11 +4,11 @@ import re
 import time
 from pathlib import Path
 
-from text_chunk import RawChunk, ParsedChunk
+from text_chunk import RawChunk, ParsedChunk, LABEL_FOOTNOTE, LABEL_FORMULA
 from word_validator import word_validator
 from utils.general_utils import is_sentence_end, build_paragraph, clean_text
 from utils.logging_utils import vprint
-from text_cleaner import TextCleaner
+from text_cleaner import TextCleaner, CLASSIFICATION_FOOTNOTE, CLASSIFICATION_DROP
 
 # Debug breakpoint string — set to a snippet of text to pause on that paragraph.
 # Set to None (or empty string) to disable. Easy to remove once debugging is done.
@@ -140,7 +140,7 @@ class TextProcessor:
             chunk.text = word_validator.combine_hyphenated_words(chunk.text)
             chunk.text = clean_text(chunk.text, remove_footnotes=True)
             if chunk.is_body_text and _FOOTNOTE_MARKER_RE.match(chunk.text):
-                chunk.label = 'footnote'
+                chunk.label = LABEL_FOOTNOTE
 
         # Build page context strings for LLM-based cleaning
         if self._cleaner is not None:
@@ -277,7 +277,7 @@ class TextProcessor:
             self._result.append(ParsedChunk(
                 text=text,
                 meta=self._build_meta(chunk.meta),
-                label='formula'
+                label=LABEL_FORMULA
             ))
 
     @staticmethod
@@ -333,16 +333,16 @@ class TextProcessor:
                 t1 = time.perf_counter()
                 p_str, classification = self._cleaner.clean(p_str, page_context=page_context)
                 self._t_llm += time.perf_counter() - t1
-                if classification == 'drop':
+                if classification == CLASSIFICATION_DROP:
                     vprint(self._verbose, f"  [LLM DROP] {p_str[:100]!r}")
                     self._paragraph = []
                     return
-                if classification == 'footnote':
+                if classification == CLASSIFICATION_FOOTNOTE:
                     vprint(self._verbose, f"  [LLM FOOTNOTE] {p_str[:100]!r}")
                     if not self._include_footnotes:
                         self._paragraph = []
                         return
-                    label = 'footnote'
+                    label = LABEL_FOOTNOTE
             else:
                 self._n_skipped += 1
 
