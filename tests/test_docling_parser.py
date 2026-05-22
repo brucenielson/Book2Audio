@@ -604,7 +604,7 @@ class TestExtractChunks:
         texts = [make_text_item("Regular body text here.")]
         parser = make_parser(texts)
         chunks = parser._get_processed_texts()
-        body = [c for c in chunks if c.label not in ('page_header', 'too_short', 'footnote')]
+        body = [c for c in chunks if not c.is_page_header and not c.is_too_short and not c.is_footnote]
         assert body[0].label == DocItemLabel.TEXT
 
 
@@ -749,9 +749,8 @@ class TestGetProcessedTexts:
         ]
         parser = make_parser(texts)
         chunks = parser._get_processed_texts()
-        _SKIP = {'footnote', 'page_header', 'too_short'}
-        regular = [c for c in chunks if c.label not in _SKIP]
-        notes = [c for c in chunks if c.label == 'footnote']
+        regular = [c for c in chunks if not c.is_footnote and not c.is_page_header and not c.is_too_short]
+        notes = [c for c in chunks if c.is_footnote]
         assert len(regular) == 1
         assert len(notes) == 1
 
@@ -763,8 +762,8 @@ class TestGetProcessedTexts:
         parser = make_parser(texts)
         chunks = parser._get_processed_texts()
         assert len(chunks) == 2
-        assert chunks[0].label == 'too_short'
-        assert chunks[1].label != 'too_short'
+        assert chunks[0].is_too_short
+        assert not chunks[1].is_too_short
 
     def test_document_order_preserved(self) -> None:
         texts = [

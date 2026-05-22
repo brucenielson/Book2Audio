@@ -55,8 +55,6 @@ class _FootnoteContext:
 class DoclingParser(BaseParser):
     """Parser for PDF documents using the Docling library."""
 
-    _SKIP_LABELS: frozenset[str] = frozenset({'footnote', 'page_header', 'too_short'})
-
     def __init__(self, source: str | Path | DoclingDocument,
                  include_footnotes: bool = False,
                  meta_data: dict[str, str] | None = None,
@@ -290,9 +288,9 @@ class DoclingParser(BaseParser):
         index_start: int | None = self._find_index_start_page() if self._skip_index else None
         processor_chunks: list[RawChunk] = []
         for chunk in all_chunks:
-            if chunk.label in ('page_header', 'too_short'):
+            if chunk.is_page_header or chunk.is_too_short:
                 continue
-            if chunk.label == 'footnote' and not self._include_notes:
+            if chunk.is_footnote and not self._include_notes:
                 continue
             physical_str = chunk.meta.get('physical_page_#', '')
             try:

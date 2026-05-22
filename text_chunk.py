@@ -39,6 +39,16 @@ class TextChunk:
         return self.label == 'page_footer'
 
     @property
+    def is_formula(self) -> bool:
+        """True if this chunk is a mathematical or logical formula."""
+        return self.label == 'formula'
+
+    @property
+    def is_too_short(self) -> bool:
+        """True if this chunk was suppressed as too short to be meaningful."""
+        return self.label == 'too_short'
+
+    @property
     def is_body_text(self) -> bool:
         """True if this chunk is body text suitable for audio output."""
         return self.label in ('text', 'list_item', 'formula', 'paragraph')

@@ -159,7 +159,7 @@ class TextProcessor:
             if chunk.is_footnote and not self._include_footnotes:
                 continue
 
-            if chunk.label == 'formula':
+            if chunk.is_formula:
                 self._handle_formula(chunk)
                 continue
 

@@ -248,7 +248,7 @@ class TestCleaner:
         processor = TextProcessor(cleaner=cleaner, include_footnotes=True)
         result = processor.process([make_chunk("1 A footnote.")])  # digit forces cleaner call
         assert len(result) == 1
-        assert result[0].label == 'footnote'
+        assert result[0].is_footnote
 
     def test_cleaner_cleaned_text_used(self) -> None:
         cleaner = make_cleaner(classification='body', cleaned="Fixed text.")
