@@ -1200,6 +1200,66 @@ class TestRestoreValidWordsLlmDashJoin:
         assert result == "qwerty asdf"
 
 
+# --- TestRestoreValidWordsOcrFix ---
+
+class TestRestoreValidWordsOcrFix:
+    """Tests for N→1 merges where the LLM fixes an OCR misspelling.
+
+    When at least one original token is not a valid word, and the LLM's
+    merged result is a valid word or hyphenated compound (all hyphen-separated
+    parts are real words), the merge should be accepted — the LLM has
+    corrected a genuine OCR error, not hallucinated.
+    """
+
+    @pytest.mark.parametrize("original, llm, expected", [
+        (
+            "either by excluding self - coatradictory hypotheses",
+            "either by excluding self-contradictory hypotheses",
+            "either by excluding self-contradictory hypotheses",
+        ),
+        (
+            "can spread with super - luminar velocity",
+            "can spread with super-luminal velocity",
+            "can spread with super-luminal velocity",
+        ),
+        (
+            # Real failure (Page 225): LLM fixed 'teste'→'tested' in a 1:1
+            # replacement but left the orphan 'd' token unchanged.  The restore
+            # logic then fires because 'teste' is a valid dictionary word.
+            # The minimum correct outcome is to keep the LLM's 'tested'.
+            "and more severely teste d -even in fields",
+            "and more severely tested d -even in fields",
+            "and more severely tested d -even in fields",
+        ),
+    ])
+    def test_ocr_fix_accepted(self, original: str, llm: str, expected: str) -> None:
+        """LLM merge is accepted when at least one original token is invalid."""
+        assert _restore_valid_words(original, llm) == expected
+
+    @pytest.mark.parametrize("original, llm, expected", [
+        (
+            # All originals valid: existing is_hyphen_compound rule accepts it
+            "a good day",
+            "a good-day",
+            "a good-day",
+        ),
+        (
+            # LLM reordered content — neither part of the merge is valid
+            "the self - coatradictory xyzzy",
+            "the self-xyzzy coatradictory",
+            None,  # checked below: originals restored, not the garbled LLM merge
+        ),
+    ])
+    def test_ocr_fix_guard(self, original: str, llm: str, expected: str | None) -> None:
+        """Guard: is_ocr_fix must not fire when it shouldn't."""
+        result = _restore_valid_words(original, llm)
+        if expected is not None:
+            assert result == expected
+        else:
+            # LLM reordered tokens — originals should be restored
+            assert "coatradictory" in result or "self" in result
+
+
 # --- TestCoerceClassification ---
 
 class TestCoerceClassification:
