@@ -426,6 +426,10 @@ def clean_text(p_str: str, remove_footnotes: bool = False) -> str:
     return p_str.strip()
 
 
+# Minimum character count (including spaces) for a string to be considered a formula.
+# Shorter strings like "(1)" or "(G')" are reference labels, not real expressions.
+MIN_FORMULA_LENGTH: int = 5
+
 # Characters that are rare in prose but common in mathematical notation.
 # Parentheses and brackets are the dominant signal — formula-dense text like
 # "(G) (x)(Ey)(P(x + y) & P((2 + x) - y))" has ~45% math chars; a sentence
@@ -469,6 +473,8 @@ def is_math_heavy(text: str, threshold: float = 0.20) -> bool:
     Returns:
         True if the paragraph is math-heavy, False otherwise.
     """
+    if len(text) < MIN_FORMULA_LENGTH:
+        return False
     non_space = [c for c in text if c != ' ']
     if not non_space:
         return False

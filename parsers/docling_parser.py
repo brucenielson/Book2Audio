@@ -28,7 +28,7 @@ from utils.docling_utils import (is_footnote,
                                  is_front_matter,
                                  calibrate_header_top_y,
                                  compute_median_page_height)
-from utils.general_utils import is_sentence_end, is_math_heavy
+from utils.general_utils import is_sentence_end, is_math_heavy, MIN_FORMULA_LENGTH
 
 
 @dataclasses.dataclass
@@ -653,7 +653,13 @@ class DoclingParser(BaseParser):
             else:
                 label: str = docling_label
                 original_label: str = ''
-                if (text_item.label not in (DocItemLabel.SECTION_HEADER, DocItemLabel.FORMULA)
+                if (text_item.label == DocItemLabel.FORMULA
+                        and len(text_item.text) < MIN_FORMULA_LENGTH):
+                    # Too short to be a real formula — likely a reference label like "(1)".
+                    # Demote to body text so it accumulates with the surrounding paragraph.
+                    original_label = docling_label
+                    label = 'text'
+                elif (text_item.label not in (DocItemLabel.SECTION_HEADER, DocItemLabel.FORMULA)
                         and is_math_heavy(text_item.text)):
                     original_label = docling_label
                     label = 'formula'

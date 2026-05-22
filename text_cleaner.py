@@ -79,7 +79,7 @@ Guidelines:
 ∀ → "for all", ∃ → "there exists"
 - For expressions that translate naturally, render them as spoken English directly.
 - For formulas too complex to read aloud, begin your response with exactly this phrase: \
-"The formula that follows is complicated, but the idea it conveys is as follows:" and then \
+"The formula that follows is complicated, but it conveys this idea:" and then \
 explain what it means in plain English using the surrounding page context.
 - Return only the spoken English result. No JSON, no labels, no meta-commentary."""
 
