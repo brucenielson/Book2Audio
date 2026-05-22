@@ -19,6 +19,7 @@ from utils.general_utils import (
     build_paragraph,
     load_sections_to_skip,
     load_valid_pages,
+    substitute_math_symbols,
 )
 
 # --- is_ends_with_punctuation ---
@@ -375,3 +376,47 @@ class TestLoadValidPages:
         result = load_valid_pages(str(csv_path))
         assert "My Book" in result
         assert result["My Book"] == (3, 99)
+
+
+# --- substitute_math_symbols ---
+
+class TestSubstituteMathSymbols:
+    def test_negation(self) -> None:
+        assert substitute_math_symbols("¬p") == "not p"
+
+    def test_conjunction(self) -> None:
+        assert substitute_math_symbols("p ∧ q") == "p and q"
+
+    def test_disjunction(self) -> None:
+        assert substitute_math_symbols("p ∨ q") == "p or q"
+
+    def test_implication(self) -> None:
+        assert substitute_math_symbols("p → q") == "p implies q"
+
+    def test_universal_quantifier(self) -> None:
+        assert substitute_math_symbols("∀x") == "for all x"
+
+    def test_existential_quantifier(self) -> None:
+        assert substitute_math_symbols("∃x") == "there exists x"
+
+    def test_biconditional(self) -> None:
+        assert substitute_math_symbols("p ↔ q") == "p if and only if q"
+
+    def test_therefore(self) -> None:
+        assert substitute_math_symbols("∴ p") == "therefore p"
+
+    def test_symbol_no_spaces(self) -> None:
+        """Symbol with no surrounding spaces should not produce run-together words."""
+        assert substitute_math_symbols("p→q") == "p implies q"
+
+    def test_no_symbols(self) -> None:
+        """Plain text should pass through unchanged."""
+        assert substitute_math_symbols("All men are mortal.") == "All men are mortal."
+
+    def test_multiple_symbols(self) -> None:
+        assert substitute_math_symbols("p ∧ q → r") == "p and q implies r"
+
+    def test_no_double_spaces(self) -> None:
+        """Replacing a spaced symbol should not leave double spaces."""
+        result = substitute_math_symbols("p → q")
+        assert "  " not in result

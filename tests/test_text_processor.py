@@ -1,5 +1,6 @@
 """Tests for the TextProcessor class and _all_words_valid helper."""
 
+import pytest
 from unittest.mock import MagicMock
 from text_chunk import RawChunk
 from text_processor import TextProcessor, _all_words_valid
@@ -308,6 +309,23 @@ class TestAllWordsValid:
         """Punctuation attached to valid words should be ignored."""
         assert _all_words_valid("Hello, world.") is True
 
+    def test_single_letter_fragment_returns_false(self) -> None:
+        """A lone single-letter token (not 'a' or 'i') is a line-break artifact.
+
+        OCR sometimes splits a word across a line so the last letter of the
+        previous line becomes a standalone token: 'p referring' for 'preferring'.
+        Because every letter is a valid word in NLTK, _all_words_valid would
+        otherwise pass the paragraph and skip the LLM, leaving the fragment
+        unjoined.  Only 'a' and 'i' are legitimate standalone single-letter
+        English words.
+        """
+        assert _all_words_valid("p referring") is False
+        assert _all_words_valid("the s cientific method") is False
+
+    def test_a_and_i_single_letters_are_accepted(self) -> None:
+        """'a' and 'i' are legitimate single-letter English words and must pass."""
+        assert _all_words_valid("I saw a dog") is True
+
 
 # --- TestSkipCleanerWhenAllWordsValid ---
 
@@ -460,3 +478,134 @@ class TestBuildPageContexts:
         chunks = [make_chunk("No page.")]
         result = TextProcessor._build_page_contexts(chunks)
         assert result == {}
+
+
+def make_chunk_with_pages(text: str, page_label: str, physical_page: str) -> RawChunk:
+    """Create a RawChunk with both page_# (label) and physical_page_# metadata."""
+    return RawChunk(
+        text=text,
+        meta={'page_#': page_label, 'physical_page_#': physical_page},
+        label='text',
+    )
+
+
+# --- TestReportPageProgress ---
+
+class TestReportPageProgress:
+    """Tests for TextProcessor._report_page_progress.
+
+    Progress is printed when a milestone page is crossed.  The milestone
+    calculation must use physical_page_# (always an integer) so that Roman
+    numeral PDF labels don't silently suppress reporting.  The display
+    should show the PDF label when it differs from the physical number.
+    """
+
+    def test_roman_numeral_label_still_reports_using_physical(self, capsys) -> None:
+        """When page_# is a Roman numeral, physical_page_# drives reporting."""
+        processor = TextProcessor(verbose=True)
+        processor._init_state()
+        chunk = make_chunk_with_pages("Text.", page_label='i', physical_page='1')
+        processor._report_page_progress(chunk)
+        out = capsys.readouterr().out
+        assert '[Page' in out
+
+    def test_matching_label_prints_single_page_number(self, capsys) -> None:
+        """When label equals physical, print just '[Page N]'."""
+        processor = TextProcessor(verbose=True)
+        processor._init_state()
+        chunk = make_chunk_with_pages("Text.", page_label='42', physical_page='42')
+        processor._report_page_progress(chunk)
+        out = capsys.readouterr().out
+        assert '[Page 42]' in out
+        assert '/' not in out
+
+    def test_differing_label_prints_both(self, capsys) -> None:
+        """When label differs from physical, print '[Page <label> / Page <physical>]'."""
+        processor = TextProcessor(verbose=True)
+        processor._init_state()
+        chunk = make_chunk_with_pages("Text.", page_label='1', physical_page='41')
+        processor._report_page_progress(chunk)
+        out = capsys.readouterr().out
+        assert '[Page 1 / Page 41]' in out
+
+    def test_no_physical_falls_back_to_page_label(self, capsys) -> None:
+        """Without physical_page_#, falls back to page_# for backward compatibility."""
+        processor = TextProcessor(verbose=True)
+        processor._init_state()
+        chunk = make_chunk("Complete sentence.", page='7')
+        processor._report_page_progress(chunk)
+        out = capsys.readouterr().out
+        assert '[Page 7]' in out
+
+    def test_milestone_every_10_pages_non_verbose(self, capsys) -> None:
+        """In non-verbose mode, reports only at every 10-page boundary."""
+        processor = TextProcessor(verbose=False)
+        processor._init_state()
+        for n in range(1, 10):
+            chunk = make_chunk_with_pages("Text.", page_label=str(n), physical_page=str(n))
+            processor._report_page_progress(chunk)
+        out = capsys.readouterr().out
+        # Pages 1-9 are all in the same decade — only page 1 crosses the 0→1 boundary
+        assert out.count('[Page') == 1
+
+    def test_milestone_crossed_at_page_10(self, capsys) -> None:
+        """Page 10 triggers a new report in non-verbose mode."""
+        processor = TextProcessor(verbose=False)
+        processor._init_state()
+        processor._last_reported_page = 5
+        chunk = make_chunk_with_pages("Text.", page_label='10', physical_page='10')
+        processor._report_page_progress(chunk)
+        out = capsys.readouterr().out
+        assert '[Page' in out
+
+    def test_same_page_not_reported_twice_verbose(self, capsys) -> None:
+        """The same physical page is only reported once even in verbose mode."""
+        processor = TextProcessor(verbose=True)
+        processor._init_state()
+        chunk = make_chunk_with_pages("Text.", page_label='5', physical_page='5')
+        processor._report_page_progress(chunk)
+        processor._report_page_progress(chunk)
+        out = capsys.readouterr().out
+        assert out.count('[Page') == 1
+
+
+# --- TestUprfontFootnoteReclassification ---
+
+class TestUpfrontFootnoteReclassification:
+    """Chunks whose text starts with 1-2 digits immediately followed by an uppercase
+    letter are reclassified as footnotes during the upfront preprocessing pass."""
+
+    def test_digit_uppercase_chunk_is_dropped(self) -> None:
+        """A 'text' chunk matching '3See' pattern is reclassified and dropped from output."""
+        processor = make_processor(include_footnotes=False)
+        chunks = [make_chunk("3See my Poverty of Historicism, section 32.")]
+        result = processor.process(chunks)
+        assert result == []
+
+    def test_two_digit_uppercase_chunk_is_dropped(self) -> None:
+        """A 'text' chunk matching '14Cf' pattern is reclassified and dropped."""
+        processor = make_processor(include_footnotes=False)
+        chunks = [make_chunk("14Cf. the earlier discussion on page 42.")]
+        result = processor.process(chunks)
+        assert result == []
+
+    def test_digit_space_uppercase_chunk_is_kept(self) -> None:
+        """A chunk with a space between digit and letter is body text — not reclassified."""
+        processor = make_processor(include_footnotes=False)
+        chunks = [make_chunk("3 Some body text that is complete.")]
+        result = processor.process(chunks)
+        assert len(result) == 1
+
+    def test_digit_lowercase_chunk_is_kept(self) -> None:
+        """Lowercase after digit (e.g. '1st') is not reclassified."""
+        processor = make_processor(include_footnotes=False)
+        chunks = [make_chunk("1st place goes to the fastest runner.")]
+        result = processor.process(chunks)
+        assert len(result) == 1
+
+    def test_reclassified_footnote_included_when_flag_set(self) -> None:
+        """If include_footnotes=True, a reclassified chunk still appears in output."""
+        processor = make_processor(include_footnotes=True)
+        chunks = [make_chunk("3See my Poverty of Historicism, section 32.")]
+        result = processor.process(chunks)
+        assert len(result) == 1

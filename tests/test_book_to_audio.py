@@ -4,10 +4,45 @@ import pytest
 import numpy as np
 from unittest.mock import MagicMock, patch
 from pathlib import Path
+from docling_core.types.doc.document import TextItem, DocItemLabel
+from docling_core.types import DoclingDocument
 from engines import TTSEngine, KokoroEngine
 from audio_generator import AudioGenerator
 from book_converter import BookToAudio
+from parsers.docling_parser import DoclingParser
 from utils.docling_utils import load_as_document
+
+
+# --- Helpers for front-matter tests ---
+
+def _make_text_item(text: str, page_no: int) -> MagicMock:
+    """Minimal mock TextItem with the given text and page number."""
+    item = MagicMock(spec=TextItem)
+    item.label = DocItemLabel.TEXT.value
+    item.text = text
+    prov = MagicMock()
+    prov.page_no = page_no
+    prov.bbox = MagicMock()
+    prov.bbox.height = 10.0
+    prov.bbox.t = 0.0
+    prov.charspan = (0, len(text))
+    item.prov = [prov]
+    return item
+
+
+def _make_real_parser(texts: list, page_labels: dict[int, str],
+                      skip_front_matter: bool) -> DoclingParser:
+    """Create a DoclingParser backed by a fake DoclingDocument (no file I/O)."""
+    doc = MagicMock(spec=DoclingDocument)
+    doc.name = "test_doc"
+    doc.texts = texts
+    doc.pages = {}
+    return DoclingParser(
+        source=doc,
+        include_footnotes=False,
+        page_labels=page_labels,
+        skip_front_matter=skip_front_matter,
+    )
 
 
 # --- Fixtures ---
@@ -190,6 +225,63 @@ class TestBookToAudio:
 
         mock_audio_generator.generate.assert_not_called()
         mock_audio_generator.save.assert_not_called()
+
+    def test_skip_front_matter_includes_all_pages_by_default(
+            self, mock_audio_generator) -> None:
+        """With skip_front_matter=False (default), Roman-numbered pages are kept."""
+        # Page 1 → label 'i' (front matter), page 2 → label '1' (body)
+        texts = [
+            _make_text_item("Preface text.", page_no=1),
+            _make_text_item("Chapter one body.", page_no=2),
+        ]
+        parser = _make_real_parser(texts, page_labels={0: 'i', 1: '1'},
+                                   skip_front_matter=False)
+        converter = BookToAudio(audio_generator=mock_audio_generator, dry_run=True)
+
+        with patch('book_converter.DoclingParser', return_value=parser):
+            captured: list[str] = []
+            original_run = parser.run
+
+            def capturing_run(**kwargs):
+                result = original_run(**kwargs)
+                captured.extend(result[0])
+                return result
+
+            parser.run = capturing_run
+            converter.convert_to_audio(Path("test.pdf"), skip_front_matter=False)
+
+        assert any("Preface" in p for p in captured), "Front matter should be included"
+        assert any("Chapter one" in p for p in captured), "Body should be included"
+
+    def test_skip_front_matter_excludes_roman_numeral_pages(
+            self, mock_audio_generator) -> None:
+        """With skip_front_matter=True, pages i and ii are dropped; page 1 is kept."""
+        # Pages 1 and 2 have Roman labels (i, ii); page 3 has Arabic label (1)
+        texts = [
+            _make_text_item("Front matter page i.", page_no=1),
+            _make_text_item("Front matter page ii.", page_no=2),
+            _make_text_item("Body text on page 1.", page_no=3),
+        ]
+        parser = _make_real_parser(texts, page_labels={0: 'i', 1: 'ii', 2: '1'},
+                                   skip_front_matter=True)
+        converter = BookToAudio(audio_generator=mock_audio_generator, dry_run=True)
+
+        with patch('book_converter.DoclingParser', return_value=parser):
+            captured: list[str] = []
+            original_run = parser.run
+
+            def capturing_run(**kwargs):
+                result = original_run(**kwargs)
+                captured.extend(result[0])
+                return result
+
+            parser.run = capturing_run
+            converter.convert_to_audio(Path("test.pdf"), skip_front_matter=True)
+
+        assert not any("Front matter" in p for p in captured), \
+            "Pages i and ii must be excluded"
+        assert any("Body text" in p for p in captured), \
+            "Arabic-numbered page must be included"
 
 
 # --- load_as_document tests ---

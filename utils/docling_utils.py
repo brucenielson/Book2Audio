@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from typing import TypeGuard
+
+import pypdfium2
 
 from docling_core.types.doc.document import (TextItem,
                                              DocItem,
@@ -263,6 +266,58 @@ def compute_single_line_height(doc: DoclingDocument) -> float:
     return heights[len(heights) // 2]
 
 
+def compute_body_line_height(items: list[TextItem], single_line_height: float) -> float:
+    """Compute the 75th-percentile bbox.height of single-line body TEXT items.
+
+    Unlike compute_single_line_height(), which uses page headers and footers as
+    a proxy, this function measures the actual body text font size by sampling
+    TEXT items that are visually single-line.  The result is used in is_small_text()
+    as a reference: items whose bbox.height falls below this value by a defined
+    margin are physically in a smaller font and are therefore likely footnotes.
+
+    Only DocItemLabel.TEXT items are included (not LIST_ITEM, FORMULA, or any
+    structural labels).  Items taller than single_line_height * 1.3 are treated
+    as multi-line and excluded from the sample so they do not inflate the result.
+
+    The 75th percentile is used rather than the median so that footnote TEXT items
+    (which are also labelled TEXT by Docling) do not drag the baseline down.  As
+    long as fewer than 75% of single-line TEXT items are footnotes, the result
+    reflects true body-text height rather than footnote height.
+
+    Args:
+        items: The TextItems to sample (typically all items from doc.texts).
+        single_line_height: The height of one line as returned by
+                            compute_single_line_height().  Used as the
+                            upper bound for what counts as single-line.
+                            If zero, returns 0.0 immediately.
+
+    Returns:
+        The 75th-percentile bbox.height of qualifying items, or 0.0 if
+        single_line_height is zero or no qualifying items were found.
+    """
+    if single_line_height <= 0:
+        return 0.0
+    max_single_line: float = single_line_height * 1.3
+    heights: list[float] = []
+    for item in items:
+        if not is_text_bearing(item):
+            continue
+        if item.label != DocItemLabel.TEXT:
+            continue
+        if not item.prov:
+            continue
+        bbox = item.prov[0].bbox
+        if bbox is None:
+            continue
+        if bbox.height <= 0 or bbox.height > max_single_line:
+            continue
+        heights.append(bbox.height)
+    if not heights:
+        return 0.0
+    heights.sort()
+    return heights[3 * len(heights) // 4]
+
+
 def compute_median_chars_per_line(items: list[TextItem], single_line_height: float,
                                    min_charspan: int = 100) -> float:
     """Compute the median characters-per-estimated-line across a list of TextItems.
@@ -307,31 +362,56 @@ def compute_median_chars_per_line(items: list[TextItem], single_line_height: flo
 
 
 def is_small_text(item: TextItem, single_line_height: float,
-                  median_chars_per_line: float, threshold: float = 1.25) -> bool:
+                  median_chars_per_line: float,
+                  body_line_height: float = 0.0,
+                  threshold: float = 1.25,
+                  body_threshold: float = 0.85) -> bool:
     """Return True if a TextItem's font is significantly smaller than the document norm.
 
-    Uses characters-per-estimated-line as a proxy for font size. Smaller fonts
-    pack more characters into each estimated line, so items with significantly
-    more chars per estimated line than the document median are likely in smaller
-    text. This approach works for both short and long footnotes.
+    Two detection paths are used, tried in order:
+
+    1. Physical line-height path (preferred when body_line_height > 0):
+       If the item's bbox.height is less than body_line_height * body_threshold, the
+       item is physically in a smaller font than the body text baseline.  This path
+       works reliably even for short items (few characters) where the chars-per-line
+       ratio is unreliable.
+
+    2. Characters-per-estimated-line path (fallback):
+       Smaller fonts pack more characters into each estimated line, so items with
+       significantly more chars per estimated line than the document median are likely
+       in smaller text.  This path works well for longer items (footnotes that span
+       one or more full lines) but is unreliable for items shorter than ~100 chars.
 
     Args:
         item: The TextItem to check.
         single_line_height: The height of a single line, from compute_single_line_height().
         median_chars_per_line: The median chars-per-estimated-line for the document,
                                from compute_median_chars_per_line().
-        threshold: Items above this multiple of the median are considered small
-                   text. Defaults to 1.25.
+        body_line_height: The median bbox.height of single-line body TEXT items, from
+                          compute_body_line_height().  When > 0, enables the physical
+                          line-height path.  Defaults to 0.0 (disabled).
+        threshold: Items above this multiple of the median are considered small text
+                   via the chars-per-line path.  Defaults to 1.25.
+        body_threshold: Items below this fraction of body_line_height are considered
+                        small text via the physical line-height path.  Defaults to 0.85.
 
     Returns:
-        True if the item's chars-per-estimated-line exceeds median_chars_per_line * threshold.
+        True if either detection path identifies the item as small text.
     """
-    if not item.prov or single_line_height <= 0 or median_chars_per_line <= 0:
+    if not item.prov:
         return False
     prov = item.prov[0]
     if prov.bbox is None:
         return False
     if prov.bbox.height <= 0:
+        return False
+
+    # Path 1: physical line-height — works for any item length
+    if body_line_height > 0 and prov.bbox.height < body_line_height * body_threshold:
+        return True
+
+    # Path 2: chars-per-estimated-line — reliable only for longer items
+    if single_line_height <= 0 or median_chars_per_line <= 0:
         return False
     charspan_length: int = prov.charspan[1] - prov.charspan[0]
     if charspan_length <= 0:
@@ -379,3 +459,96 @@ def should_skip_element(text: DocItem) -> bool:
     if not is_text_bearing(text):
         return True
     return is_page_footer(text) or is_page_header(text)
+
+
+# Roman numeral pattern — matches lowercase Roman numerals only (as used by pypdfium2).
+_ROMAN_RE = re.compile(
+    r'^m{0,4}(cm|cd|d?c{0,3})(xc|xl|l?x{0,3})(ix|iv|v?i{0,3})$',
+    re.IGNORECASE,
+)
+
+
+def get_pdf_page_labels(path: Path) -> dict[int, str]:
+    """Return a mapping from physical page index (0-based) to its printed label.
+
+    PDF page labels are the logical page numbers visible in the book — e.g.
+    Roman numerals 'i'…'xl' for front matter, then '1', '2'… for the body.
+    Physical indices are always sequential from 0.
+
+    Uses pypdfium2 (already installed as a Docling transitive dependency).
+
+    Args:
+        path: Path to the PDF file.
+
+    Returns:
+        dict mapping physical index → label string, e.g. {0: 'i', 40: '1', …}.
+    """
+    doc = pypdfium2.PdfDocument(path)
+    return {i: doc.get_page_label(i) for i in range(len(doc))}
+
+
+def calibrate_header_top_y(doc: DoclingDocument) -> float | None:
+    """Scan a document for PAGE_HEADER items and return the median bbox.t.
+
+    Used to establish a reference y-coordinate for detecting mislabeled running
+    page headers. Docling does not guarantee that PAGE_HEADER items appear first
+    in doc.texts, so all PAGE_HEADER items are included regardless of order.
+
+    Args:
+        doc: The DoclingDocument to scan.
+
+    Returns:
+        The median bbox.t of all PAGE_HEADER items with valid bbox data, or None
+        if no such items are found.
+    """
+    top_y_values: list[float] = []
+    for item in doc.texts:
+        if not is_text_bearing(item) or not item.prov:
+            continue
+        if item.label != DocItemLabel.PAGE_HEADER:
+            continue
+        bbox = item.prov[0].bbox
+        if bbox is None:
+            continue
+        top_y_values.append(bbox.t)
+    if not top_y_values:
+        return None
+    top_y_values.sort()
+    return top_y_values[len(top_y_values) // 2]
+
+
+def compute_median_page_height(doc: DoclingDocument) -> float:
+    """Return the median page height from the document's page size data.
+
+    Args:
+        doc: The DoclingDocument to analyse.
+
+    Returns:
+        Median height in document units, or 0.0 if no page data is available.
+    """
+    heights: list[float] = []
+    if hasattr(doc, 'pages') and doc.pages:
+        for page in doc.pages.values():
+            if hasattr(page, 'size') and page.size is not None:
+                heights.append(page.size.height)
+    if not heights:
+        return 0.0
+    heights.sort()
+    return heights[len(heights) // 2]
+
+
+def is_front_matter(label: str) -> bool:
+    """Return True if *label* is a Roman numeral page label (front matter).
+
+    Front-matter pages are labelled with lowercase Roman numerals by convention
+    (i, ii, iii … xl, etc.).  Body pages use Arabic numerals ('1', '2', …).
+
+    Args:
+        label: The page label string returned by get_pdf_page_labels().
+
+    Returns:
+        True if label is a non-empty Roman numeral, False otherwise.
+    """
+    if not label:
+        return False
+    return bool(_ROMAN_RE.fullmatch(label)) and label != ''

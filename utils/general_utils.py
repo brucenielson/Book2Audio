@@ -426,6 +426,39 @@ def clean_text(p_str: str, remove_footnotes: bool = False) -> str:
     return p_str.strip()
 
 
+def substitute_math_symbols(text: str) -> str:
+    """Replace math/logical symbols with spoken English equivalents for TTS.
+
+    Intended as a pre-processing step before audio generation. Each symbol is
+    replaced with a word (padded with spaces), and extra whitespace is collapsed
+    afterwards so symbols without surrounding spaces (e.g. 'p→q') still produce
+    clean output ('p implies q').
+
+    Args:
+        text: The text to process.
+
+    Returns:
+        The text with math/logical symbols replaced by their spoken equivalents.
+    """
+    _SUBSTITUTIONS: list[tuple[str, str]] = [
+        ('¬', ' not '),
+        ('∧', ' and '),
+        ('∨', ' or '),
+        ('→', ' implies '),
+        ('∀', ' for all '),
+        ('∃', ' there exists '),
+        ('↔', ' if and only if '),
+        ('∴', ' therefore '),
+        ('∵', ' because '),
+        ('⊥', ' contradiction '),
+        ('⊃', ' implies '),
+        ('≡', ' is equivalent to '),
+    ]
+    for symbol, replacement in _SUBSTITUTIONS:
+        text = text.replace(symbol, replacement)
+    return remove_extra_whitespace(text)
+
+
 def extract_pdf_pages(source_path: str | Path,
                       dest_path: str | Path,
                       start_page: int,

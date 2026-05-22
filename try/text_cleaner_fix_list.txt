@@ -1,0 +1,354 @@
+Text Cleaner Fix List — ordered easy to hard
+=============================================
+
+EASY
+----
+
+1. [DONE] Lettered list items not in _LIST_PREFIX_RE
+   Extend regex to match a), b), c) style prefixes.
+   One-line fix in text_cleaner.py.
+
+2. [DONE] Guard should check cleaned text for list prefix
+   Run _LIST_PREFIX_RE against cleaned_candidate as well as paragraph in the
+   footnote override check. Catches OCR-spaced numbers like ( 1 8) that get
+   fixed by the LLM before the guard runs.
+
+3. [DONE] Curly quote stripping in N→1 merge
+   Extend the strip string in _restore_valid_words N→1 path to include
+   curly/smart quotes '''""'. Fixes cases like
+   ["'justify'", ";"] and ["'", "antibodies'-that"].
+
+4. [DONE] is_dash_upgrade first-token guard too strict
+   original_split[i1][0].isalpha() blocks valid upgrades where the first
+   token is a quote character. Allow quote characters as valid first tokens.
+
+5. [DONE] Auto-skip front matter
+   skip_front_matter parameter may already exist — if so wire it up properly,
+   if not it's a small addition using existing get_pdf_page_labels /
+   is_front_matter infrastructure.
+
+6. [DONE] Line-break hyphen join in N→1 merge
+   Add condition: if stripping trailing hyphens from each original token and
+   concatenating equals the cleaned token, keep the LLM's join. Fixes
+   ['reexamina-', 'tion'] → reexamination, ['classify-', 'ing'] → classifying.
+
+MODERATE
+--------
+
+7. [DONE] 3→1 merge with multiple dash upgrades
+   ['relationship--instantiation', '-', 'whose'] → relationship—instantiation—whose
+   Fixed by also normalizing joined_orig in the is_dash_upgrade comparison, and
+   extending _normalize_dashes to collapse '--' to '-' so OCR double-hyphens are
+   treated as equivalent to em-dashes on both sides of the comparison.
+
+8. [DONE] Short fragment joins like ['p', 'referring']
+   Single-letter tokens (except 'a' and 'i') in _all_words_valid now trigger
+   an LLM call, so the LLM can join them with the adjacent word. Mirrors the
+   existing rule in _restore_valid_words.
+
+9. [DONE] Math/logical symbols to spoken equivalents
+   ¬ → "not", ∧ → "and", ∨ → "or", → → "implies", ∀ → "for all",
+   ∃ → "there exists" etc. Substitution table in substitute_math_symbols()
+   in utils/general_utils.py, called from AudioGenerator.generate() so it
+   applies to all TTS input paths. Also handles ↔, ∴, ∵, ⊥, ⊃, ≡.
+   Symbols padded with spaces before/after and extra whitespace collapsed,
+   so p→q and p → q both produce "p implies q".
+
+10. [DONE] Auto-detect index pages
+    New skip_index=False parameter on DoclingParser (and BookToAudio.convert_to_audio).
+    _find_index_start_page() scans self._doc.texts for two signals:
+    - PAGE_HEADER: strip all whitespace → contains 'index' (catches 'I N DEX OF SUBJ ECTS')
+    - SECTION_HEADER: word-boundary regex \bindex(?:es)?\b|\bindices\b (catches 'Index',
+      'Indexes', 'Indices', 'Index of Names'; rejects 'Indexical')
+    Position gate: signals in the first 70% of the book are ignored to prevent
+    false positives from chapter titles containing 'index'. When a signal fires,
+    that page and all subsequent pages are excluded from output.
+
+11. [DONE] N→1 merge where LLM introduces a new em-dash between valid words
+    e.g. ['justi', 'fication', 'is'] → 'justification—is'
+    The LLM correctly joins a space-split word AND inserts an em-dash, but
+    _restore_valid_words rejects it because is_dash_upgrade compares the
+    concatenated originals ('justificationis') against the normalized cleaned
+    token ('justification-is') — they don't match, so the merge is rejected
+    and the broken original is restored.
+    Root cause: is_dash_upgrade only handles dashes that already existed in
+    the originals. It cannot handle a dash the LLM introduced between two
+    words that were previously separate tokens.
+    Fix: in the N→1 path, after existing checks fail, split the cleaned token
+    on em/en-dashes and check whether all parts are valid words. If they are,
+    accept the merge. This is safe because we still require all dash-separated
+    parts to be real words — garbage LLM output won't accidentally pass.
+
+HARD
+----
+
+12. LLM drops multi-line section headers with math notation
+    e.g. "7. The Objectivist a n d Subjectivist Interpretations of 'b ' in
+    'p(a, b) '." — a two-line chapter heading with OCR spacing artifacts and
+    math notation. Three problems stack on top of each other:
+    1. OCR spacing artifacts ('a n d', 'b ') from large display text need
+       rejoining before anything can reason about the content.
+    2. Docling misclassifies the heading as plain 'text' (not SECTION_HEADER)
+       because it spans two physical lines, so _handle_section_header never fires.
+    3. The LLM then sees it as garbled body text and classifies it as DROP.
+    A guard in _flush_paragraph could catch case 3 alone, but cases 1 and 2
+    mean the text arriving may not resemble a heading at all.
+
+    Investigation notes (2026-05-20):
+    - Section headers that Docling does recognise never reach clean() at all.
+      _handle_section_header() appends them directly to _result, bypassing the
+      LLM entirely. So the original fix description ("pass item type to clean()")
+      was wrong — the real problem is upstream in Docling's layout classification.
+    - The original fix list entry said "add a guard: if item is a section header,
+      override DROP to BODY" — but that guard would never fire because recognised
+      headers never enter _flush_paragraph in the first place.
+    - A heuristic guard in _flush_paragraph (e.g. "if text matches numbered-
+      heading pattern, don't drop it") could salvage case 3, but by the time the
+      text reaches _flush_paragraph the OCR spacing artifacts in case 1 likely
+      make the heading unrecognisable as such anyway.
+
+13. Over-conservative 1:1 word restore (be/bc, In/ln, th/1/2, wat/that etc.)
+    Both words are valid English so validator can't choose. Options:
+    - Maintain a list of known OCR confusion pairs and treat specially
+    - If paragraph is math-heavy, prefer LLM version over restore
+    Neither approach is clean.
+
+14. Simultaneous OCR fix + merge (self-coatradictory → self-contradictory)
+    Structural checks can't help when spelling is also wrong in the original.
+    Would need semantic understanding to recover.
+
+15. Split paragraph reconstruction around footnote-heavy pages
+    Orphaned fragments like 'terns' appearing at paragraph starts near
+    footnote-heavy pages. Needs investigation before fix can be designed.
+
+16. Math formula handling / JSON failures
+    Math-heavy paragraphs cause LLM JSON serialization failures (same column
+    position across all retries) and bad cleaning. Options:
+    - Detect math-heavy paragraphs by density of operators/Greek/digits
+    - Skip LLM cleaning entirely for those paragraphs
+    - Use a different prompt for math content
+    - Pre-sanitize special characters before sending to LLM
+    Deepest architectural problem on the list.
+
+17. [DONE] · (middle dot) as footnote marker
+    OCR turns superscript footnote numerals into ·, merging footnotes into
+    body text. Simple prefix detection is problematic across different books.
+    Needs more nuanced approach — possibly combining with is_small_text check.
+
+18. [DONE] Backslash-escaped quotes in LLM tokens wrongly trigger word restore
+    The JSON escape repair converts \'word\' to Python string \' + word + \'.
+    The word-comparison strip handles ' and curly quotes but not \, so the
+    stripped forms differ and the original is wrongly restored.
+    Examples (page 395):
+      original 'possibility',  (curly-quoted OCR)  LLM tried \'possibility\',
+      original 'probability'   (curly-quoted OCR)  LLM tried \'probability\'
+      original 'frequency')    (curly-quoted OCR)  LLM tried \'frequency\')
+    Fix: before normalize_quotes + strip in the 1:1 comparison (and N→1 merged
+    calculation), collapse \' → ' and \" → " so bare words are exposed.
+    One-liner in each comparison path.
+
+19. [DONE] "Expecting ',' delimiter" JSON failures burn all retries
+    When the LLM writes bare " around a quoted term inside the cleaned JSON
+    value (e.g. "the word "probability" is used") the parser terminates the
+    string at the first inner ", then finds unexpected text and raises
+    "Expecting ',' delimiter". This is a structural JSON error, not an escape
+    error, so 'escape' is NOT in str(e) and the current inline repair skips it.
+    All 3 retries are consumed and the paragraph falls back to the raw OCR.
+    Fix: add a regex-based fallback in the except handler using greedy matching:
+      re.search(r'"cleaned"\s*:\s*"(.*)"\s*,\s*"classification"\s*:\s*"(\w+)"',
+                content, re.DOTALL)
+    Greedy .* naturally finds the last " before ,"classification", recovering
+    the true cleaned value even with inner unescaped quotes. If the regex fails
+    (completely malformed JSON), re-raise to trigger the normal retry loop.
+
+20. Cross-page hyphen-break not cleaned when footnote is removed in between
+    Example from Realism and the Aim of Science, p. 86:
+    "But guesses, as opposed to this, are pro- posals,"
+    A footnote between the two halves of the hyphenated word was correctly
+    removed, but the soft-hyphen join did not fire — leaving "pro- posals"
+    (hyphen + space) in the output instead of "proposals".
+    Root cause: the footnote removal breaks the continuity that the hyphen-join
+    logic relies on to recognise the two fragments as a single broken word.
+    Needs investigation into whether the join fires before or after footnote
+    filtering, and whether the gap introduced by the removed footnote prevents
+    the fragments from being seen as adjacent.
+
+21. Math/formula paragraphs garbled by LLM in complex ways
+    Example from Realism and the Aim of Science, p. 198:
+    A paragraph containing Goldbach's conjecture in formal notation:
+      (G) (x)(Ey)(P(x + y) & P((2 + x) - y))
+    and surrounding prose was partially mangled — the LLM preserved some
+    content but replaced other parts with reformulated versions, mixing
+    correct and incorrect output. Specifically:
+      - The formal expression "(G)" and its predicate definition were retained
+      - But the conjecture statement "(G') (x) Gdb(x)" was replaced with
+        "x + y, and (2 + x) + y, are both prime." (a correct paraphrase but
+        not the source text)
+    This is a variant of item #16 (math formula handling) but illustrates that
+    the problem is not just JSON failures or dropped content — the LLM can
+    also silently substitute mathematically equivalent but textually different
+    formulations. Fixing this likely requires either skipping LLM cleaning for
+    math-heavy paragraphs or using a constrained prompt that forbids paraphrase.
+
+22. [DONE] H3 propagation uses processing order, not page position — loses body text
+    Book: Realism and the Aim of Science (Popper)
+    Pages affected: p. 252 (physical p. 293) confirmed; likely other pages too.
+
+    Symptom:
+    In the final output, the entire body text of p. 252 is missing. The output
+    jumps from the last paragraph of p. 251 directly to a formula from a p. 252
+    footnote, then continues at p. 253. Reproducible by diffing output before
+    and after the H3 unconditional-sweep change.
+
+    Root cause:
+    Docling does not always emit items in top-to-bottom reading order within a
+    page. On p. 252 it emits footnotes 6, 7, and 8 BEFORE the body text
+    paragraphs, even though the footnotes are physically at the bottom of the
+    page. The _processed_texts.txt for that page (from old code) shows:
+
+      [Page 252]: text → footnote: 6See footnote 4.      ← emitted first
+      [Page 252]: text → footnote: 7See footnote 4.
+      [Page 252]: text → footnote: 8See also L.Sc.D....
+      [Page 252]: section_header → page_header: CORROBORATION
+      [Page 252]: text: Thus both the problems are solved...   ← body text
+      [Page 252]: text: First, we can generalize...
+      [Page 252]: text: p(b,ac) - p(b,c) C(a,b,c) = ...
+      [Page 252]: text: This corresponds precisely...
+      [Page 252]: text: A technical remark...
+      [Page 252]: text → footnote: 5This presupposes...
+      [Page 252]: formula: Ct(a,c) = C(a,a,c) = 1 - p(a,c).
+
+    When "6See footnote 4." is caught as a footnote (H4: digit + uppercase),
+    found_note_this_page is set to True. Our new unconditional H3 then sweeps
+    every subsequent TEXT item on the page — including all five body text
+    paragraphs — classifying them as footnotes. The formula item (label FORMULA,
+    not TEXT) bypasses H3 and appears in the output, creating the illusion that
+    the page exists when it does not.
+
+    In the old code H3 required digit-start, so "Thus both the problems..."
+    (starts with 'T') was immune. The new unconditional H3 introduced this
+    regression.
+
+    Proposed fix:
+    Sort each page's items by bbox.t descending (highest on page first) before
+    processing them. This imposes physical top-to-bottom reading order regardless
+    of how Docling emitted the items. Body text near the top of the page is
+    always processed before footnotes at the bottom, so found_note_this_page is
+    never True when body text items are evaluated.
+
+    This is better than the alternative (a footnote_zone_top float threshold)
+    because it fixes the ordering assumption for ALL heuristics simultaneously —
+    not just H3. In particular, prev_text_candidate for H1 also becomes
+    physically meaningful: the "previous item" is always the one physically
+    above, not whichever item Docling happened to emit first.
+
+    For pages where Docling already emits items top-to-bottom (the normal case),
+    sorting is a no-op and no existing behaviour changes.
+
+    Implementation:
+    In _get_processed_texts(), group all_text_items by page_no, sort each
+    group by bbox.t descending, then flatten back to a single list before
+    the classification loop. The heuristic logic itself is unchanged.
+
+    Edge cases to handle:
+    - Items with no prov or None bbox sort to the end of their page (position
+      unknown; consistent with how they are already treated elsewhere).
+      Use a stable sort so their relative order among themselves is preserved.
+    - Two-column layouts where left/right columns share Y ranges will be
+      interleaved by a Y-only sort — acceptable limitation for now.
+    - found_note_this_page and all other per-page context still reset at the
+      page boundary as today; no changes needed to _FootnoteContext.
+
+FUTURE (researched but not yet decided)
+----------------------------------------
+
+F1. Send section headers to the LLM with a dedicated prompt
+
+    Discovered 2026-05-20: section headers that Docling correctly labels as
+    SECTION_HEADER are handled by _handle_section_header() in text_processor.py,
+    which appends them directly to _result without ever calling clean(). The LLM
+    never sees them.
+
+    This is probably wrong. Section headers can have the same OCR artifacts as
+    body text (spaced characters, broken words, mangled punctuation) and would
+    benefit from LLM cleanup. The difference is that the LLM must be told it is
+    cleaning a section header, not body text, so it doesn't try to classify it
+    as DROP or FOOTNOTE and doesn't paraphrase or restructure it.
+
+    Proposed approach:
+    - Add a clean_header(text) method to TextCleaner (or a header_prompt
+      parameter to clean()) that uses a different system/user prompt telling
+      the LLM: "This is a section heading. Fix OCR artifacts only. Return the
+      corrected heading text and nothing else."
+    - Call it from _handle_section_header() instead of bypassing the LLM.
+    - _restore_valid_words can still be applied afterwards as a safety net.
+
+    Note: Docling-misclassified multi-line headers (see item #11) would still
+    not be caught by this, since they never reach _handle_section_header at all.
+    This change only helps headers Docling already recognises correctly.
+
+F2. is_valid_word false positives via obscure NLTK corpus entries (e.g. 'eans')
+
+    Symptom observed 2026-05-20, "Realism and the Aim of Science" page xxviii:
+    OCR produced "of Rayleigh and 1 eans" ('1' is a footnote number). The LLM
+    correctly identified 'Jeans' (physicist James Jeans), but _restore_valid_words
+    overrode it with 'eans' because is_valid_word('eans') returned True.
+
+    Root cause:
+    The NLTK words corpus contains 'ean' — an archaic Scottish word meaning "to
+    give birth to a lamb (ewe)". Two independent paths validate 'eans':
+      - Porter Stemmer: 'eans' → stem 'ean' → 'ean' in corpus → True
+      - Custom suffix stripping: strip 's' → 'ean' → recursive call → direct
+        lookup finds 'ean' in corpus → True
+    There are 546 3-letter and 2478 4-letter NLTK corpus entries with 0 WordNet
+    synsets, each capable of generating false-positive inflections the same way.
+
+    Proposed fix (implemented, all tests passing, then reverted at user request):
+    Add a WordNet synset gate to two places in is_valid_word:
+
+    1. Stemmer path — require synsets(stem) or synsets(word) to be non-empty:
+       elif stem in words_list or stem.lower() in words_list:
+           if wordnet.synsets(stem) or wordnet.synsets(word.lower()):
+               return True
+
+    2. Suffix-stripping path — for stripped base forms of <=4 chars, also require
+       synsets before accepting the result (longer forms like 'testable' are not
+       gated because WordNet doesn't cover all legitimate English words):
+       result = self.is_valid_word(stripped_word)
+       if result:
+           if len(stripped_word) > 4 or wordnet.synsets(stripped_word.lower()):
+               return result
+
+    Also required: move 'from nltk.corpus import wordnet' to the top of the file
+    (it was already used inline in hyphen_is_dash; the fix just makes it
+    module-level instead of repeated inside functions).
+
+    Known tradeoff: 'orcs' becomes a false negative (stem 'orc' has 0 WordNet
+    synsets). Acceptable for a philosophy book converter.
+
+    Unit tests to add to tests/test_word_validator.py inside class TestIsValidWord:
+
+      def test_eans_is_not_valid(self, validator) -> None:
+          """'eans' is not a real English word and should return False.
+
+          Root cause: Porter stemmer reduces 'eans' to 'ean', which is an archaic
+          word (ewe giving birth) in the NLTK corpus but has zero WordNet synsets.
+          Without a synset gate, 'eans' incorrectly passes as valid, causing the
+          validator to override the LLM's correct 'Jeans' (physicist James Jeans)
+          with the non-word 'eans'.
+          """
+          assert validator.is_valid_word("eans") is False
+
+      def test_stemmer_path_preserved_for_common_words(self, validator) -> None:
+          """Common inflected forms that rely on the stemmer path must still be valid."""
+          # These all pass via the stemmer path; a synset gate must not block them.
+          for word in ["runs", "cats", "eyes", "fees", "legs", "beds", "toes"]:
+              assert validator.is_valid_word(word) is not False, (
+                  f"is_valid_word({word!r}) returned False — "
+                  "the synset gate is too aggressive"
+              )
+
+    Why it was reverted:
+    The WordNet synset gate is a blunt instrument — it trusts WordNet coverage as
+    a proxy for "real word", which is imperfect. Needs more consideration before
+    committing to this strategy.

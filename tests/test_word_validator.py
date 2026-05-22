@@ -195,6 +195,45 @@ class TestCombineHyphenatedWords:
         assert result == "empirically refutable and empirical hypotheses"
 
 
+# --- Hard-hyphen line-break joining in combine_hyphenated_words ---
+
+class TestCombineHyphenatedWordsHardHyphen:
+    """Tests for hard-hyphen line-break joining in combine_hyphenated_words.
+
+    A hard hyphen followed by whitespace and a continuation word (e.g.
+    "contra- diction") is a line-break artifact.  When joining the parts
+    yields a valid word, combine_hyphenated_words should join them.
+    When the join is not a valid word, the text must be left unchanged.
+    """
+
+    def test_hard_hyphen_split_joined_when_valid(self, validator) -> None:
+        """'contra- diction' → 'contradiction' (valid word after join)."""
+        assert validator.combine_hyphenated_words("contra- diction") == "contradiction"
+
+    def test_hard_hyphen_split_in_sentence_joined(self, validator) -> None:
+        """Hard-hyphen split mid-sentence is joined when the word is valid."""
+        result = validator.combine_hyphenated_words(
+            "there is no contra- diction here"
+        )
+        assert result == "there is no contradiction here"
+
+    def test_hard_hyphen_split_not_joined_when_invalid(self, validator) -> None:
+        """'reexamina- tion' is left unchanged because 'reexamination' is not in NLTK."""
+        result = validator.combine_hyphenated_words("reexamina- tion")
+        assert result == "reexamina- tion"
+
+    def test_compound_hyphen_without_space_not_affected(self, validator) -> None:
+        """A genuine compound hyphen with no trailing space is left untouched."""
+        assert validator.combine_hyphenated_words("well-known") == "well-known"
+
+    def test_multiple_hard_hyphen_splits_in_sentence(self, validator) -> None:
+        """Multiple hard-hyphen splits in one string are all resolved."""
+        result = validator.combine_hyphenated_words(
+            "the contra- diction and fals- ification are clear"
+        )
+        assert result == "the contradiction and falsification are clear"
+
+
 # --- POS-tag dash-detection tests ---
 # Theory: the second word of a hyphenated pair can be POS-tagged to detect whether
 # the hyphen is a legitimate compound marker or an em-dash artifact.

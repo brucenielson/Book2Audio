@@ -3,14 +3,16 @@
 import pytest
 from unittest.mock import patch
 from text_cleaner import (TextCleaner, _has_suspicious_substitutions, _coerce_classification,
-                          _normalize_dashes, _restore_valid_words, _restore_list_prefix)
+                          _is_word_like, _normalize_dashes, _restore_valid_words, _restore_list_prefix)
 
 patch_llm_chat: str = 'text_cleaner.ollama.chat'
+
+from conftest import TEST_LLM_MODEL
 
 
 # --- Fixtures ---
 
-def make_cleaner(model: str = 'llama3.1:8b', max_retries: int = 3) -> TextCleaner:
+def make_cleaner(model: str = TEST_LLM_MODEL, max_retries: int = 3) -> TextCleaner:
     """Create a TextCleaner instance."""
     return TextCleaner(model=model, max_retries=max_retries, temperature=0)
 
@@ -36,9 +38,10 @@ class TestClean:
 
     def test_footnote_classification(self) -> None:
         cleaner = make_cleaner()
-        with patch(patch_llm_chat, return_value=make_response("A footnote.", "footnote")):
-            cleaned, classification = cleaner.clean("A footnote.1")
-        assert cleaned == "A footnote."
+        # Real footnotes always start with a reference number, never a letter.
+        with patch(patch_llm_chat, return_value=make_response("A genuine footnote.", "footnote")):
+            cleaned, classification = cleaner.clean("1 A genuine footnote.")
+        assert cleaned == "A genuine footnote."
         assert classification == "footnote"
 
     def test_drop_classification(self) -> None:
@@ -107,6 +110,91 @@ class TestClean:
         system_message = next(m for m in messages if m['role'] == 'system')
         assert system_message['content']
 
+    @pytest.mark.parametrize("paragraph", [
+        "(1) The statement that the earth is at rest.",
+        "(2) This follows directly from the above.",
+        "(12) A longer numbered item in a list.",
+    ])
+    def test_parenthesized_number_prefix_overrides_footnote_classification(
+            self, paragraph: str) -> None:
+        """LLM returning 'footnote' for a (N) prefixed paragraph must be overridden to 'body'.
+
+        Real example: page 37 — '(1) The statement that the earth is at rest...'
+        was wrongly classified as a footnote because the leading number misled the LLM.
+        Paragraphs starting with (N) are always numbered body-text list items.
+        """
+        cleaner = make_cleaner()
+        with patch(patch_llm_chat, return_value=make_response(paragraph, "footnote")):
+            _, classification = cleaner.clean(paragraph)
+        assert classification == "body"
+
+    @pytest.mark.parametrize("paragraph", [
+        "(i) The first assumption is that all observation is theory-laden.",
+        "(ii) There can be no valid reasoning from singular observation statements.",
+        "(iii) A third point about the nature of induction.",
+        "(iv) Final item in the enumeration.",
+    ])
+    def test_roman_numeral_list_prefix_overrides_footnote_classification(
+            self, paragraph: str) -> None:
+        """LLM returning 'footnote' for a (i)/(ii)/(iii)/(iv) paragraph must be overridden.
+
+        Real example: page 72 — '(ii) There can be no valid reasoning...' was wrongly
+        classified as a footnote. Roman numeral list items are body text, never footnotes.
+        """
+        cleaner = make_cleaner()
+        with patch(patch_llm_chat, return_value=make_response(paragraph, "footnote")):
+            _, classification = cleaner.clean(paragraph)
+        assert classification == "body"
+
+    def test_ocr_spaced_list_prefix_in_cleaned_text_overrides_footnote(self) -> None:
+        """Guard must also check cleaned_candidate, not just the original paragraph.
+
+        Real example: '( 1 8) Anderson's discovery...' — OCR inserts spaces inside
+        the parenthesized number. The original fails _LIST_PREFIX_RE but the LLM
+        correctly fixes it to '(18) Anderson's discovery...', which should trigger
+        the override."""
+        original = "( 1 8) Anderson's discovery of the positron refutes a lot."
+        cleaned  = "(18) Anderson's discovery of the positron refutes a lot."
+        cleaner = make_cleaner()
+        with patch(patch_llm_chat, return_value=make_response(cleaned, "footnote")):
+            _, classification = cleaner.clean(original)
+        assert classification == "body"
+
+    @pytest.mark.parametrize("paragraph", [
+        "a) The first item in a lettered list.",
+        "b) The second item.",
+        "c) The replacement, in the neo-classical theory, of certain important limit-theorems.",
+    ])
+    def test_lettered_list_prefix_overrides_footnote_classification(
+            self, paragraph: str) -> None:
+        """LLM returning 'footnote' for an a)/b)/c) prefixed paragraph must be overridden.
+
+        Real example: page 296 — 'c) The replacement, in the neo-classical theory...'
+        was wrongly classified as a footnote. Lettered list items are body text."""
+        cleaner = make_cleaner()
+        with patch(patch_llm_chat, return_value=make_response(paragraph, "footnote")):
+            _, classification = cleaner.clean(paragraph)
+        assert classification == "body"
+
+    @pytest.mark.parametrize("paragraph", [
+        "Since my discussion has given rise to misunderstandings, a clarification is needed.",
+        "In order to see that (i) to (iv) are consistent we merely have to consider.",
+        "The argument proceeds from the assumption that all swans are white.",
+        "We can now state the main theorem of this section.",
+    ])
+    def test_letter_start_overrides_footnote_classification(
+            self, paragraph: str) -> None:
+        """Paragraphs starting with a letter can never be footnotes — override the LLM.
+
+        Real footnotes always begin with a reference number or symbol. Body text
+        starting with a letter must never be reclassified as a footnote regardless
+        of what the LLM returns.
+        """
+        cleaner = make_cleaner()
+        with patch(patch_llm_chat, return_value=make_response(paragraph, "footnote")):
+            _, classification = cleaner.clean(paragraph)
+        assert classification == "body"
+
 
 # --- TestRetry ---
 
@@ -158,7 +246,80 @@ class TestRetry:
         with patch(patch_llm_chat, side_effect=[bad_response, bad_response, good_response]):
             cleaned, classification = cleaner.clean("Some text.")
         assert cleaned == "Some text."
+
+    def test_repairs_invalid_json_escape_without_consuming_retry(self) -> None:
+        """Stray backslash in LLM JSON (e.g. \\alpha) is repaired inline — no retry burned."""
+        cleaner = make_cleaner(max_retries=3)
+        # \alpha in the JSON value: \a is not a valid JSON escape sequence
+        bad_escape = {'message': {'content': '{"cleaned": "formula \\alpha = 0", "classification": "body"}'}}
+        with patch(patch_llm_chat, return_value=bad_escape) as mock_chat:
+            cleaned, classification = cleaner.clean("formula \\alpha = 0")
         assert classification == "body"
+        assert mock_chat.call_count == 1  # repaired inline, not retried
+
+    def test_repaired_json_escape_preserves_cleaned_text(self) -> None:
+        """After repairing invalid escape, the cleaned text is extracted correctly."""
+        cleaner = make_cleaner(max_retries=3)
+        bad_escape = {'message': {'content': '{"cleaned": "formula \\alpha = 0", "classification": "body"}'}}
+        with patch(patch_llm_chat, return_value=bad_escape):
+            cleaned, _ = cleaner.clean("formula \\alpha = 0")
+        assert "alpha" in cleaned
+
+    def test_non_escape_json_errors_still_trigger_retry(self) -> None:
+        """A JSONDecodeError that isn't an escape issue still goes through the retry loop."""
+        cleaner = make_cleaner(max_retries=3)
+        bad_response = {'message': {'content': 'not valid json at all'}}
+        good_response = make_response("Some text.", "body")
+        with patch(patch_llm_chat, side_effect=[bad_response, good_response]) as mock_chat:
+            cleaned, classification = cleaner.clean("Some text.")
+        assert classification == "body"
+        assert mock_chat.call_count == 2  # one failure, one success
+        assert classification == "body"
+
+    def test_unescaped_inner_quotes_recovered_by_regex_fallback(self) -> None:
+        """LLM writes bare \" inside JSON string value — regex fallback recovers without retry.
+
+        When the LLM produces: {"cleaned": "the word "probability" is used", ...}
+        json.loads raises "Expecting ',' delimiter". 'escape' is not in that message
+        so the existing backslash repair is skipped. Without the regex fallback all
+        3 retries are burned and the raw paragraph is returned unchanged.
+        With the fallback the values are extracted via greedy regex on the first
+        attempt and no retry is consumed.
+        """
+        cleaner = make_cleaner(max_retries=3)
+        inner_quote_response = {'message': {'content':
+            '{"cleaned": "the word "probability" is used", "classification": "body"}'}}
+        with patch(patch_llm_chat, return_value=inner_quote_response) as mock_chat:
+            cleaned, classification = cleaner.clean('the word probability is used')
+        assert classification == 'body'
+        assert '"probability"' in cleaned  # inner quotes preserved in extracted value
+        assert mock_chat.call_count == 1   # recovered inline, no retry burned
+
+    def test_unescaped_inner_quotes_regex_fallback_footnote(self) -> None:
+        """Regex fallback also works when classification is footnote.
+
+        Paragraph starts with '1 ' (digit) so the letter-start footnote guard
+        does not override the classification to body.
+        """
+        cleaner = make_cleaner(max_retries=3)
+        inner_quote_response = {'message': {'content':
+            '{"cleaned": "see "ibid." for details", "classification": "footnote"}'}}
+        with patch(patch_llm_chat, return_value=inner_quote_response) as mock_chat:
+            cleaned, classification = cleaner.clean('1 see ibid for details')
+        assert classification == 'footnote'
+        assert '"ibid."' in cleaned
+        assert mock_chat.call_count == 1
+
+    def test_completely_garbled_json_still_retries(self) -> None:
+        """If the regex fallback also fails, the error is re-raised and retries continue."""
+        cleaner = make_cleaner(max_retries=3)
+        # No 'cleaned' or 'classification' keys at all — regex won't match
+        garbled_response = {'message': {'content': 'this is not json and has no structure'}}
+        good_response = make_response("Some text.", "body")
+        with patch(patch_llm_chat, side_effect=[garbled_response, good_response]) as mock_chat:
+            cleaned, classification = cleaner.clean("Some text.")
+        assert classification == "body"
+        assert mock_chat.call_count == 2  # garbled triggers retry, good response succeeds
 
     def test_max_retries_configurable(self) -> None:
         cleaner = make_cleaner(max_retries=5)
@@ -386,21 +547,22 @@ class TestHasSuspiciousSubstitutions:
 # --- TestRestoreListPrefix ---
 
 class TestRestoreListPrefix:
-    def test_parenthesized_number_restored_when_dropped(self) -> None:
-        """(3) prefix dropped by LLM is restored."""
-        result = _restore_list_prefix(
-            "(3) All human actions are egotistic.",
-            "All human actions are egotistic."
-        )
-        assert result == "(3) All human actions are egotistic."
+    @pytest.mark.parametrize("original,cleaned,expected", [
+        ("(3) All human actions are egotistic.", "All human actions are egotistic.", "(3) All human actions are egotistic."),
+        ("3. All human actions are egotistic.",  "All human actions are egotistic.", "3. All human actions are egotistic."),
+    ])
+    def test_prefix_restored_when_dropped(self, original: str, cleaned: str, expected: str) -> None:
+        """Numbered list prefix dropped by LLM is restored."""
+        assert _restore_list_prefix(original, cleaned) == expected
 
-    def test_dot_number_prefix_restored_when_dropped(self) -> None:
-        """'3. ' prefix dropped by LLM is restored."""
-        result = _restore_list_prefix(
-            "3. All human actions are egotistic.",
-            "All human actions are egotistic."
-        )
-        assert result == "3. All human actions are egotistic."
+    @pytest.mark.parametrize("original,cleaned,expected", [
+        ("a) The first item in a lettered list.", "The first item in a lettered list.", "a) The first item in a lettered list."),
+        ("b) The second item.", "The second item.", "b) The second item."),
+        ("c) The replacement, in the neo-classical theory.", "The replacement, in the neo-classical theory.", "c) The replacement, in the neo-classical theory."),
+    ])
+    def test_lettered_prefix_restored_when_dropped(self, original: str, cleaned: str, expected: str) -> None:
+        """Lettered list prefix a)/b)/c) dropped by LLM is restored."""
+        assert _restore_list_prefix(original, cleaned) == expected
 
     def test_prefix_not_duplicated_when_already_present(self) -> None:
         """Prefix already present in cleaned text is not added again."""
@@ -422,23 +584,16 @@ class TestRestoreListPrefix:
 # --- TestNormalizeDashes ---
 
 class TestNormalizeDashes:
-    def test_em_dash_replaced_with_hyphen(self) -> None:
-        assert _normalize_dashes('well—known') == 'well-known'
-
-    def test_en_dash_replaced_with_hyphen(self) -> None:
-        assert _normalize_dashes('well–known') == 'well-known'
-
-    def test_plain_hyphen_unchanged(self) -> None:
-        assert _normalize_dashes('well-known') == 'well-known'
-
-    def test_no_dash_unchanged(self) -> None:
-        assert _normalize_dashes('hello') == 'hello'
-
-    def test_both_em_and_en_dash_replaced(self) -> None:
-        assert _normalize_dashes('a—b–c') == 'a-b-c'
-
-    def test_empty_string(self) -> None:
-        assert _normalize_dashes('') == ''
+    @pytest.mark.parametrize("input_str,expected", [
+        ('well—known', 'well-known'),   # em-dash replaced
+        ('well–known', 'well-known'),   # en-dash replaced
+        ('well-known', 'well-known'),   # plain hyphen unchanged
+        ('hello',      'hello'),        # no dash unchanged
+        ('a—b–c',      'a-b-c'),        # both em and en dash replaced
+        ('',           ''),             # empty string
+    ])
+    def test_normalizes_dashes(self, input_str: str, expected: str) -> None:
+        assert _normalize_dashes(input_str) == expected
 
 
 # --- TestRestoreValidWords ---
@@ -625,6 +780,69 @@ class TestRestoreValidWords:
         )
         assert result == "a criterion of demarcation - the criterion of falsifiability."
 
+    # --- Dash upgrade where the first token starts with a quote character ---
+    # original_split[i1][0].isalpha() blocked upgrades where the first token is
+    # a quoted word such as "'meaning'" or '‘meaning’'.  The guard should
+    # only block a leading standalone dash, not quote-prefixed words.
+
+    def test_dash_upgrade_with_curly_quoted_first_token_is_kept(self) -> None:
+        """['‘meaning’', '-', 'laden'] → '‘meaning’—laden': upgrade must be kept."""
+        # The first token starts with a curly open-quote, not a letter.
+        # Before the fix, original_split[i1][0].isalpha() returned False and
+        # the upgrade was wrongly discarded.
+        result = _restore_valid_words(
+            "the ‘meaning’ - laden concept",
+            "the ‘meaning’—laden concept",
+        )
+        assert result == "the ‘meaning’—laden concept"
+
+    def test_dash_upgrade_with_ascii_quoted_first_token_is_kept(self) -> None:
+        """[\"'meaning'\", '-', 'laden'] → \"'meaning'—laden\": upgrade must be kept."""
+        # Same as above but with ASCII single quotes.
+        result = _restore_valid_words(
+            "the 'meaning' - laden concept",
+            "the 'meaning'—laden concept",
+        )
+        assert result == "the 'meaning'—laden concept"
+
+    def test_standalone_dash_first_token_still_blocked(self) -> None:
+        """['-', 'including'] → '—including': guard must still reject this."""
+        # A bare leading '-' token being upgraded and glued to the next word
+        # is not a legitimate em-dash upgrade — the guard must remain active.
+        result = _restore_valid_words(
+            "was - including all",
+            "was —including all",
+        )
+        assert result == "was - including all"
+
+    def test_llm_downgrades_em_dash_to_double_hyphen_is_restored(self) -> None:
+        """LLM replaces '—' with '--' in a compound token — restore the original em-dash.
+
+        Regression: extending _normalize_dashes to collapse '--' to '-' caused
+        'justifiable—as' and 'justifiable--as' to compare as equal in the 1:1
+        path, silently accepting the LLM's downgrade.  The '--' collapsing must
+        only apply in the N→1 is_dash_upgrade comparison, not in the 1:1 path.
+        """
+        result = _restore_valid_words(
+            "becomes as good–or as justifiable—as any other",
+            "becomes as good-or as justifiable--as any other",
+        )
+        assert result == "becomes as good–or as justifiable—as any other"
+
+    def test_dash_upgrade_when_first_token_contains_double_dash(self) -> None:
+        """['relationship--instantiation', '-', 'whose'] → 'relationship—instantiation—whose'.
+
+        The first original token already contains '--' (a double-dash from OCR).
+        _normalize_dashes collapses '--' to '-' on the cleaned side, so the
+        joined originals must also be normalized before comparison, otherwise
+        the '--' in joined_orig causes a mismatch and the LLM's upgrade is lost.
+        """
+        result = _restore_valid_words(
+            "the relationship--instantiation - whose meaning",
+            "the relationship—instantiation—whose meaning",
+        )
+        assert result == "the relationship—instantiation—whose meaning"
+
     # --- Quote normalization: LLM introduces smart/curly quotes ---
     # The preprocessor normalizes all quotes to ASCII before text reaches _restore_valid_words.
     # The LLM often "improves" straight quotes back to typographic curly quotes. The only
@@ -668,36 +886,337 @@ class TestRestoreValidWords:
         assert result == "published by ‘Ed.’."
 
 
+# --- TestIsWordLike ---
+
+class TestIsWordLike:
+    @pytest.mark.parametrize("token,expected", [
+        (':s;;', False),   # 25% alpha — symbol-heavy OCR artifact
+        ('i:.',  False),   # 33% alpha — symbol-heavy OCR artifact
+        ('its',  True),    # 100% alpha
+        ('a,',   True),    # 50% alpha — at the boundary, word-like
+        ('h.',   True),    # 50% alpha — at the boundary, word-like
+        ('',     False),   # empty string
+        ('1979', False),   # 0% alpha — pure digits
+    ])
+    def test_is_word_like(self, token: str, expected: bool) -> None:
+        assert _is_word_like(token) is expected
+
+
+# --- TestRestoreValidWordsSymbols ---
+
+class TestRestoreValidWordsSymbols:
+    """Tests that math/symbol OCR fixes by the LLM are not wrongly rolled back.
+
+    The root cause: a token like ':s;;' strips to 's', which passes
+    is_valid_word().  Without a word-likeness guard the restore fires
+    spuriously, undoing a correct LLM fix.
+    """
+
+    @pytest.mark.parametrize("original,cleaned,expected", [
+        ('For all x :s;; 0.', 'For all x ≤ 0.', 'For all x ≤ 0.'),    # ':s;;' → '≤'
+        ('Such that a i:. b.', 'Such that a ≠ b.', 'Such that a ≠ b.'),  # 'i:.' → '≠'
+        ('Requires that p i:. q.', 'Requires that p ≥ q.', 'Requires that p ≥ q.'),  # 'i:.' → '≥'
+    ])
+    def test_symbol_ocr_fix_is_kept(self, original: str, cleaned: str, expected: str) -> None:
+        """Symbol-heavy OCR artifacts must not be rolled back when the LLM fixes them.
+
+        Seen in the full run: → restored ':s;;' (LLM tried '≤'), etc.
+        These tokens strip to a single letter that passes is_valid_word,
+        triggering a spurious restore without a word-likeness guard.
+        """
+        assert _restore_valid_words(original, cleaned) == expected
+
+    def test_normal_word_restore_still_works_after_symbol_fix(self) -> None:
+        """The symbol guard must not suppress restores of normal valid words."""
+        result = _restore_valid_words(
+            'He obstructed judiciary powers.',
+            'He obstructed judicial powers.'
+        )
+        assert result == 'He obstructed judiciary powers.'
+
+    def test_word_with_trailing_comma_still_restored(self) -> None:
+        """A word token that is exactly 50% alphabetic (e.g. 'a,') must still be
+        treated as word-like and restored when the LLM substitutes it."""
+        result = _restore_valid_words(
+            'Choose a, not b.',
+            'Choose an, not b.'
+        )
+        assert result == 'Choose a, not b.'
+
+
+# --- TestRestoreValidWordsSingleLetter ---
+
+class TestRestoreValidWordsSingleLetter:
+    """Tests that isolated single-letter OCR fragments are not treated as valid words.
+
+    In practice these are always OCR-split function words: 'or' → 'o'+'r',
+    'to' → 't'+'o', 'by' → 'b'+'y'. The LLM correctly recognises and restores
+    them, but _restore_valid_words wrongly reverts the fix because all 26
+    letters pass is_valid_word().
+
+    Real examples from Last Full Run.txt:
+      → restored 'r' (LLM tried 'or')   — Hume quote, page 147
+      → restored 'o' (LLM tried 'to')   — same passage
+      → restored 'y' (LLM tried 'by')   — page 177
+    """
+
+    @pytest.mark.parametrize("original,cleaned,expected", [
+        # Real case: "reason;.,.. r you must allow" — 'r' is the tail of 'or'
+        ('r you must allow that',   'or you must allow that',   'or you must allow that'),
+        # Real case: "allow that o your belief" — 'o' is the tail of 'to'
+        ('allow that o your belief', 'allow that to your belief', 'allow that to your belief'),
+        # Real case (page 177): standalone 'y' — tail of 'by'
+        ('justified y the results',  'justified by the results',  'justified by the results'),
+        # 'a' and 'I' are genuine English words — must still be protected
+        ('a cat sat',               'the cat sat',               'a cat sat'),
+        ('I think so',              'We think so',               'I think so'),
+    ])
+    def test_single_letter_restore_behavior(
+            self, original: str, cleaned: str, expected: str) -> None:
+        assert _restore_valid_words(original, cleaned) == expected
+
+
+# --- TestRestoreValidWordsCurlyQuotes ---
+
+class TestRestoreValidWordsCurlyQuotes:
+    """Tests that curly/smart quotes are stripped before is_valid_word in N→1 merges.
+
+    The strip string in the N→1 merge path only includes straight quotes, so curly
+    quotes left on the merged token cause is_valid_word to fail and the originals
+    to be wrongly restored.
+
+    The failing case requires that joined_orig != cleaned_split[j1] so the equality
+    shortcut doesn’t fire — achieved by having the LLM both fix an OCR error AND
+    merge with a curly-quoted token at the same time.
+
+    Real examples:
+      ["‘jistify’", ";"]   → "‘justify’;"   — OCR fix + semicolon merge
+      ["‘", "antibadies’-that"] → "‘antibodies’-that" — OCR fix + stray quote join
+    """
+
+    def test_curly_quoted_word_ocr_fix_and_merge_kept(self) -> None:
+        """LLM fixes OCR error in curly-quoted word AND merges semicolon.
+
+        Without curly-quote stripping, is_valid_word(‘justify’) returns False
+        and the originals are wrongly restored.
+        """
+        # ‘jistify’ is the OCR-mangled original; LLM fixes to ‘justify’
+        # and simultaneously merges the trailing semicolon token.
+        # joined_orig = "‘jistify’;" != "‘justify’;" so equality check
+        # does not fire; is_valid_word is what must save the merge.
+        result = _restore_valid_words(
+            "pragmatic sense of ‘jistify’ ; in other words,",
+            "pragmatic sense of ‘justify’; in other words,",
+        )
+        assert result == "pragmatic sense of ‘justify’; in other words,"
+
+    def test_curly_quoted_word_ocr_fix_and_comma_merge_kept(self) -> None:
+        """LLM fixes OCR error in curly-quoted word AND merges trailing comma.
+
+        joined_orig = "’eficiency’," != "’efficiency’," so equality check
+        does not fire; strip must remove the wrapping curly quotes so that
+        is_valid_word("efficiency") succeeds.
+        """
+        # ‘eficiency’ is an OCR-mangled original; LLM fixes to ‘efficiency’
+        # and simultaneously merges the trailing comma token.
+        result = _restore_valid_words(
+            "she argued that ‘eficiency’ , was key,",
+            "she argued that ‘efficiency’, was key,",
+        )
+        assert result == "she argued that ‘efficiency’, was key,"
+
+
+# --- TestRestoreValidWordsBackslashQuotes ---
+
+class TestRestoreValidWordsBackslashQuotes:
+    """Tests that backslash-escaped quotes in LLM tokens don't wrongly trigger restore.
+
+    The JSON escape repair converts \'word\' to a Python string containing a
+    literal backslash + quote (e.g. \'possibility\').  The comparison strip
+    removes quote characters but not backslashes, so the stripped forms differ
+    and the original is wrongly restored.
+
+    Fix: collapse \' → ' and \" → " before normalize_quotes + strip in the
+    1:1 comparison path so the bare words are correctly compared.
+
+    Real examples (page 395 of Realism and the Aim of Science):
+      original '‘possibility’,'  LLM tried \\'possibility\\',
+      original '‘probability’'   LLM tried \\'probability\\'
+      original '‘frequency’)'    LLM tried \\'frequency\\'
+    """
+
+    def test_backslash_escaped_quotes_not_wrongly_restored(self) -> None:
+        """Curly-quoted OCR word vs LLM backslash-escaped version: keep LLM's token.
+
+        original token: ‘possibility’ (curly quotes, OCR)
+        cleaned token:  \\'possibility\\' (backslash-escaped, from JSON repair)
+        Both strip to 'possibility' after backslash collapse — no restore should fire.
+        """
+        result = _restore_valid_words(
+            "the ‘possibility’ is",
+            "the \\'possibility\\' is",
+        )
+        assert result == "the \\'possibility\\' is"
+
+    def test_backslash_escaped_double_quotes_not_wrongly_restored(self) -> None:
+        """Same as above but with double-quote escaping (\\\"word\\\")."""
+        result = _restore_valid_words(
+            'the “probability” is',
+            'the \\"probability\\" is',
+        )
+        assert result == 'the \\"probability\\" is'
+
+
+# --- TestRestoreValidWordsTrailingHyphen ---
+
+class TestRestoreValidWordsTrailingHyphen:
+    """Tests that tokens with a trailing hyphen are not restored.
+
+    A trailing hyphen always signals either a word-break fragment ('theo-',
+    'deter-', 'mis-') or a mid-sentence dash being upgraded to an em-dash
+    ('conditions-' → 'conditions—'). In both cases the LLM's fix should win.
+
+    Real examples from Last Full Run.txt:
+      → restored 'theo-'      (LLM tried 'theories.')   — context: 'scientific character of theo-'
+      → restored 'deter-'     (LLM tried 'determined')  — context: 'to the classes deter-'
+      → restored 'mis-'       (LLM tried 'misconceptions') — context: 'accounts for these mis-'
+      → restored 'conditions-'(LLM tried 'conditions—') — context: "fetters of its conditions- a 'rule of"
+    """
+
+    @pytest.mark.parametrize("original,cleaned,expected", [
+        # Word-break fragments: LLM completes the word, must not be rolled back
+        ('scientific character of theo-',       'scientific character of theories.',      'scientific character of theories.'),
+        ('to the classes deter-',               'to the classes determined',              'to the classes determined'),
+        ('accounts for these mis-',             'accounts for these misconceptions',      'accounts for these misconceptions'),
+        # Em-dash upgrade: trailing hyphen upgraded to em-dash, must not be rolled back
+        ("fetters of its conditions- a rule of", "fetters of its conditions— a rule of", "fetters of its conditions— a rule of"),
+    ])
+    def test_trailing_hyphen_token_not_restored(
+            self, original: str, cleaned: str, expected: str) -> None:
+        assert _restore_valid_words(original, cleaned) == expected
+
+    def test_mid_hyphen_compound_still_restored(self) -> None:
+        """A hyphen in the middle of a token (compound word) must still trigger restore."""
+        result = _restore_valid_words(
+            'the well-known argument',
+            'the well-known  argument'  # LLM left it unchanged but with extra space
+        )
+        # 'well-known' does not end with '-', so normal restore rules apply
+        assert 'well-known' in result
+
+
+# --- TestRestoreValidWordsLineBreakHyphen ---
+
+class TestRestoreValidWordsLineBreakHyphen:
+    """Tests for the N→1 line-break hyphen join condition.
+
+    When a PDF splits a word at line-end with a hard hyphen, Docling produces
+    two tokens: ['reexamina-', 'tion'].  The LLM correctly rejoins them to
+    'reexamination'.  The N→1 merge must accept this even when is_valid_word
+    fails (e.g. for long compound words not in the dictionary).
+
+    Condition: strip trailing hyphens from each original token, concatenate,
+    and if the result equals the cleaned token, keep the LLM's join.
+    """
+
+    @pytest.mark.parametrize("original,cleaned,expected", [
+        # Core cases from the fix list
+        ('the reexamina- tion of evidence',
+         'the reexamination of evidence',
+         'the reexamination of evidence'),
+        ('they classify- ing the result',
+         'they classifying the result',
+         'they classifying the result'),
+        # Three-part split of a plain word
+        ('a contra- dic- tion here',
+         'a contradiction here',
+         'a contradiction here'),
+        # Hyphenated compound word reassembled: dehyphen join ≠ cleaned token
+        # because the LLM correctly preserves the compound hyphen
+        ('a self- contra- diction here',
+         'a self-contradiction here',
+         'a self-contradiction here'),
+    ])
+    def test_line_break_hyphen_join_kept(
+            self, original: str, cleaned: str, expected: str) -> None:
+        assert _restore_valid_words(original, cleaned) == expected
+
+    def test_non_hyphen_merge_not_accepted(self) -> None:
+        """A 2→1 merge with no trailing hyphens and no match must restore originals.
+
+        joined_orig = 'helloworld', cleaned = 'helloplanet': dehyphen_join is also
+        'helloworld' ≠ 'helloplanet', so is_line_break_join does not fire.
+        is_valid_word('helloplanet') is False and no other check applies either.
+        """
+        result = _restore_valid_words(
+            "hello world today",
+            "helloplanet today",
+        )
+        assert result == "hello world today"
+
+
+# --- TestRestoreValidWordsLlmDashJoin ---
+
+class TestRestoreValidWordsLlmDashJoin:
+    """Tests for the N→1 LLM-introduced em-dash between valid words.
+
+    When the LLM correctly joins N OCR-fragmented tokens AND inserts an em-dash
+    between two real words, the N→1 merge must accept it even though
+    is_dash_upgrade fails (the joined originals don't contain the dash).
+
+    Example: ['justi', 'fication', 'is'] → 'justification—is'
+    joined_orig = 'justificationis', _normalize_dashes('justification—is') =
+    'justification-is' — these don't match, so is_dash_upgrade is False.
+    But splitting 'justification—is' on em-dash gives ['justification', 'is'],
+    both valid words, so the merge must be accepted.
+    """
+
+    def test_llm_joins_fragments_and_inserts_em_dash(self) -> None:
+        """3→1 merge where LLM rejoins a split word and inserts an em-dash."""
+        result = _restore_valid_words(
+            "justi fication is",
+            "justification—is",
+        )
+        assert result == "justification—is"
+
+    def test_llm_joins_two_fragments_with_em_dash(self) -> None:
+        """2→1 merge where LLM joins two fragments into word—word."""
+        result = _restore_valid_words(
+            "justifi cation",
+            "justification—and",
+        )
+        assert result == "justification—and"
+
+    def test_llm_dash_join_rejected_when_parts_not_valid_words(self) -> None:
+        """If either dash-separated part is not a valid word, restore originals.
+
+        'qwerty' and 'asdf' are not real English words, so the em-dash join
+        must be rejected and the originals restored.
+        """
+        result = _restore_valid_words(
+            "qwerty asdf",
+            "qwerty—asdf",
+        )
+        assert result == "qwerty asdf"
+
+
 # --- TestCoerceClassification ---
 
 class TestCoerceClassification:
 
-    def test_footnote_hint_returns_footnote(self) -> None:
-        assert _coerce_classification('footnote') == 'footnote'
-
-    def test_endnote_hint_returns_footnote(self) -> None:
-        assert _coerce_classification('endnote') == 'footnote'
-
-    def test_note_hint_returns_footnote(self) -> None:
-        assert _coerce_classification('note') == 'footnote'
-
-    def test_body_hint_returns_body(self) -> None:
-        assert _coerce_classification('body') == 'body'
-
-    def test_main_hint_returns_body(self) -> None:
-        assert _coerce_classification('main content') == 'body'
-
-    def test_prose_hint_returns_body(self) -> None:
-        assert _coerce_classification('prose') == 'body'
-
-    def test_index_hint_returns_drop(self) -> None:
-        assert _coerce_classification('index') == 'drop'
-
-    def test_bibliography_hint_returns_drop(self) -> None:
-        assert _coerce_classification('bibliograph') == 'drop'
-
-    def test_reference_hint_returns_drop(self) -> None:
-        assert _coerce_classification('reference list') == 'drop'
+    @pytest.mark.parametrize("label,expected", [
+        ('footnote',       'footnote'),
+        ('endnote',        'footnote'),
+        ('note',           'footnote'),
+        ('body',           'body'),
+        ('main content',   'body'),
+        ('prose',          'body'),
+        ('index',          'drop'),
+        ('bibliograph',    'drop'),
+        ('reference list', 'drop'),
+    ])
+    def test_hint_maps_to_classification(self, label: str, expected: str) -> None:
+        assert _coerce_classification(label) == expected
 
     def test_matching_is_case_insensitive(self) -> None:
         assert _coerce_classification('FOOTNOTE') == 'footnote'
@@ -716,7 +1235,7 @@ class TestCoerceClassification:
 class TestIntegration:
     @pytest.mark.integration
     def test_real_llm_call_body(self) -> None:
-        """Integration test — requires a running LLM with llama3.1:8b."""
+        """Integration test — requires a running LLM."""
         cleaner = make_cleaner()
         paragraph = "This is a sample paragraph from a book about philosophy and rationality."
         cleaned, classification = cleaner.clean(paragraph)
@@ -727,7 +1246,7 @@ class TestIntegration:
 
     @pytest.mark.integration
     def test_real_llm_call_footnote(self) -> None:
-        """Integration test — requires a running LLM with llama3.1:8b."""
+        """Integration test — requires a running LLM."""
         cleaner = make_cleaner()
         page_context = (
             "Others have found very similar defection rates in various minor religious sects.1\n\n"
@@ -746,7 +1265,7 @@ class TestIntegration:
 
     @pytest.mark.integration
     def test_real_llm_call_drop(self) -> None:
-        """Integration test — requires a running LLM with llama3.1:8b."""
+        """Integration test — requires a running LLM."""
         cleaner = make_cleaner()
         cleaned, classification = cleaner.clean(
             "Chapter 1 ... 1\nChapter 2 ... 15\nChapter 3 ... 42"

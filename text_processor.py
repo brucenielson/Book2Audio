@@ -31,6 +31,12 @@ def _all_words_valid(text: str, verbose: bool = False) -> bool:
         if not stripped or not word_validator.is_valid_word(stripped):
             # vprint(verbose, f"  [FAIL TOKEN] {token!r} -> {stripped!r}")
             return False
+        # Single-letter tokens other than 'a' and 'i' are almost certainly
+        # OCR line-break artifacts (e.g. 'p referring' for 'preferring').
+        # Every letter passes is_valid_word, so we gate them explicitly here,
+        # mirroring the rule already used in _restore_valid_words.
+        if len(stripped) == 1 and stripped not in ('a', 'i'):
+            return False
     return True
 
 
@@ -124,12 +130,17 @@ class TextProcessor:
         if self._cleaner is not None:
             word_validator.is_valid_word('warm')
 
-        # Clean all chunks upfront
+        # Clean all chunks upfront and reclassify any footnotes that slipped through
+        # the parser's own classifier (e.g. "3See..." — digit(s) immediately followed
+        # by an uppercase letter is an unambiguous footnote reference marker).
+        _FOOTNOTE_MARKER_RE: re.Pattern[str] = re.compile(r'^\d{1,2}[A-Z]')
         for chunk in chunks:
             if _DEBUG_BREAK_TEXT and _DEBUG_BREAK_TEXT in chunk.text:
                 pass
             chunk.text = word_validator.combine_hyphenated_words(chunk.text)
             chunk.text = clean_text(chunk.text, remove_footnotes=True)
+            if chunk.is_body_text and _FOOTNOTE_MARKER_RE.match(chunk.text):
+                chunk.label = 'footnote'
 
         # Build page context strings for LLM-based cleaning
         if self._cleaner is not None:
@@ -316,19 +327,27 @@ class TextProcessor:
     def _report_page_progress(self, chunk: RawChunk) -> None:
         """Print a progress line when processing crosses a 10-page boundary.
 
+        Uses physical_page_# for milestone arithmetic (always an integer string)
+        and falls back to page_# when physical is absent (e.g. EPUB parser).
+        Displays the PDF label alongside the physical number when they differ.
+
         Args:
             chunk: The current chunk whose page number is checked.
         """
-        page_str = chunk.meta.get('page_#', '')
-        if not page_str:
+        physical_str = chunk.meta.get('physical_page_#', '') or chunk.meta.get('page_#', '')
+        if not physical_str:
             return
         try:
-            page = int(page_str)
+            page = int(physical_str)
         except ValueError:
             return
         milestone = page != self._last_reported_page if self._verbose else page // 10 > self._last_reported_page // 10
         if milestone:
-            print(f"  [Page {page}]")
+            label = chunk.meta.get('page_#', physical_str)
+            if label and label != physical_str:
+                print(f"  [Page {label} / Page {page}]")
+            else:
+                print(f"  [Page {page}]")
             self._last_reported_page = page
 
     def _process_chunk(self, chunk: RawChunk, next_chunk: RawChunk | None) -> None:

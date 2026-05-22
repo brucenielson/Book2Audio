@@ -7,6 +7,8 @@ from docling_core.types import DoclingDocument
 from parsers.docling_parser import DoclingParser, _FootnoteContext
 from text_cleaner import TextCleaner
 
+from conftest import TEST_LLM_MODEL
+
 
 # --- Fixtures ---
 
@@ -19,6 +21,7 @@ def make_doc_item(spec, label: str, text: str, page_no: int = 1) -> MagicMock:
     prov.page_no = page_no
     prov.bbox = MagicMock()
     prov.bbox.height = 10.0
+    prov.bbox.t = 0.0
     prov.charspan = (0, 10)
     item.prov = [prov]
     return item
@@ -49,6 +52,22 @@ def make_page_footer(text: str, page_no: int = 1) -> MagicMock:
     return make_doc_item(TextItem, DocItemLabel.PAGE_FOOTER.value, text, page_no)
 
 
+def make_section_header_at(text: str, page_no: int = 1,
+                            bbox_t: float = 0.0, bbox_height: float = 10.0) -> MagicMock:
+    """Create a mock section header with explicit bbox.t and height."""
+    item = make_section_header(text, page_no)
+    item.prov[0].bbox.t = bbox_t
+    item.prov[0].bbox.height = bbox_height
+    return item
+
+
+def make_page_header_at(text: str, page_no: int = 1, bbox_t: float = 0.0) -> MagicMock:
+    """Create a mock page header with explicit bbox.t."""
+    item = make_page_header(text, page_no)
+    item.prov[0].bbox.t = bbox_t
+    return item
+
+
 def make_parser(texts: list,
                 meta_data: dict | None = None,
                 min_paragraph_size: int = 0,
@@ -56,32 +75,55 @@ def make_parser(texts: list,
                 end_page: int | None = None,
                 include_notes: bool = True,
                 cleaner: TextCleaner | None = None,
-                min_footnote_chars: int = 100) -> DoclingParser:
-    """Create a DoclingParser with a mocked DoclingDocument."""
+                min_footnote_chars: int = 100,
+                page_labels: dict[int, str] | None = None,
+                skip_front_matter: bool = False,
+                skip_index: bool = False,
+                page_height: float | None = None) -> DoclingParser:
+    """Create a DoclingParser with a mocked DoclingDocument.
+
+    Pass page_height to give compute_median_page_height a non-zero result,
+    which enables the lower-half positional checks in _is_footnote.
+    """
     doc = MagicMock(spec=DoclingDocument)
     doc.name = "test_doc"
     doc.texts = texts
+    if page_height is not None:
+        mock_page = MagicMock()
+        mock_page.size = MagicMock()
+        mock_page.size.height = page_height
+        doc.pages = {1: mock_page}
+    else:
+        doc.pages = {}
     return DoclingParser(source=doc, meta_data=meta_data or {}, min_paragraph_size=min_paragraph_size,
                          start_page=start_page, end_page=end_page, include_footnotes=include_notes,
-                         llm_cleaner=cleaner, min_footnote_chars=min_footnote_chars)
+                         llm_cleaner=cleaner, min_footnote_chars=min_footnote_chars,
+                         page_labels=page_labels, skip_front_matter=skip_front_matter,
+                         skip_index=skip_index)
 
 
 def make_ctx(
     prev_text_candidate: bool = False,
-    prev_ends_mid_sentence: bool = False,
     text_seen_this_page: bool = False,
     found_note_this_page: bool = False,
     single_line_height: float = 10.0,
     median_chars_per_line: float = 50.0,
+    header_top_y: float | None = None,
+    median_page_height: float = 0.0,
+    body_line_height: float = 0.0,
+    in_notes_section: bool = False,
 ) -> _FootnoteContext:
     """Create a _FootnoteContext with sensible defaults for unit testing."""
     return _FootnoteContext(
         prev_text_candidate=prev_text_candidate,
-        prev_ends_mid_sentence=prev_ends_mid_sentence,
         text_seen_this_page=text_seen_this_page,
         found_note_this_page=found_note_this_page,
         single_line_height=single_line_height,
         median_chars_per_line=median_chars_per_line,
+        header_top_y=header_top_y,
+        median_page_height=median_page_height,
+        body_line_height=body_line_height,
+        in_notes_section=in_notes_section,
     )
 
 
@@ -150,12 +192,43 @@ class TestIsFootnote:
         ctx = make_ctx(prev_text_candidate=True)
         assert parser._is_footnote(make_text_item(" 1 Leading space."), ctx) is False
 
-    # --- H1: digit-start TEXT following mid-sentence body text ---
+    # --- H1: digit-start TEXT following mid-sentence body text, in lower half of page ---
 
-    def test_h1_digit_alpha_after_mid_sentence_returns_true(self) -> None:
+    def test_h1_digit_alpha_after_mid_sentence_lower_half_returns_true(self) -> None:
+        """H1 fires when item follows mid-sentence body text and is in the lower half of page.
+        Font size is irrelevant — the positional signal is the discriminator."""
+        item = make_sized_text_item("1 This is an unlabelled footnote.",
+                                    charspan_length=33, bbox_height=10.0)
+        item.prov[0].bbox.t = 30.0  # lower half of 100-height page
         parser = make_parser([])
-        item = make_text_item("1 This is an unlabelled footnote.")
-        assert parser._is_footnote(item, make_ctx(prev_text_candidate=True)) is True
+        ctx = make_ctx(prev_text_candidate=True, text_seen_this_page=True,
+                       single_line_height=10.0, median_chars_per_line=50.0,
+                       body_line_height=10.0, median_page_height=100.0)
+        assert parser._is_footnote(item, ctx) is True
+
+    def test_h1_large_text_lower_half_fires(self) -> None:
+        """H1 fires for large-text footnotes in the lower half — no small-text gate.
+        '8(See Popper's...' is a real-world example: bbox_height~20, clearly in lower half."""
+        item = make_sized_text_item("8(See Popper's Logic of Scientific Discovery.)",
+                                    charspan_length=46, bbox_height=20.0)
+        item.prov[0].bbox.t = 30.0  # lower half of 100-height page
+        parser = make_parser([])
+        ctx = make_ctx(prev_text_candidate=True, text_seen_this_page=True,
+                       single_line_height=10.0, median_chars_per_line=50.0,
+                       body_line_height=10.0, median_page_height=100.0)
+        assert parser._is_footnote(item, ctx) is True
+
+    def test_h1_upper_half_does_not_fire(self) -> None:
+        """H1 must not fire when the item is in the upper half of the page.
+        Digit-start items after a mid-sentence paragraph but near the top are not footnotes."""
+        item = make_sized_text_item("1 This is an unlabelled footnote.",
+                                    charspan_length=33, bbox_height=10.0)
+        item.prov[0].bbox.t = 80.0  # upper half of 100-height page
+        parser = make_parser([])
+        ctx = make_ctx(prev_text_candidate=True, text_seen_this_page=True,
+                       single_line_height=10.0, median_chars_per_line=50.0,
+                       body_line_height=10.0, median_page_height=100.0)
+        assert parser._is_footnote(item, ctx) is False
 
     def test_h1_pure_number_with_prev_candidate_returns_false(self) -> None:
         """Index entries like '183-84' contain no alpha — H1 must not fire."""
@@ -177,30 +250,34 @@ class TestIsFootnote:
     #   not small: median=200 → 100 > 250   → False
 
     def test_h2_small_text_with_body_seen_returns_true(self) -> None:
-        """Long digit-start item in small font, preceded by body text → H2 fires."""
+        """Digit-start item in small font in lower half of page → footnote."""
         text = "1" + "a" * 99   # len=100, digit-start, has alpha
         item = make_sized_text_item(text, charspan_length=200, bbox_height=10.0)
+        item.prov[0].bbox.t = 30.0   # lower half of 100-height page
         parser = make_parser([], min_footnote_chars=100)
         ctx = make_ctx(text_seen_this_page=True, single_line_height=5.0,
-                       median_chars_per_line=50.0)
+                       median_chars_per_line=50.0, median_page_height=100.0)
         assert parser._is_footnote(item, ctx) is True
 
     def test_h2_fires_without_alpha(self) -> None:
-        """H2 has no alpha requirement — a long digit-only small-font item qualifies."""
+        """Digit-only item in small font in lower half — no alpha required."""
         text = "1" + "0" * 99   # len=100, digit-start, no alpha
         item = make_sized_text_item(text, charspan_length=200, bbox_height=10.0)
+        item.prov[0].bbox.t = 30.0   # lower half of 100-height page
         parser = make_parser([], min_footnote_chars=100)
         ctx = make_ctx(text_seen_this_page=True, single_line_height=5.0,
-                       median_chars_per_line=50.0)
+                       median_chars_per_line=50.0, median_page_height=100.0)
         assert parser._is_footnote(item, ctx) is True
 
-    def test_h2_text_below_threshold_returns_false(self) -> None:
-        """Text shorter than min_footnote_chars must not trigger H2."""
-        text = "1 short"   # len < 100
+    def test_h2_upper_half_digit_start_no_other_signal_returns_false(self) -> None:
+        """A digit-start item in small font in the upper half of the page without
+        H4 or H1 signals is not a footnote — footnotes live at the bottom."""
+        text = "1 short"
         item = make_sized_text_item(text, charspan_length=200, bbox_height=10.0)
+        item.prov[0].bbox.t = 70.0   # upper half of 100-height page
         parser = make_parser([], min_footnote_chars=100)
         ctx = make_ctx(text_seen_this_page=True, single_line_height=5.0,
-                       median_chars_per_line=50.0)
+                       median_chars_per_line=50.0, median_page_height=100.0)
         assert parser._is_footnote(item, ctx) is False
 
     def test_h2_no_body_text_seen_returns_false(self) -> None:
@@ -228,17 +305,61 @@ class TestIsFootnote:
         item = make_text_item("2 Continuation of a footnote.")
         assert parser._is_footnote(item, make_ctx(found_note_this_page=True)) is True
 
-    def test_h3_pure_number_after_note_returns_false(self) -> None:
-        """No alpha — H3 must not fire even when a note has been seen on the page."""
+    def test_h3_pure_number_after_note_returns_true(self) -> None:
+        """Once a footnote is seen on the page, any TEXT item is a footnote continuation —
+        including a bare digit with no alpha."""
         parser = make_parser([])
         item = make_text_item("2")
-        assert parser._is_footnote(item, make_ctx(found_note_this_page=True)) is False
+        assert parser._is_footnote(item, make_ctx(found_note_this_page=True)) is True
 
     def test_h3_alpha_no_prior_note_returns_false(self) -> None:
         """Alpha alone is not enough — H3 also requires found_note_this_page."""
         parser = make_parser([])
         item = make_text_item("2 Some text.")
         assert parser._is_footnote(item, make_ctx(found_note_this_page=False)) is False
+
+    def test_h3_non_digit_start_after_note_returns_true(self) -> None:
+        """A continuation paragraph that doesn't start with a digit must still be
+        classified as a footnote once found_note_this_page is True.
+        H3 must fire before the digit-start guard."""
+        parser = make_parser([])
+        item = make_text_item("in which zeros are followed by ones.")
+        assert parser._is_footnote(item, make_ctx(found_note_this_page=True)) is True
+
+    def test_h3_non_digit_start_without_prior_note_returns_false(self) -> None:
+        """A non-digit-start item with no prior note on the page must not be caught."""
+        parser = make_parser([])
+        item = make_text_item("in which zeros are followed by ones.")
+        assert parser._is_footnote(item, make_ctx(found_note_this_page=False)) is False
+
+    # --- Endnote path: in_notes_section flag ---
+
+    def test_endnote_path_digit_alpha_returns_true(self) -> None:
+        """In the notes section, a digit-start TEXT item with alpha is an endnote —
+        regardless of font size, page position, or whether body text has been seen."""
+        parser = make_parser([])
+        item = make_text_item("9 Manning asserts that what makes an illegal seizure...")
+        assert parser._is_footnote(item, make_ctx(in_notes_section=True)) is True
+
+    def test_endnote_path_digit_only_returns_false(self) -> None:
+        """In the notes section, a digit-only item (no alpha) is not an endnote."""
+        parser = make_parser([])
+        item = make_text_item("9")
+        assert parser._is_footnote(item, make_ctx(in_notes_section=True)) is False
+
+    def test_endnote_path_not_active_outside_notes_section(self) -> None:
+        """The endnote path must not fire when in_notes_section is False."""
+        parser = make_parser([])
+        item = make_text_item("9 Manning asserts that what makes an illegal seizure...")
+        assert parser._is_footnote(item, make_ctx(in_notes_section=False)) is False
+
+    def test_endnote_path_non_digit_start_not_caught(self) -> None:
+        """A non-digit-start item is not caught by the endnote path alone —
+        H3 propagation handles continuations once the first endnote is found."""
+        parser = make_parser([])
+        item = make_text_item("restrict enquiry, it cannot induce a specific belief.")
+        assert parser._is_footnote(item, make_ctx(in_notes_section=True,
+                                                   found_note_this_page=False)) is False
 
     # --- No heuristic fires ---
 
@@ -250,6 +371,154 @@ class TestIsFootnote:
         """Has alpha and digit-start but no context conditions met — must return False."""
         parser = make_parser([])
         assert parser._is_footnote(make_text_item("1 Some text."), make_ctx()) is False
+
+    # --- H4: digit(s) immediately followed by uppercase letter ---
+
+    def test_h4_single_digit_uppercase_returns_true(self) -> None:
+        """'3See' pattern fires when item is small text and body text seen on page."""
+        item = make_sized_text_item("3See my Poverty of Historicism.",
+                                    charspan_length=31, bbox_height=8.0)
+        parser = make_parser([])
+        ctx = make_ctx(text_seen_this_page=True, single_line_height=10.0,
+                       median_chars_per_line=50.0, body_line_height=10.0)
+        assert parser._is_footnote(item, ctx) is True
+
+    def test_h4_two_digits_uppercase_returns_true(self) -> None:
+        """Two-digit+uppercase pattern fires when item is small text and body text seen."""
+        item = make_sized_text_item("14Cf. the earlier discussion.",
+                                    charspan_length=29, bbox_height=8.0)
+        parser = make_parser([])
+        ctx = make_ctx(text_seen_this_page=True, single_line_height=10.0,
+                       median_chars_per_line=50.0, body_line_height=10.0)
+        assert parser._is_footnote(item, ctx) is True
+
+    def test_h4_fires_with_normal_sized_text(self) -> None:
+        """H4 fires regardless of text size — small-text gate does not apply to H4."""
+        item = make_sized_text_item("3See my Poverty of Historicism.",
+                                    charspan_length=31, bbox_height=10.0)
+        parser = make_parser([])
+        ctx = make_ctx(text_seen_this_page=True, single_line_height=10.0,
+                       median_chars_per_line=50.0, body_line_height=10.0)
+        assert parser._is_footnote(item, ctx) is True
+
+    def test_h4_requires_text_seen(self) -> None:
+        """H4 must not fire before body text has been seen on the page."""
+        item = make_sized_text_item("3See my Poverty of Historicism.",
+                                    charspan_length=31, bbox_height=8.0)
+        parser = make_parser([])
+        ctx = make_ctx(text_seen_this_page=False, single_line_height=10.0,
+                       median_chars_per_line=50.0, body_line_height=10.0)
+        assert parser._is_footnote(item, ctx) is False
+
+    def test_h4_requires_text_seen_with_normal_sized_text(self) -> None:
+        """H4 still requires body text seen first, even without the small-text requirement."""
+        item = make_sized_text_item("3See my Poverty of Historicism.",
+                                    charspan_length=31, bbox_height=10.0)
+        parser = make_parser([])
+        ctx = make_ctx(text_seen_this_page=False, single_line_height=10.0,
+                       median_chars_per_line=50.0, body_line_height=10.0)
+        assert parser._is_footnote(item, ctx) is False
+
+    def test_h4_three_digits_not_caught(self) -> None:
+        """Three or more digits before letter should not trigger H4."""
+        parser = make_parser([])
+        assert parser._is_footnote(make_text_item("183See something."), make_ctx()) is False
+
+    def test_h4_digit_lowercase_not_caught(self) -> None:
+        """Lowercase alpha after digit does not trigger H4 — avoids ordinals like '1st'."""
+        parser = make_parser([])
+        assert parser._is_footnote(make_text_item("1st place goes to"), make_ctx()) is False
+
+    def test_h4_digit_space_uppercase_not_caught(self) -> None:
+        """Space between digit and letter means H4 does not fire — uses normal H1/H2/H3 path."""
+        parser = make_parser([])
+        assert parser._is_footnote(make_text_item("3 See my text."), make_ctx()) is False
+
+    # --- H4 extended: digit immediately followed by punctuation (bracket, paren, quote) ---
+
+    def test_h4_digit_open_bracket_fires(self) -> None:
+        """'3[See ...' pattern (digit + open bracket) fires H4 when body text seen."""
+        item = make_sized_text_item("3[See The Open Society, vol. ii.]",
+                                    charspan_length=33, bbox_height=10.0)
+        parser = make_parser([])
+        ctx = make_ctx(text_seen_this_page=True, single_line_height=10.0,
+                       median_chars_per_line=50.0, body_line_height=10.0)
+        assert parser._is_footnote(item, ctx) is True
+
+    def test_h4_digit_open_paren_fires(self) -> None:
+        """'8(See Popper's ...' pattern (digit + open paren) fires H4 when body text seen."""
+        item = make_sized_text_item("8(See Popper's Logic of Scientific Discovery.)",
+                                    charspan_length=46, bbox_height=10.0)
+        parser = make_parser([])
+        ctx = make_ctx(text_seen_this_page=True, single_line_height=10.0,
+                       median_chars_per_line=50.0, body_line_height=10.0)
+        assert parser._is_footnote(item, ctx) is True
+
+    def test_h4_digit_quote_fires(self) -> None:
+        """\"13'fhat is to say ...\" pattern (digit + apostrophe) fires H4 when body text seen."""
+        item = make_sized_text_item("13'fhat is to say, the refutation.",
+                                    charspan_length=34, bbox_height=10.0)
+        parser = make_parser([])
+        ctx = make_ctx(text_seen_this_page=True, single_line_height=10.0,
+                       median_chars_per_line=50.0, body_line_height=10.0)
+        assert parser._is_footnote(item, ctx) is True
+
+    def test_h4_bracket_requires_text_seen(self) -> None:
+        """digit + bracket H4 still requires body text seen first."""
+        item = make_sized_text_item("3[See The Open Society, vol. ii.]",
+                                    charspan_length=33, bbox_height=10.0)
+        parser = make_parser([])
+        ctx = make_ctx(text_seen_this_page=False, single_line_height=10.0,
+                       median_chars_per_line=50.0, body_line_height=10.0)
+        assert parser._is_footnote(item, ctx) is False
+
+    # --- H2 body_line_height path: detects short digit-start footnotes ---
+
+    def test_h2_body_line_height_fires_for_short_item(self) -> None:
+        """Short digit-start item detected via body_line_height in the lower half of page.
+        bbox.height=8.0 < body_line_height=10.0 * 0.85=8.5 → small text → lower half → True."""
+        text = "1 short"
+        item = make_sized_text_item(text, charspan_length=len(text), bbox_height=8.0)
+        item.prov[0].bbox.t = 30.0   # lower half of 100-height page
+        parser = make_parser([], min_footnote_chars=100)
+        ctx = make_ctx(text_seen_this_page=True, single_line_height=10.0,
+                       median_chars_per_line=80.0, body_line_height=10.0,
+                       median_page_height=100.0)
+        assert parser._is_footnote(item, ctx) is True
+
+    def test_numbered_list_returns_false(self) -> None:
+        """A digit followed by period and space is a numbered list item, not a footnote,
+        even when all other conditions (small text, body seen, lower half) are met."""
+        text = "1. A numbered proposition about things."
+        item = make_sized_text_item(text, charspan_length=len(text), bbox_height=8.0)
+        item.prov[0].bbox.t = 30.0   # lower half
+        parser = make_parser([])
+        ctx = make_ctx(text_seen_this_page=True, single_line_height=10.0,
+                       median_chars_per_line=50.0, body_line_height=10.0,
+                       median_page_height=100.0)
+        assert parser._is_footnote(item, ctx) is False
+
+    def test_lower_half_digit_start_small_text_returns_true(self) -> None:
+        """A digit-start item in small text in the lower half of the page is a footnote
+        even without H4 or H1 signals."""
+        text = "1 Some footnote text."
+        item = make_sized_text_item(text, charspan_length=len(text), bbox_height=8.0)
+        item.prov[0].bbox.t = 30.0   # lower half of 100-height page
+        parser = make_parser([])
+        ctx = make_ctx(text_seen_this_page=True, single_line_height=10.0,
+                       median_chars_per_line=50.0, body_line_height=10.0,
+                       median_page_height=100.0)
+        assert parser._is_footnote(item, ctx) is True
+
+    def test_h2_body_line_height_does_not_fire_when_normal_sized(self) -> None:
+        """H2 must not fire when body_line_height is set but item is normal font size."""
+        text = "1 short"  # len=7, below min_footnote_chars=100
+        item = make_sized_text_item(text, charspan_length=len(text), bbox_height=10.0)
+        parser = make_parser([], min_footnote_chars=100)
+        # bbox.height=10.0 is NOT < 10.0*0.85=8.5 → body check fails; also too short for chars-per-line
+        ctx = make_ctx(text_seen_this_page=True, single_line_height=10.0,
+                       median_chars_per_line=80.0, body_line_height=10.0)
+        assert parser._is_footnote(item, ctx) is False
 
 
 # --- TestIsInPageRange ---
@@ -326,6 +595,12 @@ class TestExtractChunks:
         chunks = parser._extract_chunks(texts, [])
         assert chunks[0].meta['page_#'] == '42'
 
+    def test_chunk_meta_contains_physical_page_number(self) -> None:
+        texts = [make_text_item("Text.", page_no=42)]
+        parser = make_parser([])
+        chunks = parser._extract_chunks(texts, [])
+        assert chunks[0].meta['physical_page_#'] == '42'
+
     def test_chunk_label_matches_item_label(self) -> None:
         texts = [make_text_item("Text.")]
         parser = make_parser([])
@@ -333,81 +608,93 @@ class TestExtractChunks:
         assert chunks[0].label == DocItemLabel.TEXT
 
 
-# --- TestComputeBoundaryIndices ---
-
-class TestComputeBoundaryIndices:
-    def test_single_page_first_and_last_are_boundary(self) -> None:
-        items = [make_text_item("A"), make_text_item("B"), make_text_item("C")]
-        result = DoclingParser._compute_boundary_indices(items)
-        assert 0 in result   # first on page 1
-        assert 2 in result   # last on page 1
-
-    def test_middle_item_not_boundary(self) -> None:
-        items = [make_text_item("A"), make_text_item("B"), make_text_item("C")]
-        result = DoclingParser._compute_boundary_indices(items)
-        assert 1 not in result
-
-    def test_two_pages_each_contributes_boundaries(self) -> None:
-        items = [
-            make_text_item("A", page_no=1),
-            make_text_item("B", page_no=1),
-            make_text_item("C", page_no=2),
-            make_text_item("D", page_no=2),
-        ]
-        result = DoclingParser._compute_boundary_indices(items)
-        assert result == {0, 1, 2, 3}
-
-    def test_single_item_page_is_both_first_and_last(self) -> None:
-        items = [
-            make_text_item("A", page_no=1),
-            make_text_item("B", page_no=2),
-        ]
-        result = DoclingParser._compute_boundary_indices(items)
-        assert result == {0, 1}
-
-    def test_empty_list_returns_empty_set(self) -> None:
-        assert DoclingParser._compute_boundary_indices([]) == set()
 
 
-# --- TestIsRunningHead ---
+# --- TestIsPageHeader ---
 
-class TestIsRunningHead:
-    def test_all_conditions_met_returns_true(self) -> None:
-        header = make_section_header("Running Head")
-        parser = make_parser([])
-        ctx = make_ctx(prev_text_candidate=True, prev_ends_mid_sentence=True, single_line_height=10.0)
-        assert parser._is_running_head(0, header, {0}, ctx) is True
+class TestIsPageHeader:
 
-    def test_not_section_header_returns_false(self) -> None:
+    # --- Path A: validated PAGE_HEADER reference available ---
+
+    def test_path_a_section_header_at_reference_y_returns_true(self) -> None:
+        """SECTION_HEADER at reference y, single-line, no prior body text → True."""
+        header = make_section_header_at("Running Head", bbox_t=20.0, bbox_height=10.0)
+        ctx = make_ctx(header_top_y=20.0, single_line_height=10.0, text_seen_this_page=False)
+        assert DoclingParser._is_page_header(header, ctx) is True
+
+    def test_path_a_y_within_tolerance_returns_true(self) -> None:
+        """bbox.t within ± single_line_height of reference → True."""
+        header = make_section_header_at("Running Head", bbox_t=26.0, bbox_height=10.0)
+        ctx = make_ctx(header_top_y=20.0, single_line_height=10.0, text_seen_this_page=False)
+        assert DoclingParser._is_page_header(header, ctx) is True
+
+    def test_path_a_y_outside_tolerance_returns_false(self) -> None:
+        """bbox.t more than single_line_height from reference → False."""
+        header = make_section_header_at("Chapter One", bbox_t=200.0, bbox_height=10.0)
+        ctx = make_ctx(header_top_y=20.0, single_line_height=10.0, text_seen_this_page=False)
+        assert DoclingParser._is_page_header(header, ctx) is False
+
+    def test_path_a_not_section_header_returns_false(self) -> None:
+        """Non-SECTION_HEADER items are never running heads."""
         text = make_text_item("Some text")
-        parser = make_parser([])
-        ctx = make_ctx(prev_text_candidate=True, prev_ends_mid_sentence=True)
-        assert parser._is_running_head(0, text, {0}, ctx) is False
+        text.prov[0].bbox.t = 20.0
+        ctx = make_ctx(header_top_y=20.0, single_line_height=10.0, text_seen_this_page=False)
+        assert DoclingParser._is_page_header(text, ctx) is False
 
-    def test_not_at_boundary_returns_false(self) -> None:
-        header = make_section_header("Chapter One")
-        parser = make_parser([])
-        ctx = make_ctx(prev_text_candidate=True, prev_ends_mid_sentence=True)
-        assert parser._is_running_head(1, header, {0, 2}, ctx) is False
+    def test_path_a_suppressed_even_after_body_text(self) -> None:
+        """A section header at the reference y-coordinate is still a running head even when
+        body text appeared before it in Docling's text ordering. Docling does not guarantee
+        that mislabeled running heads appear before body text in doc.texts — the visual
+        position (bbox.t) is the reliable discriminator, not doc.texts order."""
+        header = make_section_header_at("REBUTTAL", bbox_t=20.0, bbox_height=10.0)
+        ctx = make_ctx(header_top_y=20.0, single_line_height=10.0, text_seen_this_page=True)
+        assert DoclingParser._is_page_header(header, ctx) is True
 
-    def test_prev_text_candidate_false_returns_false(self) -> None:
-        header = make_section_header("Running Head")
-        parser = make_parser([])
-        ctx = make_ctx(prev_text_candidate=False, prev_ends_mid_sentence=True)
-        assert parser._is_running_head(0, header, {0}, ctx) is False
+    def test_path_a_multi_line_returns_false(self) -> None:
+        """Multi-line item at reference y is a real header, not a running head."""
+        header = make_section_header_at("Running Head", bbox_t=20.0, bbox_height=30.0)
+        ctx = make_ctx(header_top_y=20.0, single_line_height=10.0, text_seen_this_page=False)
+        assert DoclingParser._is_page_header(header, ctx) is False
 
-    def test_prev_ends_mid_sentence_false_returns_false(self) -> None:
-        header = make_section_header("Running Head")
-        parser = make_parser([])
-        ctx = make_ctx(prev_text_candidate=True, prev_ends_mid_sentence=False)
-        assert parser._is_running_head(0, header, {0}, ctx) is False
+    # --- Path B: no validated PAGE_HEADER reference ---
 
-    def test_multi_line_header_returns_false(self) -> None:
-        header = make_section_header("Running Head")
-        header.prov[0].bbox.height = 30.0  # too tall for single-line (10.0 * 1.3 = 13.0)
-        parser = make_parser([])
-        ctx = make_ctx(prev_text_candidate=True, prev_ends_mid_sentence=True, single_line_height=10.0)
-        assert parser._is_running_head(0, header, {0}, ctx) is False
+    def test_path_b_at_top_of_page_returns_true(self) -> None:
+        """Section header in top 15% of page → True when no reference available.
+
+        Docling PDFs use BOTTOMLEFT coordinates: bbox.t increases going up, so
+        a header near the top of the page has a large bbox.t (close to page height)."""
+        header = make_section_header_at("Running Head", bbox_t=900.0, bbox_height=10.0)
+        ctx = make_ctx(header_top_y=None, median_page_height=1000.0,
+                       single_line_height=10.0, text_seen_this_page=False)
+        assert DoclingParser._is_page_header(header, ctx) is True
+
+    def test_path_b_not_at_top_returns_false(self) -> None:
+        """Section header in middle of page → False in Path B."""
+        header = make_section_header_at("Chapter One", bbox_t=500.0, bbox_height=10.0)
+        ctx = make_ctx(header_top_y=None, median_page_height=1000.0,
+                       single_line_height=10.0, text_seen_this_page=False)
+        assert DoclingParser._is_page_header(header, ctx) is False
+
+    def test_path_b_suppressed_even_after_body_text(self) -> None:
+        """Path B also uses position alone — doc.texts ordering is not reliable."""
+        header = make_section_header_at("Running Head", bbox_t=900.0, bbox_height=10.0)
+        ctx = make_ctx(header_top_y=None, median_page_height=1000.0,
+                       single_line_height=10.0, text_seen_this_page=True)
+        assert DoclingParser._is_page_header(header, ctx) is True
+
+    def test_path_b_no_page_height_returns_false(self) -> None:
+        """With no page height info, Path B must not fire (division by zero guard)."""
+        header = make_section_header_at("Running Head", bbox_t=50.0, bbox_height=10.0)
+        ctx = make_ctx(header_top_y=None, median_page_height=0.0,
+                       single_line_height=10.0, text_seen_this_page=False)
+        assert DoclingParser._is_page_header(header, ctx) is False
+
+    def test_path_b_multi_line_returns_false(self) -> None:
+        """Multi-line item near top of page is a real chapter header, not a running head."""
+        header = make_section_header_at("Running Head", bbox_t=50.0, bbox_height=30.0)
+        ctx = make_ctx(header_top_y=None, median_page_height=1000.0,
+                       single_line_height=10.0, text_seen_this_page=False)
+        assert DoclingParser._is_page_header(header, ctx) is False
 
 
 # --- TestUpdateTextState ---
@@ -434,35 +721,17 @@ class TestUpdateTextState:
         parser._update_text_state(text, ctx)
         assert ctx.prev_text_candidate is False
 
-    def test_alpha_ending_sets_prev_ends_mid_sentence(self) -> None:
-        text = make_text_item("ends with alpha")
-        parser = make_parser([])
+    def test_colon_ending_clears_prev_text_candidate(self) -> None:
+        """Text ending with ':' clears prev_text_candidate even when long.
+        A following digit-start item after a colon is a list continuation, not a footnote."""
+        text = make_text_item("A" * 100 + ":")
+        parser = make_parser([], min_footnote_chars=100)
         ctx = make_ctx()
         parser._update_text_state(text, ctx)
-        assert ctx.prev_ends_mid_sentence is True
-
-    def test_comma_ending_sets_prev_ends_mid_sentence(self) -> None:
-        text = make_text_item("ends with comma,")
-        parser = make_parser([])
-        ctx = make_ctx()
-        parser._update_text_state(text, ctx)
-        assert ctx.prev_ends_mid_sentence is True
-
-    def test_period_ending_clears_prev_ends_mid_sentence(self) -> None:
-        text = make_text_item("ends with period.")
-        parser = make_parser([])
-        ctx = make_ctx(prev_ends_mid_sentence=True)
-        parser._update_text_state(text, ctx)
-        assert ctx.prev_ends_mid_sentence is False
-
-    def test_non_text_label_clears_prev_ends_mid_sentence(self) -> None:
-        header = make_section_header("A Chapter")
-        parser = make_parser([])
-        ctx = make_ctx(prev_ends_mid_sentence=True)
-        parser._update_text_state(header, ctx)
-        assert ctx.prev_ends_mid_sentence is False
+        assert ctx.prev_text_candidate is False
 
     def test_non_text_label_does_not_change_prev_text_candidate(self) -> None:
+        """Non-TEXT items (section headers etc.) do not affect the H1 footnote gate."""
         header = make_section_header("A Chapter")
         parser = make_parser([])
         ctx = make_ctx(prev_text_candidate=True)
@@ -479,7 +748,10 @@ class TestGetProcessedTexts:
             make_footnote("Footnote text."),
         ]
         parser = make_parser(texts)
-        regular, notes = parser._get_processed_texts()
+        classified = parser._get_processed_texts()
+        _SKIP = {'footnote', 'page_header', 'too_short'}
+        regular = [item for item, label in classified if label not in _SKIP]
+        notes = [item for item, label in classified if label == 'footnote']
         assert len(regular) == 1
         assert len(notes) == 1
 
@@ -489,25 +761,25 @@ class TestGetProcessedTexts:
             make_text_item("This is a longer sentence."),
         ]
         parser = make_parser(texts)
-        regular, notes = parser._get_processed_texts()
-        assert len(regular) == 1
-        assert regular[0].text == "This is a longer sentence."
+        classified = parser._get_processed_texts()
+        assert len(classified) == 2
+        assert classified[0][1] == 'too_short'
+        assert classified[1][1] != 'too_short'
 
-    def test_regular_texts_before_notes(self) -> None:
+    def test_document_order_preserved(self) -> None:
         texts = [
             make_footnote("Footnote."),
             make_text_item("Regular text."),
         ]
         parser = make_parser(texts)
-        regular, notes = parser._get_processed_texts()
-        assert regular[0].text == "Regular text."
-        assert notes[0].text == "Footnote."
+        classified = parser._get_processed_texts()
+        assert classified[0][0].text == "Footnote."
+        assert classified[1][0].text == "Regular text."
 
     def test_empty_document(self) -> None:
         parser = make_parser([])
-        regular, notes = parser._get_processed_texts()
-        assert regular == []
-        assert notes == []
+        classified = parser._get_processed_texts()
+        assert classified == []
 
 
 # --- TestRun ---
@@ -546,23 +818,37 @@ class TestRun:
         assert any("First sentence ends here." in d for d in docs)
         assert any("Chapter Two" in d for d in docs)
 
-    def test_section_header_skipped_after_mid_sentence_text(self) -> None:
-        """A section header right after long mid-sentence text is treated as a
-        mislabeled running page header and dropped. Conditions: the preceding text
-        must be >= min_footnote_chars (100), end without sentence-terminating
-        punctuation, and the section header must be single-line (established by
-        including a page header so compute_single_line_height returns a non-zero value)."""
-        long_mid_sentence = "This is a long body paragraph that does not end with punctuation " \
-                            "and continues well past the one hundred character minimum threshold"
+    def test_section_header_skipped_at_top_of_new_page(self) -> None:
+        """A single-line section header that is the first item on a new page,
+        positioned at the same y-coordinate as a validated running PAGE_HEADER,
+        is suppressed as a mislabeled running head."""
+        body = "Body text on page one that clearly belongs there."
         texts = [
-            make_page_header("Running Head"),   # establishes single_line_height = 10.0
-            make_text_item(long_mid_sentence),
-            make_section_header("Chapter Two"), # bbox height 10.0 — qualifies as single-line
+            make_page_header("Running Head", page_no=1),    # validated: first on page 1, bbox.t=0.0
+            make_text_item(body, page_no=1),
+            make_section_header_at("Running Head", page_no=2,  # first on page 2, bbox.t=0.0 → matches
+                                   bbox_t=0.0, bbox_height=10.0),
         ]
         parser = make_parser(texts)
         docs, meta = parser.run()
-        assert any(long_mid_sentence in d for d in docs)
-        assert all("Chapter Two" not in d for d in docs)
+        assert any(body in d for d in docs)
+        assert all("Running Head" not in d for d in docs)
+
+    def test_section_header_in_content_area_not_suppressed(self) -> None:
+        """A section header whose bbox.t places it in the content area (far below the
+        header margin) must NOT be suppressed, even when a validated page header exists.
+        The calibration derives header_top_y from the page header's bbox.t; the section
+        header is far enough below it that the position check leaves it alone."""
+        short_colon = "The inference rule has the form:"
+        texts = [
+            make_page_header("Running Head", page_no=1),                   # calibrated reference at bbox.t=0.0
+            make_text_item(short_colon, page_no=1),
+            make_section_header_at("1. If P, then Q;", page_no=1,
+                                   bbox_t=200.0, bbox_height=10.0),        # content area, far below reference
+        ]
+        parser = make_parser(texts, min_footnote_chars=100)
+        docs, meta = parser.run()
+        assert any("1. If P, then Q;" in d for d in docs)
 
     def test_skips_page_header(self) -> None:
         texts = [
@@ -601,11 +887,17 @@ class TestRun:
         assert all("Footnote content." not in d for d in docs)
 
     def test_digit_start_after_incomplete_sentence_classified_as_note(self) -> None:
-        # Preceding text is long and doesn't end with punctuation → footnote heuristic fires
+        # Preceding text is long and doesn't end with punctuation → footnote heuristic fires.
+        # Page footer provides single_line_height; footnote item is smaller than body text.
         preceding = "A" * 100
+        footnote_item = make_sized_text_item(
+            "1 This is an unlabelled footnote reference.",
+            charspan_length=43, bbox_height=8.0,
+        )
         texts = [
             make_text_item(preceding),
-            make_text_item("1 This is an unlabelled footnote reference."),
+            footnote_item,
+            make_page_footer("1", page_no=1),   # gives single_line_height=10.0
         ]
         parser = make_parser(texts, include_notes=False, min_footnote_chars=100)
         docs, meta = parser.run()
@@ -633,6 +925,143 @@ class TestRun:
         parser = make_parser(texts, include_notes=False, min_footnote_chars=100)
         docs, meta = parser.run()
         assert any("183-84" in d for d in docs)
+
+    def test_docling_out_of_order_emission_body_text_preserved(self) -> None:
+        """When Docling emits a footnote before body text on the same page (i.e. the
+        footnote appears earlier in doc.texts even though it is physically at the
+        bottom of the page), the body text must not be swept by H3.
+
+        Regression: Realism and the Aim of Science, p. 252 (physical p. 293).
+        Footnotes 6, 7, 8 are emitted by Docling before the body text paragraphs.
+        With the unconditional H3, the first footnote sets found_note_this_page=True
+        and all subsequent TEXT items — including body text — are swept as footnotes.
+
+        Fix: sort each page's items by bbox.t descending before classification so
+        body text (high bbox.t) is always processed before footnotes (low bbox.t),
+        regardless of Docling's emission order.
+        """
+        # Page 1: long body text ending mid-sentence → sets prev_text_candidate=True
+        body_p1 = make_sized_text_item("A" * 150, charspan_length=150, bbox_height=10.0,
+                                        page_no=1)
+        body_p1.prov[0].bbox.t = 580.0
+
+        # Page 2: Docling emits the footnote (physically at bottom) BEFORE the body
+        # text (physically near the top) — the order that triggers the regression.
+        footnote_p2 = make_sized_text_item("3See my earlier work on this topic.",
+                                            charspan_length=35, bbox_height=8.0,
+                                            page_no=2)
+        footnote_p2.prov[0].bbox.t = 80.0   # bottom of 700-unit page
+
+        body_p2 = make_sized_text_item("The central thesis now stands complete.",
+                                        charspan_length=39, bbox_height=10.0,
+                                        page_no=2)
+        body_p2.prov[0].bbox.t = 580.0      # top of page
+
+        # Items in Docling's wrong emission order: footnote before body text on p.2
+        texts = [body_p1, footnote_p2, body_p2]
+        parser = make_parser(texts, include_notes=False, min_footnote_chars=100,
+                             page_height=700.0)
+        docs, _ = parser.run()
+
+        assert any("central thesis" in d for d in docs), (
+            "Body text on p.2 was swept as a footnote because Docling emitted "
+            "the footnote before the body text and H3 fired unconditionally."
+        )
+
+    def test_two_column_page_preserves_emission_order(self) -> None:
+        """A page whose items span two columns (bbox.l spread > 100 pts) must not be
+        Y-sorted — Docling's emission order is preserved to avoid interleaving columns.
+
+        Setup: Docling emits the left-column item first, then the right-column item.
+        The right item has a higher bbox.t (480 > 400), so a naive Y-sort would move
+        it before the left item.  With multi-column detection the sort is skipped and
+        the original emission order (left before right) must be preserved.
+        """
+        left_item = make_sized_text_item("Left column text on this page.",
+                                         charspan_length=30, bbox_height=10.0, page_no=1)
+        left_item.prov[0].bbox.t = 400.0
+        left_item.prov[0].bbox.l = 50.0    # left column
+
+        right_item = make_sized_text_item("Right column text on this page.",
+                                          charspan_length=31, bbox_height=10.0, page_no=1)
+        right_item.prov[0].bbox.t = 480.0  # higher t → naive Y-sort puts this first
+        right_item.prov[0].bbox.l = 350.0  # right column; spread = 350-50 = 300 > 100
+
+        texts = [left_item, right_item]
+        parser = make_parser(texts, include_notes=False)
+        docs, _ = parser.run()
+
+        left_idx = next(i for i, d in enumerate(docs) if "Left column" in d)
+        right_idx = next(i for i, d in enumerate(docs) if "Right column" in d)
+        assert left_idx < right_idx, (
+            "Two-column page was Y-sorted, interleaving left and right columns. "
+            "Items with bbox.l spread > 100 should preserve Docling's emission order."
+        )
+
+    def test_centered_section_header_does_not_block_sort(self) -> None:
+        """A centered section header with a large bbox.l must not trigger multi-column
+        detection.  Only TEXT items should contribute to the l-spread calculation.
+
+        Setup mirrors the real p.293 problem.  A body text item on page 1 sets
+        prev_text_candidate=True (ends mid-sentence).  On page 2, Docling emits a
+        footnote (physically at bottom, low bbox.t) before the body text (physically
+        at the top, high bbox.t).  A SECTION_HEADER with bbox.l=178 sits on page 2,
+        pushing the ALL-item l-spread above 100.
+
+        Without the TEXT-only filter: sort skipped → footnote processed first →
+        H1 fires (prev_text_candidate=True from p.1, digit-start, lower half) →
+        found_note_this_page=True → H3 sweeps body text → body text lost.
+
+        With the fix: only TEXT items contribute to the l-spread → spread < 100 →
+        sort fires → body text processed first → survives.
+        """
+        # Page 1: long mid-sentence body text → sets prev_text_candidate=True
+        prev_body = make_sized_text_item("A" * 150, charspan_length=150,
+                                         bbox_height=10.0, page_no=1)
+        prev_body.prov[0].bbox.t = 400.0
+        prev_body.prov[0].bbox.l = 61.0
+
+        # Page 2: footnote emitted first by Docling (physically at bottom, low t)
+        footnote = make_sized_text_item("6See footnote 4.", charspan_length=16,
+                                        bbox_height=10.0, page_no=2)
+        footnote.prov[0].bbox.t = 80.0   # lower half of 700-unit page → H1 fires
+        footnote.prov[0].bbox.l = 68.0
+
+        # Page 2: body text emitted second (physically at top, high t)
+        body = make_sized_text_item(
+            "Thus both the problems are solved. Yet there seems to be room.",
+            charspan_length=62, bbox_height=10.0, page_no=2)
+        body.prov[0].bbox.t = 550.0
+        body.prov[0].bbox.l = 61.0
+
+        # Page 2: centered section header — large l, not a second column
+        header = make_section_header("CORROBORATION", page_no=2)
+        header.prov[0].bbox.t = 580.0
+        header.prov[0].bbox.l = 178.0   # all-item spread: 178-61=117 > 100
+
+        # Docling emits: prev_body, footnote, body, header (footnote before body)
+        texts = [prev_body, footnote, body, header]
+        parser = make_parser(texts, include_notes=False, min_footnote_chars=100,
+                             page_height=700.0)
+        docs, _ = parser.run()
+
+        assert any("problems are solved" in d for d in docs), (
+            "Body text was swept as a footnote. The centered section header "
+            "triggered false multi-column detection and blocked the sort."
+        )
+
+    def test_notes_section_header_triggers_endnote_path(self) -> None:
+        """A 'Notes' SECTION_HEADER causes subsequent digit+alpha TEXT items to be
+        classified as endnotes, even without small text or body text on the page."""
+        texts = [
+            make_text_item("Body text on some earlier page.", page_no=1),
+            make_section_header("Notes", page_no=2),
+            make_text_item("9 Manning asserts that what makes an illegal seizure of power...",
+                           page_no=2),
+        ]
+        parser = make_parser(texts, include_notes=False)
+        docs, meta = parser.run()
+        assert all("Manning asserts" not in d for d in docs)
 
     def test_start_page_filters_early_pages(self) -> None:
         texts = [
@@ -705,6 +1134,93 @@ class TestRun:
         assert meta == []
 
 
+# --- TestProcessedTextsFile ---
+
+class TestProcessedTextsFile:
+    """_processed_texts.txt must contain every DocItem in document order.
+    Reclassified items show 'original_label → new_label:'; unchanged items show just their label."""
+
+    def _make_file_parser(self, texts, tmp_path, **kwargs):
+        parser = make_parser(texts, **kwargs)
+        parser._file_path = tmp_path / "test.pdf"
+        return parser
+
+    def _read_file(self, tmp_path):
+        return (tmp_path / "test_doc_processed_texts.txt").read_text(encoding="utf-8")
+
+    def test_suppressed_page_header_appears_in_file(self, tmp_path) -> None:
+        """A section header suppressed as a running page header must still be written to the file."""
+        texts = [
+            make_page_header_at("PH", page_no=1, bbox_t=0.0),   # validates bbox.t=0.0
+            make_text_item("Body text.", page_no=1),
+            make_section_header_at("Suppressed Head", page_no=2, # first on page 2, same y
+                                   bbox_t=0.0, bbox_height=10.0),
+        ]
+        parser = self._make_file_parser(texts, tmp_path)
+        parser.run(generate_text_file=True, annotate_reclassifications=True)
+        assert "Suppressed Head" in self._read_file(tmp_path)
+
+    def test_suppressed_page_header_shows_reclassified_label(self, tmp_path) -> None:
+        """A suppressed section header must show 'section_header → page_header' on its line."""
+        texts = [
+            make_page_header_at("PH", page_no=1, bbox_t=0.0),   # validates bbox.t=0.0
+            make_text_item("Body text.", page_no=1),
+            make_section_header_at("Suppressed Head", page_no=2, # first on page 2, same y
+                                   bbox_t=0.0, bbox_height=10.0),
+        ]
+        parser = self._make_file_parser(texts, tmp_path)
+        parser.run(generate_text_file=True, annotate_reclassifications=True)
+        content = self._read_file(tmp_path)
+        assert any(
+            "section_header" in line and "page_header" in line and "Suppressed Head" in line
+            for line in content.splitlines()
+        )
+
+    def test_reclassified_footnote_shows_arrow_label(self, tmp_path) -> None:
+        """A TEXT item reclassified as footnote must show 'text → footnote:' on its line.
+        Page footer provides single_line_height; footnote item is smaller than body text."""
+        long_mid = "A" * 100
+        footnote_item = make_sized_text_item(
+            "1 This is a citation reference.",
+            charspan_length=31, bbox_height=8.0,
+        )
+        texts = [
+            make_text_item(long_mid),
+            footnote_item,
+            make_page_footer("1", page_no=1),   # gives single_line_height=10.0
+        ]
+        parser = self._make_file_parser(texts, tmp_path, min_footnote_chars=100)
+        parser.run(generate_text_file=True, annotate_reclassifications=True)
+        content = self._read_file(tmp_path)
+        assert any(
+            "text" in line and "footnote" in line and "citation reference" in line
+            for line in content.splitlines()
+        )
+
+    def test_unmodified_item_shows_no_arrow(self, tmp_path) -> None:
+        """Regular body text that is not reclassified must appear with no → on its line."""
+        texts = [make_text_item("Regular body text here.")]
+        parser = self._make_file_parser(texts, tmp_path)
+        parser.run(generate_text_file=True, annotate_reclassifications=True)
+        content = self._read_file(tmp_path)
+        body_line = next(l for l in content.splitlines() if "Regular body text here." in l)
+        assert "→" not in body_line
+
+    def test_items_appear_in_document_order(self, tmp_path) -> None:
+        """All items must appear in document order — footnotes must not be moved to the end."""
+        long_mid = "A" * 100
+        texts = [
+            make_text_item("First body.", page_no=1),
+            make_text_item(long_mid, page_no=1),
+            make_text_item("1 A citation.", page_no=1),
+            make_text_item("Second body.", page_no=2),
+        ]
+        parser = self._make_file_parser(texts, tmp_path, min_footnote_chars=100)
+        parser.run(generate_text_file=True, annotate_reclassifications=False)
+        content = self._read_file(tmp_path)
+        assert content.index("A citation.") < content.index("Second body.")
+
+
 # --- TestIntegration ---
 
 class TestIntegration:
@@ -722,7 +1238,348 @@ class TestIntegration:
                 page_no=1
             ),
         ]
-        parser = make_parser(texts, cleaner=TextCleaner(temperature=0), include_notes=False)
+        parser = make_parser(texts, cleaner=TextCleaner(model=TEST_LLM_MODEL, temperature=0), include_notes=False)
         docs, meta = parser.run()
         assert any("religious sects" in d for d in docs)
         assert all("This ignores the interesting question" not in d for d in docs)
+
+
+# --- TestFormatPage ---
+
+class TestFormatPage:
+    """Tests for DoclingParser._format_page(page_no) -> str.
+
+    When the PDF label matches the physical number, show just one.
+    When they differ, show [Page <label> / Page <physical>].
+    """
+
+    def test_no_labels_shows_physical_number_only(self) -> None:
+        """Without a label table, label falls back to physical — show just the number."""
+        parser = make_parser([])
+        assert parser._format_page(42) == '42'
+
+    def test_matching_label_shows_single_number(self) -> None:
+        """When the PDF label equals the physical number string, show it once."""
+        parser = make_parser([], page_labels={4: '5'})   # Docling page 5 → index 4 → '5'
+        assert parser._format_page(5) == '5'
+
+    def test_differing_label_shows_both(self) -> None:
+        """When label and physical differ, show [Page <label> / Page <physical>]."""
+        parser = make_parser([], page_labels={40: '1'})  # Docling page 41 → index 40 → '1'
+        assert parser._format_page(41) == '[Page 1 / Page 41]'
+
+    def test_roman_numeral_label_shows_both(self) -> None:
+        """Roman numeral front-matter labels always differ from the physical number."""
+        parser = make_parser([], page_labels={0: 'i'})
+        assert parser._format_page(1) == '[Page i / Page 1]'
+
+    def test_empty_string_label_falls_back_to_physical(self) -> None:
+        """pypdfium2 empty-string label is treated as no label — show physical only."""
+        parser = make_parser([], page_labels={4: ''})
+        assert parser._format_page(5) == '5'
+
+
+# --- TestPageLabels ---
+
+class TestPageLabels:
+    """Tests for PDF page label integration in DoclingParser.
+
+    Docling's page_no is 1-based; pypdfium2 page label indices are 0-based.
+    So page_no N maps to label index N-1.
+    """
+
+    def test_page_meta_uses_pdf_label_when_available(self) -> None:
+        """When labels are provided, chunk metadata uses the label not the physical number."""
+        texts = [make_text_item("Body text.", page_no=1)]
+        parser = make_parser(texts, page_labels={0: 'i'})
+        chunks = parser._extract_chunks(texts, [])
+        assert chunks[0].meta['page_#'] == 'i'
+
+    def test_page_meta_falls_back_to_physical_number_without_labels(self) -> None:
+        """Without page labels, chunk metadata falls back to the physical page number string."""
+        texts = [make_text_item("Body text.", page_no=42)]
+        parser = make_parser(texts)
+        chunks = parser._extract_chunks(texts, [])
+        assert chunks[0].meta['page_#'] == '42'
+
+    def test_empty_string_label_falls_back_to_physical_number(self) -> None:
+        """pypdfium2 returns '' for PDFs with no page label table; must still show physical number."""
+        texts = [make_text_item("Body text.", page_no=5)]
+        parser = make_parser(texts, page_labels={4: ''})   # empty string, not None
+        chunks = parser._extract_chunks(texts, [])
+        assert chunks[0].meta['page_#'] == '5'
+
+    def test_arabic_label_stored_verbatim_in_meta(self) -> None:
+        """Arabic page labels are stored verbatim — the body of a book with 40 front-matter pages."""
+        texts = [make_text_item("Body text.", page_no=41)]
+        parser = make_parser(texts, page_labels={40: '1'})   # Docling page 41 → index 40 → '1'
+        chunks = parser._extract_chunks(texts, [])
+        assert chunks[0].meta['page_#'] == '1'
+
+    def test_front_matter_pages_skipped_when_enabled(self) -> None:
+        """Pages with Roman numeral labels are excluded when skip_front_matter=True."""
+        texts = [
+            make_text_item("Front matter text.", page_no=1),
+            make_text_item("Body text.", page_no=2),
+        ]
+        parser = make_parser(texts, page_labels={0: 'i', 1: '1'}, skip_front_matter=True)
+        chunks = parser._extract_chunks(texts, [])
+        assert len(chunks) == 1
+        assert chunks[0].meta['page_#'] == '1'
+
+    def test_front_matter_included_when_skip_front_matter_false(self) -> None:
+        """Front matter pages are kept when skip_front_matter=False (the default)."""
+        texts = [
+            make_text_item("Front matter text.", page_no=1),
+            make_text_item("Body text.", page_no=2),
+        ]
+        parser = make_parser(texts, page_labels={0: 'i', 1: '1'}, skip_front_matter=False)
+        chunks = parser._extract_chunks(texts, [])
+        assert len(chunks) == 2
+
+    def test_both_page_numbers_present_in_meta(self) -> None:
+        """Both the PDF label and the physical page number appear in chunk metadata."""
+        texts = [make_text_item("Body text.", page_no=41)]
+        parser = make_parser(texts, page_labels={40: '1'})
+        chunks = parser._extract_chunks(texts, [])
+        assert chunks[0].meta['page_#'] == '1'
+        assert chunks[0].meta['physical_page_#'] == '41'
+
+    def test_physical_page_matches_docling_page_no(self) -> None:
+        """physical_page_# always reflects Docling's page_no regardless of label."""
+        texts = [make_text_item("Front matter.", page_no=5)]
+        parser = make_parser(texts, page_labels={4: 'v'})
+        chunks = parser._extract_chunks(texts, [])
+        assert chunks[0].meta['physical_page_#'] == '5'
+        assert chunks[0].meta['page_#'] == 'v'
+
+    def test_multiple_front_matter_pages_all_skipped(self) -> None:
+        """All Roman-numeral-labeled pages are dropped, not just the first."""
+        texts = [
+            make_text_item("Front matter p1.", page_no=1),
+            make_text_item("Front matter p2.", page_no=2),
+            make_text_item("Body text.", page_no=3),
+        ]
+        parser = make_parser(texts, page_labels={0: 'i', 1: 'ii', 2: '1'}, skip_front_matter=True)
+        chunks = parser._extract_chunks(texts, [])
+        assert len(chunks) == 1
+        assert "Body text." in chunks[0].text
+
+
+# --- TestFindIndexStartPage ---
+
+class TestFindIndexStartPage:
+    """Tests for DoclingParser._find_index_start_page().
+
+    The method scans self._doc.texts for two signals that indicate the start of
+    a back-matter index section:
+
+      - PAGE_HEADER: text contains 'index' after all whitespace is stripped
+        (handles OCR-spaced titles like 'I N DEX OF SUBJ ECTS').
+      - SECTION_HEADER: text contains 'index', 'indexes', 'indices', or 'indice'
+        as a complete word (word-boundary anchored, case-insensitive).
+
+    Both signals are subject to a position gate: signals in the first 70% of
+    the document are ignored to prevent false positives (e.g. a chapter titled
+    'Indexical Reference' early in the book). Total page count is estimated
+    from the highest page_no seen across all items in self._doc.texts.
+    """
+
+    def test_returns_none_when_no_index(self) -> None:
+        """No index signals present → None."""
+        texts = [
+            make_text_item("Body text.", page_no=1),
+            make_text_item("More body.", page_no=2),
+        ]
+        parser = make_parser(texts)
+        assert parser._find_index_start_page() is None
+
+    def test_page_header_plain_index(self) -> None:
+        """PAGE_HEADER 'Index' in the last 30% of the book → returns that page number."""
+        texts = [
+            make_text_item("Body.", page_no=1),
+            make_text_item("More body.", page_no=100),  # establishes max_page=100
+            make_page_header("Index", page_no=90),
+        ]
+        parser = make_parser(texts)
+        assert parser._find_index_start_page() == 90
+
+    def test_page_header_ocr_spaced(self) -> None:
+        """PAGE_HEADER 'I N DEX OF SUBJ ECTS' → strip whitespace → 'indexofsubjects' → detected."""
+        texts = [
+            make_text_item("Body.", page_no=1),
+            make_text_item("More body.", page_no=100),
+            make_page_header("I N DEX OF SUBJ ECTS", page_no=90),
+        ]
+        parser = make_parser(texts)
+        assert parser._find_index_start_page() == 90
+
+    def test_page_header_index_of_names(self) -> None:
+        """PAGE_HEADER 'Index of Names' → 'indexofnames' contains 'index' → detected."""
+        texts = [
+            make_text_item("Body.", page_no=1),
+            make_text_item("More body.", page_no=100),
+            make_page_header("Index of Names", page_no=95),
+        ]
+        parser = make_parser(texts)
+        assert parser._find_index_start_page() == 95
+
+    def test_section_header_index(self) -> None:
+        """SECTION_HEADER 'Index' (exact word) in the last 30% → detected."""
+        texts = [
+            make_text_item("Body.", page_no=1),
+            make_text_item("More body.", page_no=100),
+            make_section_header("Index", page_no=90),
+        ]
+        parser = make_parser(texts)
+        assert parser._find_index_start_page() == 90
+
+    def test_section_header_indices(self) -> None:
+        """SECTION_HEADER 'Indices' → word-boundary match on 'indices' → detected."""
+        texts = [
+            make_text_item("Body.", page_no=1),
+            make_text_item("More body.", page_no=100),
+            make_section_header("Indices", page_no=90),
+        ]
+        parser = make_parser(texts)
+        assert parser._find_index_start_page() == 90
+
+    def test_section_header_index_of_names(self) -> None:
+        """SECTION_HEADER 'Index of Names' → 'index' matches as a complete word → detected."""
+        texts = [
+            make_text_item("Body.", page_no=1),
+            make_text_item("More body.", page_no=100),
+            make_section_header("Index of Names", page_no=92),
+        ]
+        parser = make_parser(texts)
+        assert parser._find_index_start_page() == 92
+
+    def test_multiple_signals_returns_minimum_page(self) -> None:
+        """When both SECTION_HEADER and PAGE_HEADER fire, the earliest page wins.
+
+        Typical structure: 'Indices' section header appears on the first index page
+        (page 88); the running page header 'I N DEX OF SUBJ ECTS' appears from
+        page 89 onwards. The section header fires first, so 88 is returned.
+        """
+        texts = [
+            make_text_item("Body.", page_no=1),
+            make_text_item("More body.", page_no=100),
+            make_section_header("Indices", page_no=88),
+            make_page_header("I N DEX OF SUBJ ECTS", page_no=89),
+        ]
+        parser = make_parser(texts)
+        assert parser._find_index_start_page() == 88
+
+    def test_position_gate_rejects_early_section_header(self) -> None:
+        """A section header 'Indices' in the first 70% of the book is ignored.
+
+        Prevents false positives from chapter titles that happen to contain
+        the word 'index' early in the text. Here page 5 of 100 (5%) is well
+        within the first 70%, so the gate fires and None is returned.
+        """
+        texts = [
+            make_text_item("Body.", page_no=1),
+            make_text_item("More body.", page_no=100),  # max_page=100; gate threshold=70
+            make_section_header("Indices", page_no=5),  # page 5 < 70 → rejected
+        ]
+        parser = make_parser(texts)
+        assert parser._find_index_start_page() is None
+
+    def test_position_gate_rejects_early_page_header(self) -> None:
+        """A PAGE_HEADER containing 'index' in the first 70% of the book is ignored."""
+        texts = [
+            make_text_item("Body.", page_no=1),
+            make_text_item("More body.", page_no=100),
+            make_page_header("Index", page_no=10),  # page 10 < 70 → rejected
+        ]
+        parser = make_parser(texts)
+        assert parser._find_index_start_page() is None
+
+    def test_indexical_section_header_not_matched(self) -> None:
+        """'Indexical Reference' contains 'index' as a prefix but not as a whole word.
+
+        The word-boundary regex \\bindex\\b must not match inside 'Indexical'.
+        """
+        texts = [
+            make_text_item("Body.", page_no=1),
+            make_text_item("More body.", page_no=100),
+            make_section_header("Indexical Reference", page_no=90),
+        ]
+        parser = make_parser(texts)
+        assert parser._find_index_start_page() is None
+
+    def test_page_footer_index_not_matched(self) -> None:
+        """PAGE_FOOTER items are not inspected — only PAGE_HEADER and SECTION_HEADER."""
+        texts = [
+            make_text_item("Body.", page_no=1),
+            make_text_item("More body.", page_no=100),
+            make_page_footer("Index", page_no=90),
+        ]
+        parser = make_parser(texts)
+        assert parser._find_index_start_page() is None
+
+    def test_body_text_item_index_not_matched(self) -> None:
+        """A regular TEXT item containing the word 'index' must not trigger detection."""
+        texts = [
+            make_text_item("Body.", page_no=1),
+            make_text_item("See the index for more.", page_no=100),
+        ]
+        parser = make_parser(texts)
+        assert parser._find_index_start_page() is None
+
+
+# --- TestSkipIndex ---
+
+class TestSkipIndex:
+    """Integration tests for skip_index=True end-to-end through run()."""
+
+    def test_skip_index_removes_index_and_later_pages(self) -> None:
+        """With skip_index=True, the detected index page and all pages after are excluded."""
+        texts = [
+            make_text_item("Body text on page one.", page_no=1),
+            make_text_item("More body on page two.", page_no=2),
+            make_text_item("More body.", page_no=100),   # establishes max_page=100
+            make_page_header("Index", page_no=90),        # signals index start at page 90
+            make_text_item("Subject: Popper, 45, 78.", page_no=90),
+            make_text_item("Still index content.", page_no=95),
+        ]
+        parser = make_parser(texts, skip_index=True)
+        docs, _ = parser.run()
+        assert any("Body text on page one." in d for d in docs)
+        assert all("Subject: Popper" not in d for d in docs)
+        assert all("Still index content." not in d for d in docs)
+
+    def test_skip_index_false_keeps_index_pages(self) -> None:
+        """With skip_index=False (explicit), index pages are included in output."""
+        texts = [
+            make_text_item("Body text.", page_no=1),
+            make_text_item("More body.", page_no=100),
+            make_page_header("Index", page_no=90),
+            make_text_item("Subject: Popper, 45, 78.", page_no=90),
+        ]
+        parser = make_parser(texts, skip_index=False)
+        docs, _ = parser.run()
+        assert any("Subject: Popper" in d for d in docs)
+
+    def test_skip_index_default_is_false(self) -> None:
+        """Without the skip_index argument, default is False and index pages are kept."""
+        texts = [
+            make_text_item("Body text.", page_no=1),
+            make_text_item("More body.", page_no=100),
+            make_page_header("Index", page_no=90),
+            make_text_item("Subject: Popper, 45, 78.", page_no=90),
+        ]
+        parser = make_parser(texts)   # no skip_index argument
+        docs, _ = parser.run()
+        assert any("Subject: Popper" in d for d in docs)
+
+    def test_skip_index_no_index_found_keeps_all_content(self) -> None:
+        """With skip_index=True but no detectable index, nothing is dropped."""
+        texts = [
+            make_text_item("Body text on page one.", page_no=1),
+            make_text_item("Body text on page two.", page_no=2),
+        ]
+        parser = make_parser(texts, skip_index=True)
+        docs, _ = parser.run()
+        assert any("Body text on page one." in d for d in docs)
+        assert any("Body text on page two." in d for d in docs)

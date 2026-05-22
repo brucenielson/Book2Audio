@@ -19,6 +19,7 @@ from utils.general_utils import extract_pdf_pages
 
 # DOC_NAME = r"Realism and the Aim of Science - Intro Test - 2017"
 DOC_NAME = r"Realism and the Aim of Science -- Karl Popper -- 2017"
+# DOC_NAME = r"Realism and the Aim of Science -- Karl Popper -- 2017 -- extracted 1 to 41"
 
 # Set to a (start, end) tuple of physical page numbers to extract a subset of
 # the PDF before running. Physical pages are 1-indexed from the front of the
@@ -52,6 +53,8 @@ main(
     llm_cleaner=True,
     llm_model='llama3.1:8b',
     verbose=True,
+    skip_index=True,
+    skip_front_matter=True,
 )
 
 if not SOURCE.exists():
