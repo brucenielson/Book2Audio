@@ -64,7 +64,7 @@ MODERATE
     false positives from chapter titles containing 'index'. When a signal fires,
     that page and all subsequent pages are excluded from output.
 
-11. N→1 merge where LLM introduces a new em-dash between valid words
+11. [DONE] N→1 merge where LLM introduces a new em-dash between valid words
     e.g. ['justi', 'fication', 'is'] → 'justification—is'
     The LLM correctly joins a space-split word AND inserts an em-dash, but
     _restore_valid_words rejects it because is_dash_upgrade compares the
@@ -190,7 +190,7 @@ HARD
     formulations. Fixing this likely requires either skipping LLM cleaning for
     math-heavy paragraphs or using a constrained prompt that forbids paraphrase.
 
-22. H3 propagation uses processing order, not page position — loses body text
+22. [DONE] H3 propagation uses processing order, not page position — loses body text
     Book: Realism and the Aim of Science (Popper)
     Pages affected: p. 252 (physical p. 293) confirmed; likely other pages too.
 

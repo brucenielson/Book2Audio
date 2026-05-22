@@ -1069,6 +1069,51 @@ class TestRestoreValidWordsLineBreakHyphen:
         assert result == "hello world today"
 
 
+# --- TestRestoreValidWordsLlmDashJoin ---
+
+class TestRestoreValidWordsLlmDashJoin:
+    """Tests for the N→1 LLM-introduced em-dash between valid words.
+
+    When the LLM correctly joins N OCR-fragmented tokens AND inserts an em-dash
+    between two real words, the N→1 merge must accept it even though
+    is_dash_upgrade fails (the joined originals don't contain the dash).
+
+    Example: ['justi', 'fication', 'is'] → 'justification—is'
+    joined_orig = 'justificationis', _normalize_dashes('justification—is') =
+    'justification-is' — these don't match, so is_dash_upgrade is False.
+    But splitting 'justification—is' on em-dash gives ['justification', 'is'],
+    both valid words, so the merge must be accepted.
+    """
+
+    def test_llm_joins_fragments_and_inserts_em_dash(self) -> None:
+        """3→1 merge where LLM rejoins a split word and inserts an em-dash."""
+        result = _restore_valid_words(
+            "justi fication is",
+            "justification—is",
+        )
+        assert result == "justification—is"
+
+    def test_llm_joins_two_fragments_with_em_dash(self) -> None:
+        """2→1 merge where LLM joins two fragments into word—word."""
+        result = _restore_valid_words(
+            "justifi cation",
+            "justification—and",
+        )
+        assert result == "justification—and"
+
+    def test_llm_dash_join_rejected_when_parts_not_valid_words(self) -> None:
+        """If either dash-separated part is not a valid word, restore originals.
+
+        'qwerty' and 'asdf' are not real English words, so the em-dash join
+        must be rejected and the originals restored.
+        """
+        result = _restore_valid_words(
+            "qwerty asdf",
+            "qwerty—asdf",
+        )
+        assert result == "qwerty asdf"
+
+
 # --- TestCoerceClassification ---
 
 class TestCoerceClassification:

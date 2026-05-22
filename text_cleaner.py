@@ -273,13 +273,26 @@ def _restore_valid_words(original: str, cleaned: str, verbose: bool = False) -> 
             dehyphen_join = ''.join(t.rstrip('-') for t in original_lower[i1:i2])
             is_line_break_join = (dehyphen_join == cleaned_lower[j1]
                                   or dehyphen_join == cleaned_lower[j1].replace('-', ''))
+            # LLM-introduced em/en-dash between valid words: e.g.
+            # ['justi', 'fication', 'is'] → 'justification—is'.
+            # The joined originals ('justificationis') don't match the
+            # dash-normalized cleaned token ('justification-is'), so
+            # is_dash_upgrade fails.  But if we split the cleaned token on
+            # em/en-dashes and every non-empty part is a valid word, the LLM
+            # has legitimately rejoined fragments and added punctuation.
+            _dash_parts = [p for p in re.split(r'[—–]', cleaned_inner) if p]
+            is_llm_dash_join = (
+                len(_dash_parts) >= 2
+                and all(word_validator.is_valid_word(p.lower()) for p in _dash_parts)
+            )
             if (word_validator.is_valid_word(merged)
                     or any(c.isdigit() for c in merged)
                     or cleaned_split[j1] == joined_orig
                     or has_internal_period
                     or is_dash_upgrade
                     or is_hyphen_compound
-                    or is_line_break_join):
+                    or is_line_break_join
+                    or is_llm_dash_join):
                 result.append(cleaned_split[j1])
             else:
                 ctx_start = max(0, i1 - 3)
