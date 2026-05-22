@@ -135,7 +135,7 @@ HARD
     body text. Simple prefix detection is problematic across different books.
     Needs more nuanced approach — possibly combining with is_small_text check.
 
-18. Backslash-escaped quotes in LLM tokens wrongly trigger word restore
+18. [DONE] Backslash-escaped quotes in LLM tokens wrongly trigger word restore
     The JSON escape repair converts \'word\' to Python string \' + word + \'.
     The word-comparison strip handles ' and curly quotes but not \, so the
     stripped forms differ and the original is wrongly restored.
