@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import dataclasses
+import itertools
 import re
 from pathlib import Path
 
@@ -548,6 +549,53 @@ class DoclingParser(BaseParser):
             item for item in self._doc.texts
             if not should_skip_element(item)
         ]
+
+        # Sort within each page by bbox.t descending so items are processed in
+        # physical top-to-bottom order regardless of Docling's emission order.
+        # Docling sometimes emits footnotes (physically at the bottom) before body
+        # text (physically near the top) on the same page; without sorting, H3
+        # propagation would sweep body text that follows a footnote in emission
+        # order but is physically above it.
+        #
+        # Exception: pages with two columns have items spread across a wide
+        # horizontal range.  A pure Y-sort would interleave left and right
+        # columns, producing nonsense reading order.  If the bbox.l spread on a
+        # page exceeds 100 pts we treat it as multi-column and leave Docling's
+        # emission order intact for that page.
+        def _page_no(item: TextItem) -> int:
+            return item.prov[0].page_no if item.prov else 999_999
+
+        # Stable sort by page number first so itertools.groupby sees contiguous pages.
+        all_text_items.sort(key=_page_no)
+
+        reordered: list[TextItem] = []
+        for _pno, page_iter in itertools.groupby(all_text_items, key=_page_no):
+            page_items = list(page_iter)
+            # Only TEXT items contribute to the column-spread check.
+            # Section headers are often centered (large l) and formulas are
+            # indented, so including them produces false positives on
+            # single-column pages like p.293 of Realism and the Aim of Science.
+            l_values: list[float] = []
+            for it in page_items:
+                if it.label != DocItemLabel.TEXT:
+                    continue
+                if it.prov and it.prov[0].bbox is not None:
+                    l = getattr(it.prov[0].bbox, 'l', None)
+                    if isinstance(l, (int, float)):
+                        l_values.append(float(l))
+            if l_values and (max(l_values) - min(l_values)) > 100.0:
+                # Multi-column page: preserve Docling's emission order.
+                reordered.extend(page_items)
+            else:
+                # Single-column page: sort top-to-bottom by bbox.t descending.
+                page_items.sort(key=lambda it: (
+                    -it.prov[0].bbox.t
+                    if it.prov and it.prov[0].bbox is not None
+                    else float('inf')
+                ))
+                reordered.extend(page_items)
+
+        all_text_items = reordered
         single_line_height: float = compute_single_line_height(self._doc)
         median_chars_per_line: float = compute_median_chars_per_line(
             all_text_items, single_line_height, min_charspan=self._short_text_threshold

@@ -78,11 +78,23 @@ def make_parser(texts: list,
                 min_footnote_chars: int = 100,
                 page_labels: dict[int, str] | None = None,
                 skip_front_matter: bool = False,
-                skip_index: bool = False) -> DoclingParser:
-    """Create a DoclingParser with a mocked DoclingDocument."""
+                skip_index: bool = False,
+                page_height: float | None = None) -> DoclingParser:
+    """Create a DoclingParser with a mocked DoclingDocument.
+
+    Pass page_height to give compute_median_page_height a non-zero result,
+    which enables the lower-half positional checks in _is_footnote.
+    """
     doc = MagicMock(spec=DoclingDocument)
     doc.name = "test_doc"
     doc.texts = texts
+    if page_height is not None:
+        mock_page = MagicMock()
+        mock_page.size = MagicMock()
+        mock_page.size.height = page_height
+        doc.pages = {1: mock_page}
+    else:
+        doc.pages = {}
     return DoclingParser(source=doc, meta_data=meta_data or {}, min_paragraph_size=min_paragraph_size,
                          start_page=start_page, end_page=end_page, include_footnotes=include_notes,
                          llm_cleaner=cleaner, min_footnote_chars=min_footnote_chars,
@@ -913,6 +925,130 @@ class TestRun:
         parser = make_parser(texts, include_notes=False, min_footnote_chars=100)
         docs, meta = parser.run()
         assert any("183-84" in d for d in docs)
+
+    def test_docling_out_of_order_emission_body_text_preserved(self) -> None:
+        """When Docling emits a footnote before body text on the same page (i.e. the
+        footnote appears earlier in doc.texts even though it is physically at the
+        bottom of the page), the body text must not be swept by H3.
+
+        Regression: Realism and the Aim of Science, p. 252 (physical p. 293).
+        Footnotes 6, 7, 8 are emitted by Docling before the body text paragraphs.
+        With the unconditional H3, the first footnote sets found_note_this_page=True
+        and all subsequent TEXT items — including body text — are swept as footnotes.
+
+        Fix: sort each page's items by bbox.t descending before classification so
+        body text (high bbox.t) is always processed before footnotes (low bbox.t),
+        regardless of Docling's emission order.
+        """
+        # Page 1: long body text ending mid-sentence → sets prev_text_candidate=True
+        body_p1 = make_sized_text_item("A" * 150, charspan_length=150, bbox_height=10.0,
+                                        page_no=1)
+        body_p1.prov[0].bbox.t = 580.0
+
+        # Page 2: Docling emits the footnote (physically at bottom) BEFORE the body
+        # text (physically near the top) — the order that triggers the regression.
+        footnote_p2 = make_sized_text_item("3See my earlier work on this topic.",
+                                            charspan_length=35, bbox_height=8.0,
+                                            page_no=2)
+        footnote_p2.prov[0].bbox.t = 80.0   # bottom of 700-unit page
+
+        body_p2 = make_sized_text_item("The central thesis now stands complete.",
+                                        charspan_length=39, bbox_height=10.0,
+                                        page_no=2)
+        body_p2.prov[0].bbox.t = 580.0      # top of page
+
+        # Items in Docling's wrong emission order: footnote before body text on p.2
+        texts = [body_p1, footnote_p2, body_p2]
+        parser = make_parser(texts, include_notes=False, min_footnote_chars=100,
+                             page_height=700.0)
+        docs, _ = parser.run()
+
+        assert any("central thesis" in d for d in docs), (
+            "Body text on p.2 was swept as a footnote because Docling emitted "
+            "the footnote before the body text and H3 fired unconditionally."
+        )
+
+    def test_two_column_page_preserves_emission_order(self) -> None:
+        """A page whose items span two columns (bbox.l spread > 100 pts) must not be
+        Y-sorted — Docling's emission order is preserved to avoid interleaving columns.
+
+        Setup: Docling emits the left-column item first, then the right-column item.
+        The right item has a higher bbox.t (480 > 400), so a naive Y-sort would move
+        it before the left item.  With multi-column detection the sort is skipped and
+        the original emission order (left before right) must be preserved.
+        """
+        left_item = make_sized_text_item("Left column text on this page.",
+                                         charspan_length=30, bbox_height=10.0, page_no=1)
+        left_item.prov[0].bbox.t = 400.0
+        left_item.prov[0].bbox.l = 50.0    # left column
+
+        right_item = make_sized_text_item("Right column text on this page.",
+                                          charspan_length=31, bbox_height=10.0, page_no=1)
+        right_item.prov[0].bbox.t = 480.0  # higher t → naive Y-sort puts this first
+        right_item.prov[0].bbox.l = 350.0  # right column; spread = 350-50 = 300 > 100
+
+        texts = [left_item, right_item]
+        parser = make_parser(texts, include_notes=False)
+        docs, _ = parser.run()
+
+        left_idx = next(i for i, d in enumerate(docs) if "Left column" in d)
+        right_idx = next(i for i, d in enumerate(docs) if "Right column" in d)
+        assert left_idx < right_idx, (
+            "Two-column page was Y-sorted, interleaving left and right columns. "
+            "Items with bbox.l spread > 100 should preserve Docling's emission order."
+        )
+
+    def test_centered_section_header_does_not_block_sort(self) -> None:
+        """A centered section header with a large bbox.l must not trigger multi-column
+        detection.  Only TEXT items should contribute to the l-spread calculation.
+
+        Setup mirrors the real p.293 problem.  A body text item on page 1 sets
+        prev_text_candidate=True (ends mid-sentence).  On page 2, Docling emits a
+        footnote (physically at bottom, low bbox.t) before the body text (physically
+        at the top, high bbox.t).  A SECTION_HEADER with bbox.l=178 sits on page 2,
+        pushing the ALL-item l-spread above 100.
+
+        Without the TEXT-only filter: sort skipped → footnote processed first →
+        H1 fires (prev_text_candidate=True from p.1, digit-start, lower half) →
+        found_note_this_page=True → H3 sweeps body text → body text lost.
+
+        With the fix: only TEXT items contribute to the l-spread → spread < 100 →
+        sort fires → body text processed first → survives.
+        """
+        # Page 1: long mid-sentence body text → sets prev_text_candidate=True
+        prev_body = make_sized_text_item("A" * 150, charspan_length=150,
+                                         bbox_height=10.0, page_no=1)
+        prev_body.prov[0].bbox.t = 400.0
+        prev_body.prov[0].bbox.l = 61.0
+
+        # Page 2: footnote emitted first by Docling (physically at bottom, low t)
+        footnote = make_sized_text_item("6See footnote 4.", charspan_length=16,
+                                        bbox_height=10.0, page_no=2)
+        footnote.prov[0].bbox.t = 80.0   # lower half of 700-unit page → H1 fires
+        footnote.prov[0].bbox.l = 68.0
+
+        # Page 2: body text emitted second (physically at top, high t)
+        body = make_sized_text_item(
+            "Thus both the problems are solved. Yet there seems to be room.",
+            charspan_length=62, bbox_height=10.0, page_no=2)
+        body.prov[0].bbox.t = 550.0
+        body.prov[0].bbox.l = 61.0
+
+        # Page 2: centered section header — large l, not a second column
+        header = make_section_header("CORROBORATION", page_no=2)
+        header.prov[0].bbox.t = 580.0
+        header.prov[0].bbox.l = 178.0   # all-item spread: 178-61=117 > 100
+
+        # Docling emits: prev_body, footnote, body, header (footnote before body)
+        texts = [prev_body, footnote, body, header]
+        parser = make_parser(texts, include_notes=False, min_footnote_chars=100,
+                             page_height=700.0)
+        docs, _ = parser.run()
+
+        assert any("problems are solved" in d for d in docs), (
+            "Body text was swept as a footnote. The centered section header "
+            "triggered false multi-column detection and blocked the sort."
+        )
 
     def test_notes_section_header_triggers_endnote_path(self) -> None:
         """A 'Notes' SECTION_HEADER causes subsequent digit+alpha TEXT items to be
