@@ -207,9 +207,9 @@ def _restore_valid_words(original: str, cleaned: str, verbose: bool = False) -> 
                 # converts straight quotes to typographic quotes; without this step,
                 # tokens like "'All" vs "‘All" would be seen as different words.
                 orig_stripped = _normalize_dashes(
-                    normalize_quotes(original_lower[i1 + k]).strip('.,;:!?"\'()-[]'))
+                    normalize_quotes(original_lower[i1 + k].replace("\\'", "'").replace('\\"', '"')).strip('.,;:!?"\'()-[]'))
                 new_stripped = _normalize_dashes(
-                    normalize_quotes(cleaned_lower[j1 + k]).strip('.,;:!?"\'()-[]'))
+                    normalize_quotes(cleaned_lower[j1 + k].replace("\\'", "'").replace('\\"', '"')).strip('.,;:!?"\'()-[]'))
                 orig_tok = original_lower[i1 + k]
                 new_tok = cleaned_lower[j1 + k]
                 if (orig_stripped != new_stripped

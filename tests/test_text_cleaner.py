@@ -981,6 +981,47 @@ class TestRestoreValidWordsCurlyQuotes:
         assert result == "she argued that ‘efficiency’, was key,"
 
 
+# --- TestRestoreValidWordsBackslashQuotes ---
+
+class TestRestoreValidWordsBackslashQuotes:
+    """Tests that backslash-escaped quotes in LLM tokens don't wrongly trigger restore.
+
+    The JSON escape repair converts \'word\' to a Python string containing a
+    literal backslash + quote (e.g. \'possibility\').  The comparison strip
+    removes quote characters but not backslashes, so the stripped forms differ
+    and the original is wrongly restored.
+
+    Fix: collapse \' → ' and \" → " before normalize_quotes + strip in the
+    1:1 comparison path so the bare words are correctly compared.
+
+    Real examples (page 395 of Realism and the Aim of Science):
+      original '‘possibility’,'  LLM tried \\'possibility\\',
+      original '‘probability’'   LLM tried \\'probability\\'
+      original '‘frequency’)'    LLM tried \\'frequency\\'
+    """
+
+    def test_backslash_escaped_quotes_not_wrongly_restored(self) -> None:
+        """Curly-quoted OCR word vs LLM backslash-escaped version: keep LLM's token.
+
+        original token: ‘possibility’ (curly quotes, OCR)
+        cleaned token:  \\'possibility\\' (backslash-escaped, from JSON repair)
+        Both strip to 'possibility' after backslash collapse — no restore should fire.
+        """
+        result = _restore_valid_words(
+            "the ‘possibility’ is",
+            "the \\'possibility\\' is",
+        )
+        assert result == "the \\'possibility\\' is"
+
+    def test_backslash_escaped_double_quotes_not_wrongly_restored(self) -> None:
+        """Same as above but with double-quote escaping (\\\"word\\\")."""
+        result = _restore_valid_words(
+            'the “probability” is',
+            'the \\"probability\\" is',
+        )
+        assert result == 'the \\"probability\\" is'
+
+
 # --- TestRestoreValidWordsTrailingHyphen ---
 
 class TestRestoreValidWordsTrailingHyphen:
