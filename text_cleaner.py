@@ -65,6 +65,21 @@ Response format:
 }"""
 
 
+FORMULA_SYSTEM_PROMPT: str = """You are converting a philosophy book to audio. Translate the \
+mathematical or logical notation below into natural spoken English that a listener can understand \
+without seeing the text.
+
+Guidelines:
+- Probability notation: P(a) → "the probability of a"; P(a|b) → "the probability of a given b"
+- Logical symbols: ∧ → "and", ∨ → "or", ¬ → "not", → → "implies", ↔ → "if and only if", \
+∀ → "for all", ∃ → "there exists"
+- For expressions that translate naturally, render them as spoken English directly.
+- For formulas too complex to read aloud, begin your response with exactly this phrase: \
+"The formula that follows is complicated, but the idea it conveys is as follows:" and then \
+explain what it means in plain English using the surrounding page context.
+- Return only the spoken English result. No JSON, no labels, no meta-commentary."""
+
+
 # noinspection SpellCheckingInspection
 _DROP_HINTS: tuple[str, ...] = (
     'index', 'bibliograph', 'reference', 'encyclop', 'glossar',
@@ -463,3 +478,52 @@ class TextCleaner:
                 continue
 
         return paragraph, 'body'
+
+    def clean_formula(self, formula: str, page_context: str = "") -> str:
+        """Translate mathematical or logical notation to spoken English for audio output.
+
+        Uses a dedicated prompt that instructs the LLM to render simple expressions
+        directly (e.g. P(a|b) → "the probability of a given b") and to introduce
+        complex formulas with an explanatory sentence rather than attempting to
+        read them symbol by symbol.
+
+        Unlike clean(), this method returns plain text — no JSON, no classification.
+        Word restoration is not applied because the output is intentionally different
+        from the input.
+
+        Args:
+            formula: The formula or math-heavy paragraph to translate.
+            page_context: The full text of the page for context. Defaults to empty string.
+
+        Returns:
+            The spoken-English translation, or the original formula if the LLM fails.
+        """
+        if not formula.strip():
+            return formula
+
+        if page_context:
+            user_content = f"Page context:\n{page_context}\n\nTranslate this formula to spoken English:\n{formula}"
+        else:
+            user_content = f"Translate this formula to spoken English:\n{formula}"
+
+        options: dict[str, float] = {}
+        if self._temperature is not None:
+            options['temperature'] = self._temperature
+
+        for attempt in range(self._max_retries):
+            try:
+                response = ollama.chat(
+                    model=self._model,
+                    options=options or None,
+                    messages=[
+                        {'role': 'system', 'content': FORMULA_SYSTEM_PROMPT},
+                        {'role': 'user', 'content': user_content}
+                    ]
+                )
+                result = response['message']['content'].strip()
+                if result:
+                    return result
+            except Exception as e:
+                vprint(self._verbose, f"  → formula attempt {attempt + 1} failed: {e}")
+
+        return formula

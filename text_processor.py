@@ -8,6 +8,7 @@ from text_chunk import RawChunk, ParsedChunk
 from word_validator import word_validator
 from utils.general_utils import is_sentence_end, build_paragraph, clean_text
 from utils.logging_utils import vprint
+from utils.docling_utils import is_math_heavy
 from text_cleaner import TextCleaner
 
 # Debug breakpoint string — set to a snippet of text to pause on that paragraph.
@@ -159,6 +160,10 @@ class TextProcessor:
             if chunk.is_footnote and not self._include_footnotes:
                 continue
 
+            if chunk.label == 'formula' or is_math_heavy(chunk.text):
+                self._handle_formula(chunk)
+                continue
+
             if _DEBUG_BREAK_TEXT and _DEBUG_BREAK_TEXT in chunk.text:
                 pass
 
@@ -247,6 +252,33 @@ class TextProcessor:
                 text=chunk.text,
                 meta=self._build_meta(chunk.meta),
                 label=chunk.label
+            ))
+
+    def _handle_formula(self, chunk: RawChunk) -> None:
+        """Flush any accumulated paragraph and emit the formula as its own paragraph.
+
+        Bypasses OCR cleaning and word restoration. Uses the formula translation
+        prompt to render mathematical notation as spoken English. If no cleaner is
+        configured the raw formula text is emitted unchanged.
+
+        Args:
+            chunk: The formula RawChunk.
+        """
+        self._report_page_progress(chunk)
+        if self._paragraph:
+            self._flush_paragraph(chunk.meta)
+        if not chunk.text:
+            return
+        text: str = chunk.text
+        if self._cleaner:
+            page_context: str = self._page_contexts.get(chunk.meta.get('page_#', ''), '')
+            text = self._cleaner.clean_formula(chunk.text, page_context=page_context)
+        if text:
+            self._para_num += 1
+            self._result.append(ParsedChunk(
+                text=text,
+                meta=self._build_meta(chunk.meta),
+                label='formula'
             ))
 
     @staticmethod
