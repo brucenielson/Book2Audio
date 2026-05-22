@@ -396,13 +396,23 @@ class TextCleaner:
                 try:
                     parsed = json.loads(content)
                 except json.JSONDecodeError as e:
-                    if 'escape' not in str(e):
-                        raise
-                    # LLM included a stray backslash (e.g. \alpha from a formula).
-                    # Escape any backslash not already part of a valid JSON escape
-                    # sequence and retry the parse inline without burning a retry.
-                    fixed = re.sub(r'\\(?!["\\/bfnrtu])', r'\\\\', content)
-                    parsed = json.loads(fixed)  # propagates if still unparseable
+                    if 'escape' in str(e):
+                        # LLM included a stray backslash (e.g. \alpha from a formula).
+                        # Escape any backslash not already part of a valid JSON escape
+                        # sequence and retry the parse inline without burning a retry.
+                        fixed = re.sub(r'\\(?!["\\/bfnrtu])', r'\\\\', content)
+                        parsed = json.loads(fixed)  # propagates if still unparseable
+                    else:
+                        # Structural error (e.g. "Expecting ',' delimiter") caused by the
+                        # LLM writing bare " inside a string value. Greedy .* finds the
+                        # last " before ,"classification", recovering the true cleaned
+                        # value even with unescaped inner quotes.
+                        m = re.search(
+                            r'"cleaned"\s*:\s*"(.*)"\s*,\s*"classification"\s*:\s*"(\w+)"',
+                            content, re.DOTALL)
+                        if m is None:
+                            raise  # completely garbled — let the retry loop handle it
+                        parsed = {'cleaned': m.group(1), 'classification': m.group(2)}
 
                 cleaned_candidate = parsed['cleaned']
                 classification: ClassificationType = parsed['classification']

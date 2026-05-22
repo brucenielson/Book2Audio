@@ -276,6 +276,51 @@ class TestRetry:
         assert mock_chat.call_count == 2  # one failure, one success
         assert classification == "body"
 
+    def test_unescaped_inner_quotes_recovered_by_regex_fallback(self) -> None:
+        """LLM writes bare \" inside JSON string value — regex fallback recovers without retry.
+
+        When the LLM produces: {"cleaned": "the word "probability" is used", ...}
+        json.loads raises "Expecting ',' delimiter". 'escape' is not in that message
+        so the existing backslash repair is skipped. Without the regex fallback all
+        3 retries are burned and the raw paragraph is returned unchanged.
+        With the fallback the values are extracted via greedy regex on the first
+        attempt and no retry is consumed.
+        """
+        cleaner = make_cleaner(max_retries=3)
+        inner_quote_response = {'message': {'content':
+            '{"cleaned": "the word "probability" is used", "classification": "body"}'}}
+        with patch(patch_llm_chat, return_value=inner_quote_response) as mock_chat:
+            cleaned, classification = cleaner.clean('the word probability is used')
+        assert classification == 'body'
+        assert '"probability"' in cleaned  # inner quotes preserved in extracted value
+        assert mock_chat.call_count == 1   # recovered inline, no retry burned
+
+    def test_unescaped_inner_quotes_regex_fallback_footnote(self) -> None:
+        """Regex fallback also works when classification is footnote.
+
+        Paragraph starts with '1 ' (digit) so the letter-start footnote guard
+        does not override the classification to body.
+        """
+        cleaner = make_cleaner(max_retries=3)
+        inner_quote_response = {'message': {'content':
+            '{"cleaned": "see "ibid." for details", "classification": "footnote"}'}}
+        with patch(patch_llm_chat, return_value=inner_quote_response) as mock_chat:
+            cleaned, classification = cleaner.clean('1 see ibid for details')
+        assert classification == 'footnote'
+        assert '"ibid."' in cleaned
+        assert mock_chat.call_count == 1
+
+    def test_completely_garbled_json_still_retries(self) -> None:
+        """If the regex fallback also fails, the error is re-raised and retries continue."""
+        cleaner = make_cleaner(max_retries=3)
+        # No 'cleaned' or 'classification' keys at all — regex won't match
+        garbled_response = {'message': {'content': 'this is not json and has no structure'}}
+        good_response = make_response("Some text.", "body")
+        with patch(patch_llm_chat, side_effect=[garbled_response, good_response]) as mock_chat:
+            cleaned, classification = cleaner.clean("Some text.")
+        assert classification == "body"
+        assert mock_chat.call_count == 2  # garbled triggers retry, good response succeeds
+
     def test_max_retries_configurable(self) -> None:
         cleaner = make_cleaner(max_retries=5)
         bad_response = {'message': {'content': 'not valid json'}}

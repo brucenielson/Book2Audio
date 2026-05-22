@@ -147,7 +147,7 @@ HARD
     calculation), collapse \' → ' and \" → " so bare words are exposed.
     One-liner in each comparison path.
 
-19. "Expecting ',' delimiter" JSON failures burn all retries
+19. [DONE] "Expecting ',' delimiter" JSON failures burn all retries
     When the LLM writes bare " around a quoted term inside the cleaned JSON
     value (e.g. "the word "probability" is used") the parser terminates the
     string at the first inner ", then finds unexpected text and raises
