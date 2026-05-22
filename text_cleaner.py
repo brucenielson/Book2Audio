@@ -304,6 +304,23 @@ def _restore_valid_words(original: str, cleaned: str, verbose: bool = False) -> 
                 len(_dash_parts) >= 2
                 and all(word_validator.is_valid_word(p.lower()) for p in _dash_parts)
             )
+            # OCR fix: at least one original token is an invalid word AND every
+            # hyphen-separated part of the LLM's merged result is a valid word.
+            # This covers cases like ['self', '-', 'coatradictory'] → 'self-contradictory'
+            # where the LLM corrects an OCR misspelling inside a hyphenated compound.
+            _orig_stripped = [
+                _normalize_dashes(t.lower()).strip('.,;:!?"\'''""()-[]')
+                for t in original_split[i1:i2]
+            ]
+            _has_invalid_orig = any(
+                s and not word_validator.is_valid_word(s) for s in _orig_stripped
+            )
+            _hyphen_parts = [p for p in merged.split('-') if p]
+            is_ocr_fix = (
+                _has_invalid_orig
+                and len(_hyphen_parts) >= 1
+                and all(word_validator.is_valid_word(p) for p in _hyphen_parts)
+            )
             if (word_validator.is_valid_word(merged)
                     or any(c.isdigit() for c in merged)
                     or cleaned_split[j1] == joined_orig
@@ -311,7 +328,8 @@ def _restore_valid_words(original: str, cleaned: str, verbose: bool = False) -> 
                     or is_dash_upgrade
                     or is_hyphen_compound
                     or is_line_break_join
-                    or is_llm_dash_join):
+                    or is_llm_dash_join
+                    or is_ocr_fix):
                 result.append(cleaned_split[j1])
             else:
                 ctx_start = max(0, i1 - 3)
