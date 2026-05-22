@@ -50,7 +50,7 @@ Transform tasks into verifiable goals:
 - "Add validation" → "Write tests for invalid inputs, then make them pass"
 - "Fix the bug" → "Write a test that reproduces it, then make it pass"
 - "Refactor X" → "Ensure tests pass before and after"
-- Use test-driven development. Used parameter-based tests as much as possible.
+- Use test-driven development. Use parameter-based tests as much as possible.
 - Write the tests(s) first and confirm they fail for the right reason
 - Prompt the user to approves your tests before moving on to implement the change. If he approves, he'll commit the tests first.
 - Do NOT make the changes on your own without first having the user verify the failing tests and commit them.
