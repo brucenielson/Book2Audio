@@ -561,51 +561,51 @@ class TestExtractChunks:
 
     def test_regular_texts_become_chunks(self) -> None:
         texts = [make_text_item("Body text.")]
-        parser = make_parser([])
-        chunks = parser._extract_chunks(texts, [])
-        assert len(chunks) == 1
-        assert chunks[0].text == "Body text."
+        parser = make_parser(texts)
+        docs, _ = parser.run()
+        assert len(docs) == 1
+        assert "Body text." in docs[0]
 
     def test_notes_excluded_when_include_notes_false(self) -> None:
-        notes = [make_text_item("Footnote text.")]
-        parser = make_parser([], include_notes=False)
-        chunks = parser._extract_chunks([], notes)
-        assert chunks == []
+        texts = [make_footnote("Footnote text.")]
+        parser = make_parser(texts, include_notes=False)
+        docs, _ = parser.run()
+        assert all("Footnote text." not in d for d in docs)
 
     def test_notes_included_when_include_notes_true(self) -> None:
-        notes = [make_text_item("Footnote text.")]
-        parser = make_parser([], include_notes=True)
-        chunks = parser._extract_chunks([], notes)
-        assert len(chunks) == 1
-        assert chunks[0].text == "Footnote text."
+        texts = [make_footnote("Footnote text.")]
+        parser = make_parser(texts, include_notes=True)
+        docs, _ = parser.run()
+        assert any("Footnote text." in d for d in docs)
 
     def test_page_range_filters_out_of_range_items(self) -> None:
         texts = [
             make_text_item("Page 2 text.", page_no=2),
             make_text_item("Page 5 text.", page_no=5),
         ]
-        parser = make_parser([], start_page=5, end_page=10)
-        chunks = parser._extract_chunks(texts, [])
-        assert len(chunks) == 1
-        assert chunks[0].text == "Page 5 text."
+        parser = make_parser(texts, start_page=5, end_page=10)
+        docs, _ = parser.run()
+        assert len(docs) == 1
+        assert "Page 5 text." in docs[0]
 
     def test_chunk_meta_contains_page_number(self) -> None:
         texts = [make_text_item("Text.", page_no=42)]
-        parser = make_parser([])
-        chunks = parser._extract_chunks(texts, [])
-        assert chunks[0].meta['page_#'] == '42'
+        parser = make_parser(texts)
+        _, meta = parser.run()
+        assert meta[0]['page_#'] == '42'
 
     def test_chunk_meta_contains_physical_page_number(self) -> None:
         texts = [make_text_item("Text.", page_no=42)]
-        parser = make_parser([])
-        chunks = parser._extract_chunks(texts, [])
-        assert chunks[0].meta['physical_page_#'] == '42'
+        parser = make_parser(texts)
+        _, meta = parser.run()
+        assert meta[0]['physical_page_#'] == '42'
 
     def test_chunk_label_matches_item_label(self) -> None:
-        texts = [make_text_item("Text.")]
-        parser = make_parser([])
-        chunks = parser._extract_chunks(texts, [])
-        assert chunks[0].label == DocItemLabel.TEXT
+        texts = [make_text_item("Regular body text here.")]
+        parser = make_parser(texts)
+        chunks = parser._get_processed_texts()
+        body = [c for c in chunks if c.label not in ('page_header', 'too_short', 'footnote')]
+        assert body[0].label == DocItemLabel.TEXT
 
 
 
@@ -748,10 +748,10 @@ class TestGetProcessedTexts:
             make_footnote("Footnote text."),
         ]
         parser = make_parser(texts)
-        classified = parser._get_processed_texts()
+        chunks = parser._get_processed_texts()
         _SKIP = {'footnote', 'page_header', 'too_short'}
-        regular = [item for item, label in classified if label not in _SKIP]
-        notes = [item for item, label in classified if label == 'footnote']
+        regular = [c for c in chunks if c.label not in _SKIP]
+        notes = [c for c in chunks if c.label == 'footnote']
         assert len(regular) == 1
         assert len(notes) == 1
 
@@ -761,10 +761,10 @@ class TestGetProcessedTexts:
             make_text_item("This is a longer sentence."),
         ]
         parser = make_parser(texts)
-        classified = parser._get_processed_texts()
-        assert len(classified) == 2
-        assert classified[0][1] == 'too_short'
-        assert classified[1][1] != 'too_short'
+        chunks = parser._get_processed_texts()
+        assert len(chunks) == 2
+        assert chunks[0].label == 'too_short'
+        assert chunks[1].label != 'too_short'
 
     def test_document_order_preserved(self) -> None:
         texts = [
@@ -772,14 +772,14 @@ class TestGetProcessedTexts:
             make_text_item("Regular text."),
         ]
         parser = make_parser(texts)
-        classified = parser._get_processed_texts()
-        assert classified[0][0].text == "Footnote."
-        assert classified[1][0].text == "Regular text."
+        chunks = parser._get_processed_texts()
+        assert chunks[0].text == "Footnote."
+        assert chunks[1].text == "Regular text."
 
     def test_empty_document(self) -> None:
         parser = make_parser([])
-        classified = parser._get_processed_texts()
-        assert classified == []
+        chunks = parser._get_processed_texts()
+        assert chunks == []
 
 
 # --- TestRun ---
@@ -1292,28 +1292,28 @@ class TestPageLabels:
         """When labels are provided, chunk metadata uses the label not the physical number."""
         texts = [make_text_item("Body text.", page_no=1)]
         parser = make_parser(texts, page_labels={0: 'i'})
-        chunks = parser._extract_chunks(texts, [])
+        chunks = parser._get_processed_texts()
         assert chunks[0].meta['page_#'] == 'i'
 
     def test_page_meta_falls_back_to_physical_number_without_labels(self) -> None:
         """Without page labels, chunk metadata falls back to the physical page number string."""
         texts = [make_text_item("Body text.", page_no=42)]
         parser = make_parser(texts)
-        chunks = parser._extract_chunks(texts, [])
+        chunks = parser._get_processed_texts()
         assert chunks[0].meta['page_#'] == '42'
 
     def test_empty_string_label_falls_back_to_physical_number(self) -> None:
         """pypdfium2 returns '' for PDFs with no page label table; must still show physical number."""
         texts = [make_text_item("Body text.", page_no=5)]
         parser = make_parser(texts, page_labels={4: ''})   # empty string, not None
-        chunks = parser._extract_chunks(texts, [])
+        chunks = parser._get_processed_texts()
         assert chunks[0].meta['page_#'] == '5'
 
     def test_arabic_label_stored_verbatim_in_meta(self) -> None:
         """Arabic page labels are stored verbatim — the body of a book with 40 front-matter pages."""
         texts = [make_text_item("Body text.", page_no=41)]
         parser = make_parser(texts, page_labels={40: '1'})   # Docling page 41 → index 40 → '1'
-        chunks = parser._extract_chunks(texts, [])
+        chunks = parser._get_processed_texts()
         assert chunks[0].meta['page_#'] == '1'
 
     def test_front_matter_pages_skipped_when_enabled(self) -> None:
@@ -1323,9 +1323,9 @@ class TestPageLabels:
             make_text_item("Body text.", page_no=2),
         ]
         parser = make_parser(texts, page_labels={0: 'i', 1: '1'}, skip_front_matter=True)
-        chunks = parser._extract_chunks(texts, [])
-        assert len(chunks) == 1
-        assert chunks[0].meta['page_#'] == '1'
+        docs, meta = parser.run()
+        assert len(docs) == 1
+        assert meta[0]['page_#'] == '1'
 
     def test_front_matter_included_when_skip_front_matter_false(self) -> None:
         """Front matter pages are kept when skip_front_matter=False (the default)."""
@@ -1334,14 +1334,14 @@ class TestPageLabels:
             make_text_item("Body text.", page_no=2),
         ]
         parser = make_parser(texts, page_labels={0: 'i', 1: '1'}, skip_front_matter=False)
-        chunks = parser._extract_chunks(texts, [])
-        assert len(chunks) == 2
+        docs, _ = parser.run()
+        assert len(docs) == 2
 
     def test_both_page_numbers_present_in_meta(self) -> None:
         """Both the PDF label and the physical page number appear in chunk metadata."""
         texts = [make_text_item("Body text.", page_no=41)]
         parser = make_parser(texts, page_labels={40: '1'})
-        chunks = parser._extract_chunks(texts, [])
+        chunks = parser._get_processed_texts()
         assert chunks[0].meta['page_#'] == '1'
         assert chunks[0].meta['physical_page_#'] == '41'
 
@@ -1349,7 +1349,7 @@ class TestPageLabels:
         """physical_page_# always reflects Docling's page_no regardless of label."""
         texts = [make_text_item("Front matter.", page_no=5)]
         parser = make_parser(texts, page_labels={4: 'v'})
-        chunks = parser._extract_chunks(texts, [])
+        chunks = parser._get_processed_texts()
         assert chunks[0].meta['physical_page_#'] == '5'
         assert chunks[0].meta['page_#'] == 'v'
 
@@ -1361,9 +1361,9 @@ class TestPageLabels:
             make_text_item("Body text.", page_no=3),
         ]
         parser = make_parser(texts, page_labels={0: 'i', 1: 'ii', 2: '1'}, skip_front_matter=True)
-        chunks = parser._extract_chunks(texts, [])
-        assert len(chunks) == 1
-        assert "Body text." in chunks[0].text
+        docs, _ = parser.run()
+        assert len(docs) == 1
+        assert "Body text." in docs[0]
 
 
 # --- TestFindIndexStartPage ---

@@ -65,7 +65,7 @@ Response format:
 }"""
 
 
-FORMULA_SYSTEM_PROMPT: str = """You are converting a philosophy book to audio. Translate the \
+FORMULA_SYSTEM_PROMPT: str = """You are converting a book or paper to audio. Translate the \
 mathematical or logical notation below into natural spoken English that a listener can understand \
 without seeing the text.
 

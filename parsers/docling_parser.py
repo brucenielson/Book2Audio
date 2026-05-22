@@ -283,15 +283,37 @@ class DoclingParser(BaseParser):
             A tuple of (docs, meta) where docs is a list of paragraph strings
             and meta is a list of metadata dicts, one per paragraph.
         """
-        classified: list[tuple[TextItem, str]] = self._get_processed_texts()
-        regular_texts: list[TextItem] = [item for item, label in classified
-                                         if label not in DoclingParser._SKIP_LABELS]
-        notes: list[TextItem] = [item for item, label in classified if label == 'footnote']
-        raw_chunks: list[RawChunk] = self._extract_chunks(regular_texts, notes)
+        all_chunks: list[RawChunk] = self._get_processed_texts()
+
+        # Filter chunks for the TextProcessor: skip structural labels, apply page range,
+        # front matter, and index exclusions.
+        index_start: int | None = self._find_index_start_page() if self._skip_index else None
+        processor_chunks: list[RawChunk] = []
+        for chunk in all_chunks:
+            if chunk.label in ('page_header', 'too_short'):
+                continue
+            if chunk.label == 'footnote' and not self._include_notes:
+                continue
+            physical_str = chunk.meta.get('physical_page_#', '')
+            try:
+                page_no = int(physical_str)
+            except ValueError:
+                page_no = 0
+            if not self._is_in_page_range(page_no):
+                continue
+            if self._skip_front_matter and is_front_matter(chunk.meta.get('page_#', '')):
+                continue
+            if index_start is not None and page_no >= index_start:
+                continue
+            processor_chunks.append(chunk)
 
         output_path: Path | None = None
         if generate_text_file and self._file_path is not None:
             output_path = self._file_path.parent / self._doc.name
+            # Write the debug file before TextProcessor mutates chunk.text and chunk.label
+            # in place (cleaning, footnote reclassification). The debug file must reflect
+            # the raw Docling text and our own classification labels, not the cleaned output.
+            self._save_text_files(all_chunks, annotate_reclassifications=annotate_reclassifications)
 
         processor: TextProcessor = TextProcessor(
             min_paragraph_size=self._min_paragraph_size,
@@ -301,65 +323,25 @@ class DoclingParser(BaseParser):
         )
 
         parsed_chunks: list[ParsedChunk] = processor.process(
-            chunks=raw_chunks,
+            chunks=processor_chunks,
             output_path=output_path,
             generate_text_file=generate_text_file
         )
-
-        if generate_text_file and self._file_path is not None:
-            self._save_text_files(classified, annotate_reclassifications=annotate_reclassifications)
 
         docs: list[str] = [chunk.text for chunk in parsed_chunks]
         meta: list[dict[str, str]] = [chunk.meta for chunk in parsed_chunks]
         return docs, meta
 
-    def _extract_chunks(self, regular_texts: list[TextItem],
-                        notes: list[TextItem]) -> list[RawChunk]:
-        """Build RawChunks from pre-classified text items, filtered to the page range.
-
-        Args:
-            regular_texts: Body text items from _get_processed_texts().
-            notes: Footnote items from _get_processed_texts().
-
-        Returns:
-            A list of RawChunks ready for the text processor.
-        """
-        all_items: list[TextItem] = regular_texts + (notes if self._include_notes else [])
-
-        # Compute the index start page once up front (None when skip_index is False
-        # or when no index section is detected).
-        index_start: int | None = self._find_index_start_page() if self._skip_index else None
-
-        chunks: list[RawChunk] = []
-        for text in all_items:
-            page_no: int = text.prov[0].page_no
-            if not self._is_in_page_range(page_no):
-                continue
-            label: str = self._page_label_for(page_no)
-            if self._skip_front_matter and is_front_matter(label):
-                continue
-            if index_start is not None and page_no >= index_start:
-                continue  # skip the index section and all back matter that follows
-            chunks.append(RawChunk(
-                text=text.text,
-                meta={**self._meta_data, "section_name": "",
-                      "page_#": label, "physical_page_#": str(page_no)},
-                label=text.label
-            ))
-
-        return chunks
-
-    def _save_text_files(self, classified: list[tuple[TextItem, str]],
+    def _save_text_files(self, chunks: list[RawChunk],
                          annotate_reclassifications: bool = False) -> None:
         """Write per-item debug text to a file alongside the source document.
 
         All items are written in document order. When annotate_reclassifications is True,
-        items whose label was changed show 'original_label → new_label:'; otherwise just
-        the original label is shown.
+        items whose label was reclassified show 'original_label → new_label:'; otherwise
+        the original label (or current label when unchanged) is shown.
 
         Args:
-            classified: List of (item, final_label) pairs in document order,
-                        as returned by _get_processed_texts().
+            chunks: All RawChunks in document order, as returned by _get_processed_texts().
             annotate_reclassifications: If True, show original → new label for reclassified items.
 
         Raises:
@@ -371,13 +353,15 @@ class DoclingParser(BaseParser):
         base_path: Path = self._file_path.parent / self._doc.name
 
         with open(f"{base_path}_processed_texts.txt", "w", encoding="utf-8") as f:
-            for text_item, final_label in classified:
-                page = self._format_page(text_item.prov[0].page_no) if text_item.prov else 'N/A'
-                original_label = str(text_item.label)
-                if annotate_reclassifications and final_label != original_label:
-                    f.write(f"{page}: {original_label} → {final_label}: {text_item.text}\n")
+            for chunk in chunks:
+                pdf_label = chunk.meta.get('page_#', 'N/A')
+                physical = chunk.meta.get('physical_page_#', pdf_label)
+                page = pdf_label if pdf_label == physical else f'[Page {pdf_label} / Page {physical}]'
+                if annotate_reclassifications and chunk.original_label:
+                    f.write(f"{page}: {chunk.original_label} → {chunk.label}: {chunk.text}\n")
                 else:
-                    f.write(f"{page}: {original_label}: {text_item.text}\n")
+                    display_label = chunk.original_label if chunk.original_label else chunk.label
+                    f.write(f"{page}: {display_label}: {chunk.text}\n")
 
     def _is_footnote(self, text_item: TextItem, ctx: _FootnoteContext) -> bool:
         """Return True if text_item should be classified as a footnote.
@@ -534,16 +518,18 @@ class DoclingParser(BaseParser):
             ctx.prev_text_candidate = (len(text_item.text) >= self._short_text_threshold
                                        and not ends_sentence)
 
-    def _get_processed_texts(self) -> list[tuple[TextItem, str]]:
-        """Classify the document's text items and return them in document order.
+    def _get_processed_texts(self) -> list[RawChunk]:
+        """Classify the document's text items and return them as RawChunks in document order.
 
         Collects valid TextItems, computes document-level font-size baselines,
         then classifies each item using _is_footnote() and _is_page_header().
+        Sets original_label on chunks whose Docling label was changed (e.g. 'text'
+        reclassified to 'formula' or 'page_header').
 
         Returns:
-            A list of (item, label) pairs in document order. Label is one of:
+            A list of RawChunks in document order. chunk.label is one of:
             the original Docling label string (body text / section headers),
-            'footnote', 'page_header', or 'too_short' for suppressed items.
+            'footnote', 'page_header', 'too_short', or 'formula'.
         """
         # Collect all valid TextItems. Page headers and footers are excluded.
         all_text_items: list[TextItem] = [
@@ -608,7 +594,7 @@ class DoclingParser(BaseParser):
             list(self._doc.texts), single_line_height
         )
 
-        classified: list[tuple[TextItem, str]] = []
+        chunks: list[RawChunk] = []
         current_page: int | None = None
         ctx: _FootnoteContext = _FootnoteContext(
             prev_text_candidate=False,
@@ -637,26 +623,50 @@ class DoclingParser(BaseParser):
                     and re.match(r'^\s*(notes?|endnotes?)\b', text_item.text, re.IGNORECASE)):
                 ctx.in_notes_section = True
 
+            page_label: str = self._page_label_for(page_number)
+            base_meta: dict[str, str] = {
+                **self._meta_data,
+                "section_name": "",
+                "page_#": page_label,
+                "physical_page_#": str(page_number),
+            }
+
             if is_too_short(text_item):
-                classified.append((text_item, 'too_short'))
+                chunks.append(RawChunk(
+                    text=text_item.text, meta=base_meta, label='too_short',
+                    original_label=str(text_item.label),
+                ))
                 continue
 
             if DoclingParser._is_page_header(text_item, ctx):
-                classified.append((text_item, 'page_header'))
+                chunks.append(RawChunk(
+                    text=text_item.text, meta=base_meta, label='page_header',
+                    original_label=str(text_item.label),
+                ))
                 continue
 
             went_to_notes: bool = self._is_footnote(text_item, ctx)
+            docling_label: str = str(text_item.label)
             if went_to_notes:
                 ctx.found_note_this_page = True
-                classified.append((text_item, 'footnote'))
+                chunks.append(RawChunk(
+                    text=text_item.text, meta=base_meta, label='footnote',
+                    original_label=docling_label if docling_label != 'footnote' else '',
+                ))
             else:
-                label: str = str(text_item.label)
-                if text_item.label == DocItemLabel.TEXT and is_math_heavy(text_item.text):
+                label: str = docling_label
+                original_label: str = ''
+                if (docling_label not in ('section_header', 'formula')
+                        and is_math_heavy(text_item.text)):
+                    original_label = docling_label
                     label = 'formula'
-                classified.append((text_item, label))
+                chunks.append(RawChunk(
+                    text=text_item.text, meta=base_meta, label=label,
+                    original_label=original_label,
+                ))
                 self._update_text_state(text_item, ctx)
 
             if not went_to_notes and text_item.label == DocItemLabel.TEXT:
                 ctx.text_seen_this_page = True
 
-        return classified
+        return chunks

@@ -8,7 +8,6 @@ from text_chunk import RawChunk, ParsedChunk
 from word_validator import word_validator
 from utils.general_utils import is_sentence_end, build_paragraph, clean_text
 from utils.logging_utils import vprint
-from utils.docling_utils import is_math_heavy
 from text_cleaner import TextCleaner
 
 # Debug breakpoint string — set to a snippet of text to pause on that paragraph.
@@ -160,7 +159,7 @@ class TextProcessor:
             if chunk.is_footnote and not self._include_footnotes:
                 continue
 
-            if chunk.label == 'formula' or is_math_heavy(chunk.text):
+            if chunk.label == 'formula':
                 self._handle_formula(chunk)
                 continue
 

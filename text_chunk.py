@@ -50,8 +50,14 @@ class RawChunk(TextChunk):
 
     Produced by DoclingParser or EpubParser before any accumulation,
     combining, or LLM-based cleaning has been applied.
+
+    Attributes:
+        original_label: The pre-reclassification label, set only when the
+                        parser changed the Docling-assigned label (e.g. 'text'
+                        → 'formula', 'section_header' → 'page_header').
+                        Empty string when no reclassification occurred.
     """
-    pass
+    original_label: str = ""
 
 
 @dataclass
