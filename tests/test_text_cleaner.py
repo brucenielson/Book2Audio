@@ -408,140 +408,36 @@ class TestSanityCheck:
 
 class TestHasSuspiciousSubstitutions:
 
-    # --- Not suspicious: OCR artifacts correctly identified ---
-
-    def test_identical_text_not_suspicious(self) -> None:
-        assert _has_suspicious_substitutions("Hello world.", "Hello world.") is False
-
-    def test_embedded_pipe_char_is_artifact_not_suspicious(self) -> None:
-        """Regression: old re.sub stripped 'a|nd' → 'and' (valid), wrongly flagging it.
-        New strip-only approach leaves '|' embedded, keeping it invalid."""
-        assert _has_suspicious_substitutions(
-            "He said a|nd walked away.",
-            "He said and walked away."
-        ) is False
-
-    def test_embedded_angle_bracket_artifact_not_suspicious(self) -> None:
-        """'t<;' has embedded '<' — strip only removes boundary ';', leaving 't<' (invalid)."""
-        assert _has_suspicious_substitutions(
-            "He wishes t<; thank her.",
-            "He wishes to thank her."
-        ) is False
-
-    def test_pure_ocr_garbage_replaced_with_valid_word_not_suspicious(self) -> None:
-        """Unrecognizable OCR token replaced with a valid word is a legitimate fix."""
-        assert _has_suspicious_substitutions(
-            "The xzqpf was undeniable.",
-            "The truth was undeniable."
-        ) is False
-
-    # --- Not suspicious: boundary punctuation handled correctly ---
-
-    def test_boundary_comma_stripped_same_word_not_suspicious(self) -> None:
-        """'council,' and 'council' both strip to 'council' — treated as equal."""
-        assert _has_suspicious_substitutions(
-            "The council, agreed on the plan.",
-            "The council agreed on the plan."
-        ) is False
-
-    def test_boundary_parentheses_stripped_same_word_not_suspicious(self) -> None:
-        """'(word)' strips to 'word' — same as cleaned 'word'."""
-        assert _has_suspicious_substitutions(
-            "The (government) responded.",
-            "The government responded."
-        ) is False
-
-    def test_trailing_period_stripped_same_word_not_suspicious(self) -> None:
-        assert _has_suspicious_substitutions(
-            "She agreed.",
-            "She agreed."
-        ) is False
-
-    # --- Not suspicious: valid-word substitutions are handled by _restore_valid_words ---
-
-    def test_valid_word_swapped_for_different_valid_word_not_suspicious(self) -> None:
-        """'cat' → 'dog' is now handled by _restore_valid_words, not flagged here."""
-        assert _has_suspicious_substitutions(
-            "The cat sat on the mat.",
-            "The dog sat on the mat."
-        ) is False
-
-    def test_valid_word_replaced_with_invalid_word_not_suspicious(self) -> None:
-        """valid → invalid is caught by _restore_valid_words (restores original), not flagged here."""
-        assert _has_suspicious_substitutions(
-            "The quick brown fox.",
-            "The quick xzqpf fox."
-        ) is False
-
-    # --- Not suspicious: hyphen/em-dash equivalence ---
-
-    def test_hyphen_to_em_dash_in_compound_not_suspicious(self) -> None:
-        """'work-far' → 'work—far': same token after dash normalization — not suspicious."""
-        assert _has_suspicious_substitutions(
-            "a closely-integrated work-far exceeding expectations",
-            "a closely-integrated work—far exceeding expectations"
-        ) is False
-
-    # --- Not suspicious: missing hyphen restored ---
-
-    def test_missing_hyphen_restored_not_suspicious(self) -> None:
-        """'wellknown' → 'well-known': equal after hyphen stripping — not suspicious."""
-        assert _has_suspicious_substitutions(
-            "their wellknown paradoxes",
-            "their well-known paradoxes"
-        ) is False
-
-    # --- Not suspicious: diacritics restored ---
-
-    def test_diacritics_restored_not_suspicious(self) -> None:
-        """'Eotvos' → 'Eötvös': equal after ASCII-folding — not suspicious."""
-        assert _has_suspicious_substitutions(
-            "the experiments by Eotvos more recently",
-            "the experiments by Eötvös more recently"
-        ) is False
-
-    # --- Not suspicious: symbol/punctuation substitution ---
-
-    def test_symbol_substitution_not_suspicious(self) -> None:
-        """'star:✦' → 'star:*': non-alphabetic tokens are skipped — not suspicious."""
-        assert _has_suspicious_substitutions(
-            "marked with a star:✶",
-            "marked with a star:*"
-        ) is False
-
-    def test_pure_symbol_token_not_suspicious(self) -> None:
-        """A standalone non-alphanumeric token replaced by any other token is not suspicious."""
-        assert _has_suspicious_substitutions(
-            "marked with a star ✶ here",
-            "marked with a star * here"
-        ) is False
-
-    def test_multi_char_symbol_token_not_suspicious(self) -> None:
-        """A multi-character symbolic token with no letters or digits is not suspicious."""
-        assert _has_suspicious_substitutions(
-            "the symbol ✶✶ appears",
-            "the symbol ** appears"
-        ) is False
-
-    # --- Not suspicious: invalid→invalid is now trusted ---
-
-    def test_invalid_to_invalid_is_trusted_not_suspicious(self) -> None:
-        """Both original and replacement are invalid — we trust the LLM to do its best.
-        Previously this was flagged as suspicious, but rejecting invalid→invalid caused
-        whole paragraphs to fail when the LLM made an imperfect but reasonable substitution
-        (e.g. 'heiden' → 'beiden' in a German title, or any OCR artifact the LLM
-        partially corrects). We now accept the LLM's version in this case."""
-        assert _has_suspicious_substitutions(
-            "The xzqpf was clear.",
-            "The zqpfx was clear."
-        ) is False
-
-    def test_ocr_artifact_replaced_with_valid_word_not_suspicious(self) -> None:
-        """'xzqpf' → 'truth': OCR fixed correctly — not suspicious."""
-        assert _has_suspicious_substitutions(
-            "The xzqpf was undeniable.",
-            "The truth was undeniable."
-        ) is False
+    @pytest.mark.parametrize("original, cleaned", [
+        # Identical text
+        ("Hello world.", "Hello world."),
+        # OCR artifacts: embedded non-alpha chars keep the token invalid after strip
+        ("He said a|nd walked away.",    "He said and walked away."),     # pipe char — regression
+        ("He wishes t<; thank her.",     "He wishes to thank her."),      # angle bracket
+        ("The xzqpf was undeniable.",    "The truth was undeniable."),    # pure OCR garbage → valid
+        # Boundary punctuation: stripped forms match, so treated as equal
+        ("The council, agreed on the plan.", "The council agreed on the plan."),  # trailing comma
+        ("The (government) responded.",      "The government responded."),        # boundary parens
+        ("She agreed.",                      "She agreed."),                      # trailing period
+        # Valid-word substitutions — handled by _restore_valid_words, not flagged here
+        ("The cat sat on the mat.",  "The dog sat on the mat."),   # valid→valid swap
+        ("The quick brown fox.",     "The quick xzqpf fox."),      # valid→invalid
+        # Hyphen/em-dash equivalence: equal after dash normalization
+        ("a closely-integrated work-far exceeding expectations",
+         "a closely-integrated work—far exceeding expectations"),  # hyphen→em-dash in compound
+        ("their wellknown paradoxes", "their well-known paradoxes"),  # missing hyphen restored
+        # Diacritics: equal after ASCII-folding
+        ("the experiments by Eotvos more recently",
+         "the experiments by Eötvös more recently"),
+        # Symbol/punctuation tokens: non-alphabetic tokens are skipped entirely
+        ("marked with a star:✶",   "marked with a star:*"),    # embedded symbol
+        ("marked with a star ✶ here", "marked with a star * here"),  # standalone symbol
+        ("the symbol ✶✶ appears",  "the symbol ** appears"),   # multi-char symbol
+        # invalid→invalid: LLM's best effort on OCR garbage is trusted
+        ("The xzqpf was clear.", "The zqpfx was clear."),
+    ])
+    def test_not_suspicious(self, original: str, cleaned: str) -> None:
+        assert _has_suspicious_substitutions(original, cleaned) is False
 
 
 # --- TestRestoreListPrefix ---
@@ -849,41 +745,19 @@ class TestRestoreValidWords:
     # difference between the original and LLM tokens is the quote Unicode code point —
     # they are semantically identical and must not trigger a restore.
 
-    def test_llm_smart_open_quote_on_word_not_restored(self) -> None:
-        """'All (ASCII) vs ‘All (smart open quote): same word, no restore.
-        Seen in practice as: → restored ''All' (LLM tried ''All')"""
-        result = _restore_valid_words(
-            "He said 'All is well.",
-            "He said ‘All is well."
-        )
-        assert result == "He said ‘All is well."
-
-    def test_llm_smart_close_quote_mid_token_not_restored(self) -> None:
-        """white'. (ASCII) vs white’. (smart close quote): same word, no restore.
-        Seen in practice as: → restored 'white'.' (LLM tried 'white'.')"""
-        result = _restore_valid_words(
-            "the colour white'.",
-            "the colour white’."
-        )
-        assert result == "the colour white’."
-
-    def test_llm_smart_close_quote_after_period_not_restored(self) -> None:
-        """Vienna.' (ASCII) vs Vienna.’ (smart close quote): same word, no restore.
-        Seen in practice as: → restored 'Vienna.'' (LLM tried 'Vienna.'')"""
-        result = _restore_valid_words(
-            "the city Vienna.'",
-            "the city Vienna.’"
-        )
-        assert result == "the city Vienna.’"
-
-    def test_llm_smart_quotes_around_abbreviation_not_restored(self) -> None:
-        """'Ed.'.' (ASCII) vs ‘Ed.’. (smart quotes): same token, no restore.
-        Seen in practice as: → restored ''Ed.'.' (LLM tried ''Ed.'.')"""
-        result = _restore_valid_words(
-            "published by 'Ed.'.",
-            "published by ‘Ed.’."
-        )
-        assert result == "published by ‘Ed.’."
+    @pytest.mark.parametrize("original, llm", [
+        # Seen in practice as: → restored ‘’All’ (LLM tried ‘’All’)
+        ("He said ‘All is well.",    "He said ‘All is well."),
+        # Seen in practice as: → restored ‘white’.’ (LLM tried ‘white’.’)
+        ("the colour white’.",       "the colour white’."),
+        # Seen in practice as: → restored ‘Vienna.’’ (LLM tried ‘Vienna.’’)
+        ("the city Vienna.’",        "the city Vienna.’"),
+        # Seen in practice as: → restored ‘’Ed.’.’ (LLM tried ‘’Ed.’.’)
+        ("published by ‘Ed.’.",      "published by ‘Ed.’."),
+    ])
+    def test_llm_smart_quote_not_restored(self, original: str, llm: str) -> None:
+        """LLM smart-quote upgrade (ASCII → typographic) must not trigger a restore."""
+        assert _restore_valid_words(original, llm) == llm
 
 
 # --- TestIsWordLike ---
