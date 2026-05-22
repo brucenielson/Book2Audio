@@ -6,6 +6,7 @@ import difflib
 import json
 import re
 import unicodedata
+from enum import Enum
 from typing import Final, Literal, TypeAlias
 
 import ollama
@@ -17,6 +18,13 @@ from word_validator import word_validator
 CLASSIFICATION_BODY: Final = 'body'
 CLASSIFICATION_FOOTNOTE: Final = 'footnote'
 CLASSIFICATION_DROP: Final = 'drop'
+
+
+class FormulaMode(Enum):
+    """Controls how formula chunks are processed."""
+    SKIP  = 'skip'   # no LLM — emit raw text (default)
+    CLEAN = 'clean'  # LLM reconstructs OCR mess, keeps as notation
+    AUDIO = 'audio'  # two-pass: CLEAN then translate to spoken English
 
 ClassificationType: TypeAlias = Literal[CLASSIFICATION_BODY, CLASSIFICATION_FOOTNOTE, CLASSIFICATION_DROP]
 

@@ -1,8 +1,9 @@
 """Tests for the TextProcessor class and _all_words_valid helper."""
 
 import pytest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, ANY
 from text_chunk import RawChunk
+from text_cleaner import FormulaMode
 from text_processor import TextProcessor, _all_words_valid
 
 
@@ -19,6 +20,15 @@ def make_processor(min_paragraph_size: int = 0,
     """Create a TextProcessor with the given settings."""
     return TextProcessor(min_paragraph_size=min_paragraph_size,
                          include_footnotes=include_footnotes)
+
+
+def make_formula_cleaner(ocr_result: str = 'cleaned formula',
+                          audio_result: str = 'spoken formula') -> MagicMock:
+    """Create a mock TextCleaner with formula cleaning methods."""
+    cleaner = MagicMock()
+    cleaner.clean_formula_ocr.side_effect = lambda formula, page_context='': ocr_result
+    cleaner.clean_formula.side_effect = lambda formula, page_context='': audio_result
+    return cleaner
 
 
 def make_cleaner(classification: str = 'body', cleaned: str | None = None) -> MagicMock:
@@ -280,6 +290,55 @@ class TestCleaner:
         result = processor.process(chunks)
         assert len(result) == 1
         assert result[0].text == "Normal text."
+
+
+# --- TestFormulaMode ---
+
+class TestFormulaMode:
+    """Tests for formula_mode parameter controlling how formula chunks are handled."""
+
+    @pytest.mark.parametrize("formula_mode", [
+        FormulaMode.SKIP,
+        None,   # omitted → default → same as SKIP
+    ])
+    def test_skip_emits_raw_text_without_llm(self, formula_mode: FormulaMode | None) -> None:
+        """SKIP (and the default) emits raw formula text without any LLM call."""
+        cleaner = make_formula_cleaner()
+        kwargs = {'formula_mode': formula_mode} if formula_mode is not None else {}
+        processor = TextProcessor(cleaner=cleaner, **kwargs)
+        result = processor.process([make_chunk('x + y = z', label='formula')])
+        assert len(result) == 1
+        assert result[0].text == 'x + y = z'
+        cleaner.clean_formula_ocr.assert_not_called()
+        cleaner.clean_formula.assert_not_called()
+
+    def test_clean_calls_ocr_method_and_emits_result(self) -> None:
+        """CLEAN mode calls clean_formula_ocr and emits its result."""
+        cleaner = make_formula_cleaner(ocr_result='x + y = z', audio_result='x plus y')
+        processor = TextProcessor(cleaner=cleaner, formula_mode=FormulaMode.CLEAN)
+        result = processor.process([make_chunk('x -+- y == z (garbled)', label='formula')])
+        assert len(result) == 1
+        assert result[0].text == 'x + y = z'
+        cleaner.clean_formula_ocr.assert_called_once()
+        cleaner.clean_formula.assert_not_called()
+
+    def test_audio_calls_both_passes_in_order(self) -> None:
+        """AUDIO mode calls clean_formula_ocr then clean_formula."""
+        cleaner = make_formula_cleaner(ocr_result='x + y = z', audio_result='x plus y equals z')
+        processor = TextProcessor(cleaner=cleaner, formula_mode=FormulaMode.AUDIO)
+        result = processor.process([make_chunk('x -+- y == z (garbled)', label='formula')])
+        assert len(result) == 1
+        assert result[0].text == 'x plus y equals z'
+        cleaner.clean_formula_ocr.assert_called_once()
+        cleaner.clean_formula.assert_called_once()
+
+    def test_audio_feeds_ocr_output_into_audio_pass(self) -> None:
+        """AUDIO mode must pass clean_formula_ocr's result into clean_formula, not the raw text."""
+        cleaner = make_formula_cleaner(ocr_result='x² + y² = z²',
+                                       audio_result='x squared plus y squared equals z squared')
+        processor = TextProcessor(cleaner=cleaner, formula_mode=FormulaMode.AUDIO)
+        processor.process([make_chunk('x2 + y2 = z2 (OCR mess)', label='formula')])
+        cleaner.clean_formula.assert_called_once_with('x² + y² = z²', page_context=ANY)
 
 
 # --- TestAllWordsValid ---
