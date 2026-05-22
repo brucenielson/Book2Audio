@@ -383,6 +383,11 @@ class DoclingParser(BaseParser):
         """
         if is_footnote(text_item):
             return True
+        # H3 extension: formula items are swept up by footnote propagation just like
+        # TEXT items — a formula that appears after the first footnote on a page is
+        # part of the footnote section, not body content.
+        if text_item.label == DocItemLabel.FORMULA and ctx.found_note_this_page:
+            return True
         if not (text_item.label in (DocItemLabel.TEXT, DocItemLabel.SECTION_HEADER)
                 and text_item.text):
             return False
