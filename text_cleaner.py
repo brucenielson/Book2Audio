@@ -231,11 +231,24 @@ def _restore_valid_words(original: str, cleaned: str, verbose: bool = False) -> 
                     normalize_quotes(cleaned_lower[j1 + k].replace("\\'", "'").replace('\\"', '"')).strip('.,;:!?"\'()-[]'))
                 orig_tok = original_lower[i1 + k]
                 new_tok = cleaned_lower[j1 + k]
+                # Absorbed-token check: LLM's replacement equals the original word
+                # with the immediately following token appended, e.g. 'teste' + 'd'
+                # → 'tested'.  The LLM merged an OCR split rather than substituting,
+                # so the restore must not fire even though the original is a valid word.
+                _next_idx = i1 + k + 1
+                _next_stripped = (
+                    original_lower[_next_idx].strip('.,;:!?"\'''""()-[]')
+                    if _next_idx < len(original_lower) else ''
+                )
+                is_absorbed_next = bool(
+                    _next_stripped and new_stripped == orig_stripped + _next_stripped
+                )
                 if (orig_stripped != new_stripped
                         and _is_word_like(orig_tok)
                         and not orig_tok.endswith('-')
                         and word_validator.is_valid_word(orig_stripped)
-                        and (len(orig_stripped) > 1 or orig_stripped in ('a', 'i'))):
+                        and (len(orig_stripped) > 1 or orig_stripped in ('a', 'i'))
+                        and not is_absorbed_next):
                     # valid→something: restore the original word
                     ctx_start = max(0, i1 + k - 3)
                     ctx_end = min(len(original_split), i1 + k + 4)
