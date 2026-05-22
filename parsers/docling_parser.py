@@ -12,7 +12,7 @@ from docling_core.types.doc.document import TextItem, DocItemLabel
 
 from text_chunk import RawChunk, ParsedChunk
 from text_processor import TextProcessor
-from text_cleaner import TextCleaner, is_math_heavy
+from text_cleaner import TextCleaner
 from parsers.base_parser import BaseParser
 from utils.docling_utils import (is_footnote,
                                  is_text_bearing,
@@ -27,7 +27,8 @@ from utils.docling_utils import (is_footnote,
                                  get_pdf_page_labels,
                                  is_front_matter,
                                  calibrate_header_top_y,
-                                 compute_median_page_height)
+                                 compute_median_page_height,
+                                 is_math_heavy)
 from utils.general_utils import is_sentence_end
 
 

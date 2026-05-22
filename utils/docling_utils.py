@@ -468,6 +468,58 @@ _ROMAN_RE = re.compile(
 )
 
 
+# Characters that are rare in prose but common in mathematical notation.
+# Parentheses and brackets are the dominant signal — formula-dense text like
+# "(G) (x)(Ey)(P(x + y) & P((2 + x) - y))" has ~45% math chars; a sentence
+# like "However (which is true), we conclude." has ~3%.
+# Deliberately excludes '-' (too common as a hyphen) and ':' (too common in prose).
+_MATH_CHARS: frozenset[str] = frozenset(
+    '=+*/^&|<>()[]{}' +                            # operators and brackets
+    '∀∃∧∨¬→←↔∈∉⊂⊃⊆⊇≡≤≥≠∑∏∫√∞±·×÷' +            # Unicode logic/math
+    'αβγδεζηθικλμνξπρστυφχψω' +                   # Greek lowercase
+    'ΑΒΓΔΕΖΗΘΙΚΛΜΝΞΠΡΣΤΥΦΧΨΩ'                     # Greek uppercase
+)
+
+# Subset of _MATH_CHARS that can only appear in genuine mathematical content.
+# Density alone is insufficient — "25. (*58)" (a section marker) has high
+# parenthesis density but no actual mathematical meaning. Requiring at least
+# one strong signal prevents these false positives.
+_STRONG_MATH_SIGNALS: frozenset[str] = frozenset(
+    '=+<>' +                                        # equality, addition, inequalities
+    '∀∃∧∨¬→←↔∈∉⊂⊃⊆⊇≡≤≥≠∑∏∫√∞±·×÷' +            # Unicode logic/math
+    'αβγδεζηθικλμνξπρστυφχψω' +                   # Greek lowercase
+    'ΑΒΓΔΕΖΗΘΙΚΛΜΝΞΠΡΣΤΥΦΧΨΩ'                     # Greek uppercase
+)
+
+
+def is_math_heavy(text: str, threshold: float = 0.20) -> bool:
+    """Return True if text appears to be a math-heavy formula or expression.
+
+    Two conditions must both hold:
+    1. At least `threshold` fraction of non-space characters are in _MATH_CHARS
+       (operators, brackets, Unicode logic/math symbols, Greek letters).
+    2. At least one character from _STRONG_MATH_SIGNALS is present — equality,
+       addition, Unicode logic/math, or Greek letters. This prevents false
+       positives on section markers like "25. (*58)" which have many parentheses
+       but no genuine mathematical content.
+
+    Args:
+        text: The paragraph text to test.
+        threshold: Minimum fraction of non-space characters that must be
+                   math-related. Defaults to 0.20 (20%).
+
+    Returns:
+        True if the paragraph is math-heavy, False otherwise.
+    """
+    non_space = [c for c in text if c != ' ']
+    if not non_space:
+        return False
+    math_count = sum(1 for c in non_space if c in _MATH_CHARS)
+    if math_count / len(non_space) < threshold:
+        return False
+    return any(c in _STRONG_MATH_SIGNALS for c in text)
+
+
 def get_pdf_page_labels(path: Path) -> dict[int, str]:
     """Return a mapping from physical page index (0-based) to its printed label.
 
