@@ -27,9 +27,8 @@ from utils.docling_utils import (is_footnote,
                                  get_pdf_page_labels,
                                  is_front_matter,
                                  calibrate_header_top_y,
-                                 compute_median_page_height,
-                                 is_math_heavy)
-from utils.general_utils import is_sentence_end
+                                 compute_median_page_height)
+from utils.general_utils import is_sentence_end, is_math_heavy
 
 
 @dataclasses.dataclass

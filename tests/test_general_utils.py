@@ -1,5 +1,7 @@
 """Tests for utils.general_utils utility functions."""
 
+import pytest
+
 from utils.general_utils import (
     is_ends_with_punctuation,
     is_sentence_end,
@@ -20,6 +22,7 @@ from utils.general_utils import (
     load_sections_to_skip,
     load_valid_pages,
     substitute_math_symbols,
+    is_math_heavy,
 )
 
 # --- is_ends_with_punctuation ---
@@ -420,3 +423,50 @@ class TestSubstituteMathSymbols:
         """Replacing a spaced symbol should not leave double spaces."""
         result = substitute_math_symbols("p → q")
         assert "  " not in result
+
+
+# --- is_math_heavy ---
+
+class TestIsMathHeavy:
+    """Tests for the is_math_heavy() heuristic used to detect formula-dense paragraphs."""
+
+    @pytest.mark.parametrize("text", [
+        "(G) (x)(Ey)(P(x + y) & P((2 + x) - y))",     # Goldbach's conjecture (item #21)
+        "Ct(a,c) = C(a,a,c) = 1 - p(a,c).",            # corroboration formula
+        "p(b,ac) - p(b,c) C(a,b,c) = 0",               # probability formula
+        "f(x) = g(x) + h(x), so f(x) - g(x) = h(x).", # equation with function notation
+        "∀x ∃y P(x, y) → Q(x)",                        # logical formula with Unicode symbols
+    ])
+    def test_formula_text_is_math_heavy(self, text: str) -> None:
+        """Text with dense math notation is correctly identified as math-heavy."""
+        assert is_math_heavy(text) is True
+
+    @pytest.mark.parametrize("text", [
+        "This is a normal paragraph about philosophy.",
+        "However (which is true), we can conclude that the argument is valid.",
+        "The French Revolution began in 1789 and transformed Europe.",
+        "In this chapter we examine the problem and propose a solution (see Appendix A).",
+        "Let x be the variable and y be the function value.",
+    ])
+    def test_normal_prose_is_not_math_heavy(self, text: str) -> None:
+        """Normal prose is not flagged as math-heavy."""
+        assert is_math_heavy(text) is False
+
+    @pytest.mark.parametrize("text", [
+        "25. (*58)",    # section marker: parentheses + asterisk but no = or + or Greek
+        "26. (*59)",    # same pattern
+        "28. (*61)",    # same pattern
+    ])
+    def test_section_markers_are_not_math_heavy(self, text: str) -> None:
+        """Section markers with parentheses and asterisk must not be flagged.
+
+        These have high parenthesis density but no genuine mathematical content
+        (no equality, addition, or Unicode math/Greek symbols).
+        """
+        assert is_math_heavy(text) is False
+
+    def test_empty_string_is_not_math_heavy(self) -> None:
+        assert is_math_heavy("") is False
+
+    def test_whitespace_only_is_not_math_heavy(self) -> None:
+        assert is_math_heavy("   ") is False
