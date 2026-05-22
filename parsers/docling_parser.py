@@ -12,7 +12,7 @@ from docling_core.types.doc.document import TextItem, DocItemLabel
 
 from text_chunk import RawChunk, ParsedChunk
 from text_processor import TextProcessor
-from text_cleaner import TextCleaner
+from text_cleaner import TextCleaner, is_math_heavy
 from parsers.base_parser import BaseParser
 from utils.docling_utils import (is_footnote,
                                  is_text_bearing,
@@ -649,7 +649,10 @@ class DoclingParser(BaseParser):
                 ctx.found_note_this_page = True
                 classified.append((text_item, 'footnote'))
             else:
-                classified.append((text_item, str(text_item.label)))
+                label: str = str(text_item.label)
+                if text_item.label == DocItemLabel.TEXT and is_math_heavy(text_item.text):
+                    label = 'formula'
+                classified.append((text_item, label))
                 self._update_text_state(text_item, ctx)
 
             if not went_to_notes and text_item.label == DocItemLabel.TEXT:
