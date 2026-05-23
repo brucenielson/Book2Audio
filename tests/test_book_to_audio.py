@@ -158,19 +158,16 @@ class TestKokoroEngine:
         engine = KokoroEngine(pipeline=mock_pipeline)
         assert engine.sample_rate == 24000
 
-    def test_creates_pipeline_if_none(self) -> None:
-        """KokoroEngine should create its own pipeline if none is provided."""
+    @pytest.mark.parametrize("cuda_available, expected_device", [
+        (False, 'cpu'),
+        (True,  'cuda'),
+    ])
+    def test_pipeline_device_selection(self, cuda_available: bool, expected_device: str) -> None:
+        """KokoroEngine selects cpu or cuda based on torch.cuda.is_available()."""
         with patch('engines.kokoro.KPipeline') as mock_pipeline_cls:
-            with patch('engines.kokoro.torch.cuda.is_available', return_value=False):
+            with patch('engines.kokoro.torch.cuda.is_available', return_value=cuda_available):
                 KokoroEngine()
-                mock_pipeline_cls.assert_called_once_with(lang_code='a', device='cpu')
-
-    def test_uses_cuda_if_available(self) -> None:
-        """KokoroEngine should use CUDA device if available."""
-        with patch('engines.kokoro.KPipeline') as mock_pipeline_cls:
-            with patch('engines.kokoro.torch.cuda.is_available', return_value=True):
-                KokoroEngine()
-                mock_pipeline_cls.assert_called_once_with(lang_code='a', device='cuda')
+                mock_pipeline_cls.assert_called_once_with(lang_code='a', device=expected_device)
 
 
 # --- BookToAudio tests ---

@@ -341,29 +341,22 @@ class TestFormulaMode:
 # --- TestAllWordsValid ---
 
 class TestAllWordsValid:
-    def test_all_valid_words_returns_true(self) -> None:
-        """A sentence of common English words should return True."""
-        assert _all_words_valid("The dog ran quickly") is True
+    @pytest.mark.parametrize("text", [
+        "The dog ran quickly",  # common words
+        "",                     # empty string — no invalid tokens
+        "Hello, world.",        # punctuation stripped before check
+        "I saw a dog",          # 'a' and 'I' are valid single-letter words
+    ])
+    def test_returns_true(self, text: str) -> None:
+        assert _all_words_valid(text) is True
 
-    def test_ocr_artifact_returns_false(self) -> None:
-        """A sentence containing a non-word should return False."""
-        assert _all_words_valid("I am hppy today") is False
-
-    def test_standalone_number_returns_false(self) -> None:
-        """A standalone numeric token is a potential artifact and should return False."""
-        assert _all_words_valid("Chapter 1789") is False
-
-    def test_embedded_digit_returns_false(self) -> None:
-        """A digit embedded in a word (e.g. OCR artifact) should return False."""
-        assert _all_words_valid("The dog ran quickly1.") is False
-
-    def test_empty_string_returns_true(self) -> None:
-        """An empty string has no invalid words, so _all_words_valid returns True."""
-        assert _all_words_valid("") is True
-
-    def test_punctuation_stripped_before_check(self) -> None:
-        """Punctuation attached to valid words should be ignored."""
-        assert _all_words_valid("Hello, world.") is True
+    @pytest.mark.parametrize("text", [
+        "I am hppy today",        # non-word OCR artifact
+        "Chapter 1789",           # standalone number
+        "The dog ran quickly1.",  # digit embedded in word
+    ])
+    def test_returns_false(self, text: str) -> None:
+        assert _all_words_valid(text) is False
 
     def test_single_letter_fragment_returns_false(self) -> None:
         """A lone single-letter token (not 'a' or 'i') is a line-break artifact.
@@ -377,10 +370,6 @@ class TestAllWordsValid:
         """
         assert _all_words_valid("p referring") is False
         assert _all_words_valid("the s cientific method") is False
-
-    def test_a_and_i_single_letters_are_accepted(self) -> None:
-        """'a' and 'i' are legitimate single-letter English words and must pass."""
-        assert _all_words_valid("I saw a dog") is True
 
 
 # --- TestSkipCleanerWhenAllWordsValid ---
@@ -631,32 +620,24 @@ class TestUpfrontFootnoteReclassification:
     """Chunks whose text starts with 1-2 digits immediately followed by an uppercase
     letter are reclassified as footnotes during the upfront preprocessing pass."""
 
-    def test_digit_uppercase_chunk_is_dropped(self) -> None:
-        """A 'text' chunk matching '3See' pattern is reclassified and dropped from output."""
+    @pytest.mark.parametrize("text", [
+        "3See my Poverty of Historicism, section 32.",  # digit+uppercase (1 digit)
+        "14Cf. the earlier discussion on page 42.",     # digit+uppercase (2 digits)
+    ])
+    def test_digit_uppercase_chunk_is_dropped(self, text: str) -> None:
+        """A 'text' chunk matching the digit+uppercase pattern is reclassified and dropped."""
         processor = make_processor(include_footnotes=False)
-        chunks = [make_chunk("3See my Poverty of Historicism, section 32.")]
-        result = processor.process(chunks)
+        result = processor.process([make_chunk(text)])
         assert result == []
 
-    def test_two_digit_uppercase_chunk_is_dropped(self) -> None:
-        """A 'text' chunk matching '14Cf' pattern is reclassified and dropped."""
+    @pytest.mark.parametrize("text", [
+        "3 Some body text that is complete.",      # space between digit and letter
+        "1st place goes to the fastest runner.",   # lowercase after digit
+    ])
+    def test_digit_chunk_is_kept(self, text: str) -> None:
+        """Chunks that don't match the footnote pattern are kept as body text."""
         processor = make_processor(include_footnotes=False)
-        chunks = [make_chunk("14Cf. the earlier discussion on page 42.")]
-        result = processor.process(chunks)
-        assert result == []
-
-    def test_digit_space_uppercase_chunk_is_kept(self) -> None:
-        """A chunk with a space between digit and letter is body text — not reclassified."""
-        processor = make_processor(include_footnotes=False)
-        chunks = [make_chunk("3 Some body text that is complete.")]
-        result = processor.process(chunks)
-        assert len(result) == 1
-
-    def test_digit_lowercase_chunk_is_kept(self) -> None:
-        """Lowercase after digit (e.g. '1st') is not reclassified."""
-        processor = make_processor(include_footnotes=False)
-        chunks = [make_chunk("1st place goes to the fastest runner.")]
-        result = processor.process(chunks)
+        result = processor.process([make_chunk(text)])
         assert len(result) == 1
 
     def test_reclassified_footnote_included_when_flag_set(self) -> None:
