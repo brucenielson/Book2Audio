@@ -1,116 +1,67 @@
 """Tests for TextChunk and its subclasses."""
 
+import pytest
 from text_chunk import TextChunk, RawChunk, ParsedChunk
 
 
 # --- is_section_header ---
 
 class TestIsSectionHeader:
-    def test_section_header_label(self) -> None:
-        assert TextChunk("text", label="section_header").is_section_header is True
+    @pytest.mark.parametrize("label", ["section_header", "title", "h1", "h2", "h3", "h4", "h5"])
+    def test_is_true(self, label: str) -> None:
+        assert TextChunk("text", label=label).is_section_header is True
 
-    def test_title_label(self) -> None:
-        assert TextChunk("text", label="title").is_section_header is True
-
-    def test_h1_label(self) -> None:
-        assert TextChunk("text", label="h1").is_section_header is True
-
-    def test_h2_label(self) -> None:
-        assert TextChunk("text", label="h2").is_section_header is True
-
-    def test_h3_label(self) -> None:
-        assert TextChunk("text", label="h3").is_section_header is True
-
-    def test_h4_label(self) -> None:
-        assert TextChunk("text", label="h4").is_section_header is True
-
-    def test_h5_label(self) -> None:
-        assert TextChunk("text", label="h5").is_section_header is True
-
-    def test_body_text_not_section_header(self) -> None:
-        assert TextChunk("text", label="text").is_section_header is False
-
-    def test_footnote_not_section_header(self) -> None:
-        assert TextChunk("text", label="footnote").is_section_header is False
-
-    def test_empty_label_not_section_header(self) -> None:
-        assert TextChunk("text").is_section_header is False
+    @pytest.mark.parametrize("label", ["text", "footnote", ""])
+    def test_is_false(self, label: str) -> None:
+        assert TextChunk("text", label=label).is_section_header is False
 
 
 # --- is_footnote ---
 
 class TestIsFootnote:
-    def test_footnote_label(self) -> None:
-        assert TextChunk("text", label="footnote").is_footnote is True
+    @pytest.mark.parametrize("label", ["footnote"])
+    def test_is_true(self, label: str) -> None:
+        assert TextChunk("text", label=label).is_footnote is True
 
-    def test_body_text_not_footnote(self) -> None:
-        assert TextChunk("text", label="text").is_footnote is False
-
-    def test_section_header_not_footnote(self) -> None:
-        assert TextChunk("text", label="section_header").is_footnote is False
-
-    def test_empty_label_not_footnote(self) -> None:
-        assert TextChunk("text").is_footnote is False
+    @pytest.mark.parametrize("label", ["text", "section_header", ""])
+    def test_is_false(self, label: str) -> None:
+        assert TextChunk("text", label=label).is_footnote is False
 
 
 # --- is_page_header ---
 
 class TestIsPageHeader:
-    def test_page_header_label(self) -> None:
-        assert TextChunk("text", label="page_header").is_page_header is True
+    @pytest.mark.parametrize("label", ["page_header"])
+    def test_is_true(self, label: str) -> None:
+        assert TextChunk("text", label=label).is_page_header is True
 
-    def test_body_text_not_page_header(self) -> None:
-        assert TextChunk("text", label="text").is_page_header is False
-
-    def test_page_footer_not_page_header(self) -> None:
-        assert TextChunk("text", label="page_footer").is_page_header is False
-
-    def test_empty_label_not_page_header(self) -> None:
-        assert TextChunk("text").is_page_header is False
+    @pytest.mark.parametrize("label", ["text", "page_footer", ""])
+    def test_is_false(self, label: str) -> None:
+        assert TextChunk("text", label=label).is_page_header is False
 
 
 # --- is_page_footer ---
 
 class TestIsPageFooter:
-    def test_page_footer_label(self) -> None:
-        assert TextChunk("text", label="page_footer").is_page_footer is True
+    @pytest.mark.parametrize("label", ["page_footer"])
+    def test_is_true(self, label: str) -> None:
+        assert TextChunk("text", label=label).is_page_footer is True
 
-    def test_body_text_not_page_footer(self) -> None:
-        assert TextChunk("text", label="text").is_page_footer is False
-
-    def test_page_header_not_page_footer(self) -> None:
-        assert TextChunk("text", label="page_header").is_page_footer is False
-
-    def test_empty_label_not_page_footer(self) -> None:
-        assert TextChunk("text").is_page_footer is False
+    @pytest.mark.parametrize("label", ["text", "page_header", ""])
+    def test_is_false(self, label: str) -> None:
+        assert TextChunk("text", label=label).is_page_footer is False
 
 
 # --- is_body_text ---
 
 class TestIsBodyText:
-    def test_text_label(self) -> None:
-        assert TextChunk("text", label="text").is_body_text is True
+    @pytest.mark.parametrize("label", ["text", "list_item", "formula", "paragraph"])
+    def test_is_true(self, label: str) -> None:
+        assert TextChunk("text", label=label).is_body_text is True
 
-    def test_list_item_label(self) -> None:
-        assert TextChunk("text", label="list_item").is_body_text is True
-
-    def test_formula_label(self) -> None:
-        assert TextChunk("text", label="formula").is_body_text is True
-
-    def test_paragraph_label(self) -> None:
-        assert TextChunk("text", label="paragraph").is_body_text is True
-
-    def test_section_header_not_body_text(self) -> None:
-        assert TextChunk("text", label="section_header").is_body_text is False
-
-    def test_footnote_not_body_text(self) -> None:
-        assert TextChunk("text", label="footnote").is_body_text is False
-
-    def test_page_header_not_body_text(self) -> None:
-        assert TextChunk("text", label="page_header").is_body_text is False
-
-    def test_empty_label_not_body_text(self) -> None:
-        assert TextChunk("text").is_body_text is False
+    @pytest.mark.parametrize("label", ["section_header", "footnote", "page_header", ""])
+    def test_is_false(self, label: str) -> None:
+        assert TextChunk("text", label=label).is_body_text is False
 
 
 # --- subclasses ---
