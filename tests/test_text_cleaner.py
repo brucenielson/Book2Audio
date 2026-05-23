@@ -1164,6 +1164,57 @@ class TestCoerceClassification:
         assert _coerce_classification('') is None
 
 
+# --- TestCleanFormulaOcr ---
+
+class TestCleanFormulaOcr:
+    """Tests for TextCleaner.clean_formula_ocr — the OCR-reconstruction pass.
+
+    This method sends a formula to the LLM asking it to reconstruct the
+    intended notation from an OCR-mangled string.  It returns plain text
+    (not JSON) and must use a different system prompt from clean_formula.
+    """
+
+    @pytest.mark.parametrize("formula, expected", [
+        ("x -+- y == z (garbled)",  "x + y = z"),
+        ("E = mc 2",                "E = mc²"),
+    ])
+    def test_returns_llm_response(self, formula: str, expected: str) -> None:
+        """clean_formula_ocr returns the LLM's reconstructed formula."""
+        cleaner = make_cleaner()
+        mock_response = {'message': {'content': expected}}
+        with patch(patch_llm_chat, return_value=mock_response):
+            result = cleaner.clean_formula_ocr(formula)
+        assert result == expected
+
+    def test_returns_original_on_exception(self) -> None:
+        """clean_formula_ocr falls back to the raw formula if the LLM raises."""
+        cleaner = make_cleaner()
+        with patch(patch_llm_chat, side_effect=Exception("LLM unavailable")):
+            result = cleaner.clean_formula_ocr("x + y = z")
+        assert result == "x + y = z"
+
+    def test_uses_different_prompt_from_audio_pass(self) -> None:
+        """clean_formula_ocr must use a different system prompt than clean_formula."""
+        from text_cleaner import FORMULA_SYSTEM_PROMPT
+        cleaner = make_cleaner()
+        mock_response = {'message': {'content': "x + y = z"}}
+        with patch(patch_llm_chat, return_value=mock_response) as mock_chat:
+            cleaner.clean_formula_ocr("x + y = z")
+        system_msg = next(
+            m['content'] for m in mock_chat.call_args[1]['messages']
+            if m['role'] == 'system'
+        )
+        assert system_msg != FORMULA_SYSTEM_PROMPT
+
+    def test_empty_formula_returned_unchanged(self) -> None:
+        """clean_formula_ocr returns an empty string without calling the LLM."""
+        cleaner = make_cleaner()
+        with patch(patch_llm_chat) as mock_chat:
+            result = cleaner.clean_formula_ocr("   ")
+        assert result.strip() == ""
+        mock_chat.assert_not_called()
+
+
 # --- TestIntegration ---
 
 class TestIntegration:
