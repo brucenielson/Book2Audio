@@ -291,56 +291,54 @@ class TestBookToAudio:
 class TestFormulaModeThreading:
     """Tests that formula_mode threads correctly from CLI → BookToAudio → parsers."""
 
-    def test_book_to_audio_accepts_formula_mode(self, mock_audio_generator) -> None:
-        """BookToAudio.__init__ must accept a formula_mode parameter."""
-        converter = BookToAudio(audio_generator=mock_audio_generator,
-                                formula_mode=FormulaMode.AUDIO)
-        assert converter._formula_mode == FormulaMode.AUDIO
+    @pytest.mark.parametrize("formula_mode, expected", [
+        (FormulaMode.SKIP,  FormulaMode.SKIP),
+        (FormulaMode.CLEAN, FormulaMode.CLEAN),
+        (FormulaMode.AUDIO, FormulaMode.AUDIO),
+        (None,              FormulaMode.SKIP),   # omitted → default
+    ])
+    def test_book_to_audio_stores_formula_mode(
+            self, mock_audio_generator, formula_mode, expected) -> None:
+        """BookToAudio stores formula_mode; omitting it defaults to SKIP."""
+        kwargs = {'formula_mode': formula_mode} if formula_mode is not None else {}
+        converter = BookToAudio(audio_generator=mock_audio_generator, **kwargs)
+        assert converter._formula_mode == expected
 
-    def test_default_formula_mode_is_skip(self, mock_audio_generator) -> None:
-        """BookToAudio defaults to FormulaMode.SKIP when formula_mode is omitted."""
-        converter = BookToAudio(audio_generator=mock_audio_generator)
-        assert converter._formula_mode == FormulaMode.SKIP
-
-    def test_pdf_parser_receives_formula_mode(self, mock_audio_generator, tmp_path) -> None:
-        """BookToAudio passes formula_mode to DoclingParser for PDF files."""
+    @pytest.mark.parametrize("ext, patch_target, formula_mode", [
+        ('.pdf',  'book_converter.DoclingParser', FormulaMode.SKIP),
+        ('.pdf',  'book_converter.DoclingParser', FormulaMode.CLEAN),
+        ('.pdf',  'book_converter.DoclingParser', FormulaMode.AUDIO),
+        ('.epub', 'book_converter.EpubParser',    FormulaMode.SKIP),
+        ('.epub', 'book_converter.EpubParser',    FormulaMode.CLEAN),
+        ('.epub', 'book_converter.EpubParser',    FormulaMode.AUDIO),
+    ])
+    def test_parser_receives_formula_mode(
+            self, mock_audio_generator, tmp_path, ext, patch_target, formula_mode) -> None:
+        """BookToAudio forwards formula_mode to the appropriate parser."""
         converter = BookToAudio(audio_generator=mock_audio_generator,
-                                formula_mode=FormulaMode.CLEAN, dry_run=True)
-        pdf_path = tmp_path / "test.pdf"
-        pdf_path.touch()
-        with patch('book_converter.DoclingParser') as mock_parser_cls:
+                                formula_mode=formula_mode, dry_run=True)
+        doc_path = tmp_path / f"test{ext}"
+        doc_path.touch()
+        with patch(patch_target) as mock_parser_cls:
             mock_parser_cls.return_value.run.return_value = ([], [])
-            converter.convert_to_audio(pdf_path)
+            converter.convert_to_audio(doc_path)
         _, kwargs = mock_parser_cls.call_args
-        assert kwargs.get('formula_mode') == FormulaMode.CLEAN
+        assert kwargs.get('formula_mode') == formula_mode
 
-    def test_epub_parser_receives_formula_mode(self, mock_audio_generator, tmp_path) -> None:
-        """BookToAudio passes formula_mode to EpubParser for EPUB files."""
-        converter = BookToAudio(audio_generator=mock_audio_generator,
-                                formula_mode=FormulaMode.AUDIO, dry_run=True)
-        epub_path = tmp_path / "test.epub"
-        epub_path.touch()
-        with patch('book_converter.EpubParser') as mock_parser_cls:
-            mock_parser_cls.return_value.run.return_value = ([], [])
-            converter.convert_to_audio(epub_path)
-        _, kwargs = mock_parser_cls.call_args
-        assert kwargs.get('formula_mode') == FormulaMode.AUDIO
-
-    def test_main_default_formula_mode_is_skip(self) -> None:
-        """CLI main() passes FormulaMode.SKIP to BookToAudio by default."""
+    @pytest.mark.parametrize("formula_mode, expected", [
+        (None,              FormulaMode.SKIP),   # omitted → default
+        (FormulaMode.SKIP,  FormulaMode.SKIP),
+        (FormulaMode.CLEAN, FormulaMode.CLEAN),
+        (FormulaMode.AUDIO, FormulaMode.AUDIO),
+    ])
+    def test_main_passes_formula_mode(self, formula_mode, expected) -> None:
+        """CLI main() forwards formula_mode to BookToAudio; default is SKIP."""
         with patch('book_to_audio.BookToAudio') as mock_cls:
             with patch('book_to_audio._create_engine'):
-                book_to_audio_main(text="hello world")
-        _, kwargs = mock_cls.call_args
-        assert kwargs.get('formula_mode') == FormulaMode.SKIP
-
-    def test_main_passes_formula_mode_audio(self) -> None:
-        """CLI main() passes FormulaMode.AUDIO when formula_mode=FormulaMode.AUDIO."""
-        with patch('book_to_audio.BookToAudio') as mock_cls:
-            with patch('book_to_audio._create_engine'):
-                book_to_audio_main(text="hello world", formula_mode=FormulaMode.AUDIO)
-        _, kwargs = mock_cls.call_args
-        assert kwargs.get('formula_mode') == FormulaMode.AUDIO
+                kwargs = {'formula_mode': formula_mode} if formula_mode is not None else {}
+                book_to_audio_main(text="hello world", **kwargs)
+        _, call_kwargs = mock_cls.call_args
+        assert call_kwargs.get('formula_mode') == expected
 
 
 # --- load_as_document tests ---
