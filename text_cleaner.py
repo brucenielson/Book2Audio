@@ -91,6 +91,21 @@ Guidelines:
 explain what it means in plain English using the surrounding page context.
 - Return only the spoken English result. No JSON, no labels, no meta-commentary."""
 
+FORMULA_CLEAN_SYSTEM_PROMPT: str = """You are cleaning mathematical or logical notation \
+extracted from a book or paper.
+
+If OCR errors are present (garbled symbols, missing superscripts, stray characters, split or \
+merged tokens), reconstruct what was intended.
+If the notation is already correct or nearly correct, fix any minor formatting issues \
+(extra spaces, obvious artifacts) and return it largely as-is.
+
+Use the surrounding page context to fix any OCR errors and reconstruct \
+the intended formula as closely as possible.
+
+In either case:
+- Keep the output as notation — do NOT translate it to spoken English.
+- Return only the cleaned formula. No JSON, no labels, no explanation."""
+
 
 # noinspection SpellCheckingInspection
 _DROP_HINTS: tuple[str, ...] = (
@@ -522,6 +537,34 @@ class TextCleaner:
 
         return paragraph, 'body'
 
+    def _call_formula_llm(self, system_prompt: str, user_content: str) -> str | None:
+        """Call the LLM with the given system and user prompts, returning the result or None.
+
+        Retries up to self._max_retries times. Returns None if all attempts fail or
+        produce an empty response.
+        """
+        options: dict[str, float] = {}
+        if self._temperature is not None:
+            options['temperature'] = self._temperature
+
+        for attempt in range(self._max_retries):
+            try:
+                response = ollama.chat(
+                    model=self._model,
+                    options=options or None,
+                    messages=[
+                        {'role': 'system', 'content': system_prompt},
+                        {'role': 'user', 'content': user_content}
+                    ]
+                )
+                result = response['message']['content'].strip()
+                if result:
+                    return result
+            except Exception as e:
+                vprint(self._verbose, f"  → formula attempt {attempt + 1} failed: {e}")
+
+        return None
+
     def clean_formula(self, formula: str, page_context: str = "") -> str:
         """Translate mathematical or logical notation to spoken English for audio output.
 
@@ -549,24 +592,31 @@ class TextCleaner:
         else:
             user_content = f"Translate this formula to spoken English:\n{formula}"
 
-        options: dict[str, float] = {}
-        if self._temperature is not None:
-            options['temperature'] = self._temperature
+        return self._call_formula_llm(FORMULA_SYSTEM_PROMPT, user_content) or formula
 
-        for attempt in range(self._max_retries):
-            try:
-                response = ollama.chat(
-                    model=self._model,
-                    options=options or None,
-                    messages=[
-                        {'role': 'system', 'content': FORMULA_SYSTEM_PROMPT},
-                        {'role': 'user', 'content': user_content}
-                    ]
-                )
-                result = response['message']['content'].strip()
-                if result:
-                    return result
-            except Exception as e:
-                vprint(self._verbose, f"  → formula attempt {attempt + 1} failed: {e}")
+    def clean_formula_ocr(self, formula: str, page_context: str = "") -> str:
+        """Clean formula notation extracted from a book or paper.
 
-        return formula
+        Fixes OCR errors if present (garbled symbols, missing superscripts, stray
+        characters) or minor formatting issues if the notation is already correct.
+        Keeps the output as notation — does not translate to spoken English.
+
+        Use this as the first pass before clean_formula() when FormulaMode.AUDIO
+        is active.
+
+        Args:
+            formula: The formula or math-heavy paragraph to clean.
+            page_context: The full text of the page for context. Defaults to empty string.
+
+        Returns:
+            The cleaned formula notation, or the original if the LLM fails.
+        """
+        if not formula.strip():
+            return formula
+
+        if page_context:
+            user_content = f"Page context:\n{page_context}\n\nClean this formula:\n{formula}"
+        else:
+            user_content = f"Clean this formula:\n{formula}"
+
+        return self._call_formula_llm(FORMULA_CLEAN_SYSTEM_PROMPT, user_content) or formula
