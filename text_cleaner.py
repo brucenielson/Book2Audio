@@ -410,7 +410,7 @@ class TextCleaner:
     def __init__(self, model: str = 'llama3.1:8b', max_retries: int = 3,
                  temperature: float | None = None,
                  max_length_change: float = 0.20,
-                 formula_mode: FormulaMode = FormulaMode.CLEAN,
+                 formula_mode: FormulaMode | str = FormulaMode.CLEAN,
                  verbose: bool = False) -> None:
         """Initialise TextCleaner.
 
@@ -431,7 +431,7 @@ class TextCleaner:
         self._max_retries: int = max_retries
         self._temperature: float | None = temperature
         self._max_length_change: float = max_length_change
-        self.formula_mode: FormulaMode = formula_mode
+        self.formula_mode: FormulaMode = FormulaMode(formula_mode) if isinstance(formula_mode, str) else formula_mode
         self._verbose: bool = verbose
 
     def clean(self, paragraph: str, page_context: str = "") -> tuple[str, ClassificationType]:

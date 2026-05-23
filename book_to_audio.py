@@ -8,7 +8,7 @@ import argparse
 from engines import KokoroEngine, QwenCustomVoiceEngine, QWEN_SPEAKERS
 from audio_generator import AudioGenerator
 from book_converter import BookToAudio
-from text_cleaner import TextCleaner, FormulaMode
+from text_cleaner import TextCleaner
 
 
 def _create_engine(args: argparse.Namespace):
@@ -49,7 +49,7 @@ def main(file_path: str | None = None,
          skip_index: bool = False,
          llm_cleaner: bool = False,
          llm_model: str = 'llama3.1:8b',
-         formula_mode: FormulaMode | None = None,
+         formula_mode: str | None = None,
          verbose: bool = False) -> None:
     """Entry point for the book-to-audio conversion tool.
 
@@ -102,7 +102,7 @@ def main(file_path: str | None = None,
     parser.add_argument('--llm-model', default=llm_model,
                         help='Ollama model to use for LLM cleaning (default: llama3.1:8b)')
     parser.add_argument('--formula-mode', choices=['clean', 'audio'],
-                        default=(formula_mode or FormulaMode.CLEAN).value,
+                        default=formula_mode or 'clean',
                         help='Formula processing mode: clean (fix OCR notation) or '
                              'audio (translate to spoken English). Default: clean')
     parser.add_argument('--verbose', action='store_true', default=verbose,
@@ -130,7 +130,7 @@ def main(file_path: str | None = None,
 
     cleaner: TextCleaner | None = (
         TextCleaner(model=args.llm_model, verbose=args.verbose,
-                    formula_mode=FormulaMode(args.formula_mode)) if args.llm_cleaner else None
+                    formula_mode=args.formula_mode) if args.llm_cleaner else None
     )
 
     engine = _create_engine(args)

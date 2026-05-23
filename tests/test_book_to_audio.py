@@ -292,12 +292,13 @@ class TestFormulaModeThreading:
     """Tests that formula_mode is set on TextCleaner from the CLI."""
 
     @pytest.mark.parametrize("formula_mode, expected", [
-        (None,              FormulaMode.CLEAN),   # omitted → default
-        (FormulaMode.CLEAN, FormulaMode.CLEAN),
-        (FormulaMode.AUDIO, FormulaMode.AUDIO),
+        (None,               'clean'),            # omitted → default
+        ('clean',            'clean'),            # string
+        (FormulaMode.AUDIO,  FormulaMode.AUDIO),  # enum
+        ('audio',            'audio'),            # string — same mode as FormulaMode.AUDIO above
     ])
     def test_main_creates_cleaner_with_formula_mode(self, formula_mode, expected) -> None:
-        """CLI main() passes formula_mode to TextCleaner when llm_cleaner is enabled."""
+        """CLI main() passes formula_mode to TextCleaner; accepts both strings and enums."""
         with patch('book_to_audio.TextCleaner') as mock_cleaner_cls:
             with patch('book_to_audio.BookToAudio'):
                 with patch('book_to_audio._create_engine'):
