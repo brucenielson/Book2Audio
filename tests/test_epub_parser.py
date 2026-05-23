@@ -1,5 +1,6 @@
 """Tests for the EpubParser class."""
 
+import pytest
 from unittest.mock import MagicMock
 from parsers import EpubParser
 from ebooklib import epub
@@ -88,20 +89,17 @@ class TestParseSection:
         assert meta[0]["paragraph_#"] == "1"
         assert meta[1]["paragraph_#"] == "2"
 
-    def test_chapter_title_in_meta(self) -> None:
+    @pytest.mark.parametrize("html, meta_key, expected_value", [
+        ("<h1>Chapter One</h1><p>Some content here.</p>", "chapter_title", "Chapter One"),
+        ("<h2>My Section</h2><p>Some content here.</p>",  "section_name",  "My Section"),
+    ])
+    def test_header_appears_in_meta(self, html: str, meta_key: str, expected_value: str) -> None:
+        """Section headers should appear in the meta under the correct key."""
         parser = make_parser()
-        html = "<h1>Chapter One</h1><p>Some content here.</p>"
         docs, meta = parser._parse_section(html, {})
-        content_meta = next((m for m in meta if "chapter_title" in m), None)
+        content_meta = next((m for m in meta if meta_key in m), None)
         assert content_meta is not None
-        assert content_meta["chapter_title"] == "Chapter One"
-
-    def test_section_name_in_meta(self) -> None:
-        parser = make_parser()
-        html = "<h2>My Section</h2><p>Some content here.</p>"
-        docs, meta = parser._parse_section(html, {})
-        content_meta = next((m for m in meta if "section_name" in m), None)
-        assert content_meta is not None
+        assert content_meta[meta_key] == expected_value
 
     def test_page_number_in_meta(self) -> None:
         parser = make_parser()
@@ -139,30 +137,19 @@ class TestRun:
         assert any("Chapter one content." in d for d in docs)
         assert any("Chapter two content." in d for d in docs)
 
-    def test_meta_contains_book_title(self) -> None:
+    @pytest.mark.parametrize("key, expected", [
+        ("book_title", "My Book"),
+        ("item_id",    "chapter1"),
+        ("item_#",     "1"),
+    ])
+    def test_meta_contains(self, key: str, expected: str) -> None:
+        """Run output meta should contain the expected key/value pair."""
         book = make_epub_book("My Book", [
             make_epub_item("chapter1", "<p>Some content.</p>")
         ])
         parser = make_parser(book=book)
         docs, meta = parser.run()
-        assert meta[0]["book_title"] == "My Book"
-
-    def test_meta_contains_item_id(self) -> None:
-        book = make_epub_book("My Book", [
-            make_epub_item("chapter1", "<p>Some content.</p>")
-        ])
-        parser = make_parser(book=book)
-        docs, meta = parser.run()
-        assert meta[0]["item_id"] == "chapter1"
-
-    def test_meta_contains_item_number(self) -> None:
-        book = make_epub_book("My Book", [
-            make_epub_item("chapter1", "<p>Some content.</p>"),
-            make_epub_item("chapter2", "<p>More content.</p>"),
-        ])
-        parser = make_parser(book=book)
-        docs, meta = parser.run()
-        assert meta[0]["item_#"] == "1"
+        assert meta[0][key] == expected
 
     def test_skips_sections(self) -> None:
         book = make_epub_book("My Book", [
