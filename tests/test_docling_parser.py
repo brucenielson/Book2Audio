@@ -300,37 +300,25 @@ class TestIsFootnote:
 
     # --- H3: propagation after a footnote has been seen on this page ---
 
-    def test_h3_digit_alpha_after_note_on_page_returns_true(self) -> None:
+    @pytest.mark.parametrize("text", [
+        "2 Continuation of a footnote.",
+        "2",
+        "in which zeros are followed by ones.",
+    ])
+    def test_h3_after_note(self, text: str) -> None:
+        """Once a footnote is seen on the page, all subsequent TEXT items are footnote
+        continuations — digit-start, bare number, and non-digit-start alike."""
         parser = make_parser([])
-        item = make_text_item("2 Continuation of a footnote.")
-        assert parser._is_footnote(item, make_ctx(found_note_this_page=True)) is True
+        assert parser._is_footnote(make_text_item(text), make_ctx(found_note_this_page=True)) is True
 
-    def test_h3_pure_number_after_note_returns_true(self) -> None:
-        """Once a footnote is seen on the page, any TEXT item is a footnote continuation —
-        including a bare digit with no alpha."""
+    @pytest.mark.parametrize("text", [
+        "2 Some text.",
+        "in which zeros are followed by ones.",
+    ])
+    def test_h3_without_prior_note(self, text: str) -> None:
+        """Without found_note_this_page, H3 must not fire for any text pattern."""
         parser = make_parser([])
-        item = make_text_item("2")
-        assert parser._is_footnote(item, make_ctx(found_note_this_page=True)) is True
-
-    def test_h3_alpha_no_prior_note_returns_false(self) -> None:
-        """Alpha alone is not enough — H3 also requires found_note_this_page."""
-        parser = make_parser([])
-        item = make_text_item("2 Some text.")
-        assert parser._is_footnote(item, make_ctx(found_note_this_page=False)) is False
-
-    def test_h3_non_digit_start_after_note_returns_true(self) -> None:
-        """A continuation paragraph that doesn't start with a digit must still be
-        classified as a footnote once found_note_this_page is True.
-        H3 must fire before the digit-start guard."""
-        parser = make_parser([])
-        item = make_text_item("in which zeros are followed by ones.")
-        assert parser._is_footnote(item, make_ctx(found_note_this_page=True)) is True
-
-    def test_h3_non_digit_start_without_prior_note_returns_false(self) -> None:
-        """A non-digit-start item with no prior note on the page must not be caught."""
-        parser = make_parser([])
-        item = make_text_item("in which zeros are followed by ones.")
-        assert parser._is_footnote(item, make_ctx(found_note_this_page=False)) is False
+        assert parser._is_footnote(make_text_item(text), make_ctx(found_note_this_page=False)) is False
 
     # --- Endnote path: in_notes_section flag ---
 
@@ -374,90 +362,49 @@ class TestIsFootnote:
 
     # --- H4: digit(s) immediately followed by uppercase letter ---
 
-    def test_h4_single_digit_uppercase_returns_true(self) -> None:
-        """'3See' pattern fires when item is small text and body text seen on page."""
-        item = make_sized_text_item("3See my Poverty of Historicism.",
-                                    charspan_length=31, bbox_height=8.0)
+    @pytest.mark.parametrize("text, charspan_length, bbox_height", [
+        ("3See my Poverty of Historicism.", 31,  8.0),  # single digit + uppercase, small text
+        ("14Cf. the earlier discussion.",   29,  8.0),  # two digits + uppercase, small text
+        ("3See my Poverty of Historicism.", 31, 10.0),  # normal sized — small-text gate not applied
+    ])
+    def test_h4_fires(self, text: str, charspan_length: int, bbox_height: float) -> None:
+        """H4 fires for digit+uppercase patterns regardless of font size."""
+        item = make_sized_text_item(text, charspan_length=charspan_length, bbox_height=bbox_height)
         parser = make_parser([])
         ctx = make_ctx(text_seen_this_page=True, single_line_height=10.0,
                        median_chars_per_line=50.0, body_line_height=10.0)
         assert parser._is_footnote(item, ctx) is True
 
-    def test_h4_two_digits_uppercase_returns_true(self) -> None:
-        """Two-digit+uppercase pattern fires when item is small text and body text seen."""
-        item = make_sized_text_item("14Cf. the earlier discussion.",
-                                    charspan_length=29, bbox_height=8.0)
-        parser = make_parser([])
-        ctx = make_ctx(text_seen_this_page=True, single_line_height=10.0,
-                       median_chars_per_line=50.0, body_line_height=10.0)
-        assert parser._is_footnote(item, ctx) is True
-
-    def test_h4_fires_with_normal_sized_text(self) -> None:
-        """H4 fires regardless of text size — small-text gate does not apply to H4."""
+    @pytest.mark.parametrize("bbox_height", [8.0, 10.0])
+    def test_h4_requires_text_seen(self, bbox_height: float) -> None:
+        """H4 must not fire before body text has been seen, regardless of font size."""
         item = make_sized_text_item("3See my Poverty of Historicism.",
-                                    charspan_length=31, bbox_height=10.0)
-        parser = make_parser([])
-        ctx = make_ctx(text_seen_this_page=True, single_line_height=10.0,
-                       median_chars_per_line=50.0, body_line_height=10.0)
-        assert parser._is_footnote(item, ctx) is True
-
-    def test_h4_requires_text_seen(self) -> None:
-        """H4 must not fire before body text has been seen on the page."""
-        item = make_sized_text_item("3See my Poverty of Historicism.",
-                                    charspan_length=31, bbox_height=8.0)
+                                    charspan_length=31, bbox_height=bbox_height)
         parser = make_parser([])
         ctx = make_ctx(text_seen_this_page=False, single_line_height=10.0,
                        median_chars_per_line=50.0, body_line_height=10.0)
         assert parser._is_footnote(item, ctx) is False
 
-    def test_h4_requires_text_seen_with_normal_sized_text(self) -> None:
-        """H4 still requires body text seen first, even without the small-text requirement."""
-        item = make_sized_text_item("3See my Poverty of Historicism.",
-                                    charspan_length=31, bbox_height=10.0)
+    @pytest.mark.parametrize("text", [
+        "183See something.",  # three digits before letter — H4 only matches 1-2 digits
+        "1st place goes to",  # lowercase after digit — avoids ordinals
+        "3 See my text.",     # space between digit and letter — not the H4 pattern
+    ])
+    def test_h4_pattern_not_caught(self, text: str) -> None:
+        """Edge cases that look like H4 but must not trigger it."""
         parser = make_parser([])
-        ctx = make_ctx(text_seen_this_page=False, single_line_height=10.0,
-                       median_chars_per_line=50.0, body_line_height=10.0)
-        assert parser._is_footnote(item, ctx) is False
-
-    def test_h4_three_digits_not_caught(self) -> None:
-        """Three or more digits before letter should not trigger H4."""
-        parser = make_parser([])
-        assert parser._is_footnote(make_text_item("183See something."), make_ctx()) is False
-
-    def test_h4_digit_lowercase_not_caught(self) -> None:
-        """Lowercase alpha after digit does not trigger H4 — avoids ordinals like '1st'."""
-        parser = make_parser([])
-        assert parser._is_footnote(make_text_item("1st place goes to"), make_ctx()) is False
-
-    def test_h4_digit_space_uppercase_not_caught(self) -> None:
-        """Space between digit and letter means H4 does not fire — uses normal H1/H2/H3 path."""
-        parser = make_parser([])
-        assert parser._is_footnote(make_text_item("3 See my text."), make_ctx()) is False
+        assert parser._is_footnote(make_text_item(text), make_ctx()) is False
 
     # --- H4 extended: digit immediately followed by punctuation (bracket, paren, quote) ---
 
-    def test_h4_digit_open_bracket_fires(self) -> None:
-        """'3[See ...' pattern (digit + open bracket) fires H4 when body text seen."""
-        item = make_sized_text_item("3[See The Open Society, vol. ii.]",
-                                    charspan_length=33, bbox_height=10.0)
-        parser = make_parser([])
-        ctx = make_ctx(text_seen_this_page=True, single_line_height=10.0,
-                       median_chars_per_line=50.0, body_line_height=10.0)
-        assert parser._is_footnote(item, ctx) is True
-
-    def test_h4_digit_open_paren_fires(self) -> None:
-        """'8(See Popper's ...' pattern (digit + open paren) fires H4 when body text seen."""
-        item = make_sized_text_item("8(See Popper's Logic of Scientific Discovery.)",
-                                    charspan_length=46, bbox_height=10.0)
-        parser = make_parser([])
-        ctx = make_ctx(text_seen_this_page=True, single_line_height=10.0,
-                       median_chars_per_line=50.0, body_line_height=10.0)
-        assert parser._is_footnote(item, ctx) is True
-
-    def test_h4_digit_quote_fires(self) -> None:
-        """\"13'fhat is to say ...\" pattern (digit + apostrophe) fires H4 when body text seen."""
-        item = make_sized_text_item("13'fhat is to say, the refutation.",
-                                    charspan_length=34, bbox_height=10.0)
+    @pytest.mark.parametrize("text, charspan_length", [
+        ("3[See The Open Society, vol. ii.]",              33),  # digit + open bracket
+        ("8(See Popper's Logic of Scientific Discovery.)", 46),  # digit + open paren
+        ("13'fhat is to say, the refutation.",             34),  # digit + apostrophe
+    ])
+    def test_h4_extended_fires(self, text: str, charspan_length: int) -> None:
+        """Digit followed by punctuation (bracket, paren, apostrophe) triggers H4."""
+        item = make_sized_text_item(text, charspan_length=charspan_length, bbox_height=10.0)
         parser = make_parser([])
         ctx = make_ctx(text_seen_this_page=True, single_line_height=10.0,
                        median_chars_per_line=50.0, body_line_height=10.0)
@@ -588,17 +535,12 @@ class TestExtractChunks:
         assert len(docs) == 1
         assert "Page 5 text." in docs[0]
 
-    def test_chunk_meta_contains_page_number(self) -> None:
+    @pytest.mark.parametrize("key", ["page_#", "physical_page_#"])
+    def test_chunk_meta_page_number(self, key: str) -> None:
         texts = [make_text_item("Text.", page_no=42)]
         parser = make_parser(texts)
         _, meta = parser.run()
-        assert meta[0]['page_#'] == '42'
-
-    def test_chunk_meta_contains_physical_page_number(self) -> None:
-        texts = [make_text_item("Text.", page_no=42)]
-        parser = make_parser(texts)
-        _, meta = parser.run()
-        assert meta[0]['physical_page_#'] == '42'
+        assert meta[0][key] == '42'
 
     def test_chunk_label_matches_item_label(self) -> None:
         texts = [make_text_item("Regular body text here.")]
@@ -1393,65 +1335,35 @@ class TestFindIndexStartPage:
         parser = make_parser(texts)
         assert parser._find_index_start_page() is None
 
-    def test_page_header_plain_index(self) -> None:
-        """PAGE_HEADER 'Index' in the last 30% of the book → returns that page number."""
-        texts = [
-            make_text_item("Body.", page_no=1),
-            make_text_item("More body.", page_no=100),  # establishes max_page=100
-            make_page_header("Index", page_no=90),
-        ]
-        parser = make_parser(texts)
-        assert parser._find_index_start_page() == 90
-
-    def test_page_header_ocr_spaced(self) -> None:
-        """PAGE_HEADER 'I N DEX OF SUBJ ECTS' → strip whitespace → 'indexofsubjects' → detected."""
+    @pytest.mark.parametrize("header_text, page_no, expected", [
+        ("Index",                 90, 90),  # plain 'Index'
+        ("I N DEX OF SUBJ ECTS", 90, 90),  # OCR-spaced — strip whitespace to detect
+        ("Index of Names",        95, 95),  # multi-word variant
+    ])
+    def test_page_header_detected(self, header_text: str, page_no: int, expected: int) -> None:
+        """PAGE_HEADER containing 'index' (after whitespace stripping) in the last 30% is detected."""
         texts = [
             make_text_item("Body.", page_no=1),
             make_text_item("More body.", page_no=100),
-            make_page_header("I N DEX OF SUBJ ECTS", page_no=90),
+            make_page_header(header_text, page_no=page_no),
         ]
         parser = make_parser(texts)
-        assert parser._find_index_start_page() == 90
+        assert parser._find_index_start_page() == expected
 
-    def test_page_header_index_of_names(self) -> None:
-        """PAGE_HEADER 'Index of Names' → 'indexofnames' contains 'index' → detected."""
+    @pytest.mark.parametrize("header_text, page_no, expected", [
+        ("Index",          90, 90),  # exact word match
+        ("Indices",        90, 90),  # plural variant
+        ("Index of Names", 92, 92),  # multi-word, 'index' as whole word
+    ])
+    def test_section_header_detected(self, header_text: str, page_no: int, expected: int) -> None:
+        """SECTION_HEADER with word-boundary 'index' match in the last 30% is detected."""
         texts = [
             make_text_item("Body.", page_no=1),
             make_text_item("More body.", page_no=100),
-            make_page_header("Index of Names", page_no=95),
+            make_section_header(header_text, page_no=page_no),
         ]
         parser = make_parser(texts)
-        assert parser._find_index_start_page() == 95
-
-    def test_section_header_index(self) -> None:
-        """SECTION_HEADER 'Index' (exact word) in the last 30% → detected."""
-        texts = [
-            make_text_item("Body.", page_no=1),
-            make_text_item("More body.", page_no=100),
-            make_section_header("Index", page_no=90),
-        ]
-        parser = make_parser(texts)
-        assert parser._find_index_start_page() == 90
-
-    def test_section_header_indices(self) -> None:
-        """SECTION_HEADER 'Indices' → word-boundary match on 'indices' → detected."""
-        texts = [
-            make_text_item("Body.", page_no=1),
-            make_text_item("More body.", page_no=100),
-            make_section_header("Indices", page_no=90),
-        ]
-        parser = make_parser(texts)
-        assert parser._find_index_start_page() == 90
-
-    def test_section_header_index_of_names(self) -> None:
-        """SECTION_HEADER 'Index of Names' → 'index' matches as a complete word → detected."""
-        texts = [
-            make_text_item("Body.", page_no=1),
-            make_text_item("More body.", page_no=100),
-            make_section_header("Index of Names", page_no=92),
-        ]
-        parser = make_parser(texts)
-        assert parser._find_index_start_page() == 92
+        assert parser._find_index_start_page() == expected
 
     def test_multiple_signals_returns_minimum_page(self) -> None:
         """When both SECTION_HEADER and PAGE_HEADER fire, the earliest page wins.
