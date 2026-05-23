@@ -289,51 +289,21 @@ class TestBookToAudio:
 # --- TestFormulaModeThreading ---
 
 class TestFormulaModeThreading:
-    """Tests that formula_mode threads correctly from CLI → BookToAudio → parsers."""
-
-    @pytest.mark.parametrize("formula_mode, expected", [
-        (FormulaMode.CLEAN, FormulaMode.CLEAN),
-        (FormulaMode.AUDIO, FormulaMode.AUDIO),
-        (None,              FormulaMode.CLEAN),   # omitted → default
-    ])
-    def test_book_to_audio_stores_formula_mode(
-            self, mock_audio_generator, formula_mode, expected) -> None:
-        """BookToAudio stores formula_mode; omitting it defaults to CLEAN."""
-        kwargs = {'formula_mode': formula_mode} if formula_mode is not None else {}
-        converter = BookToAudio(audio_generator=mock_audio_generator, **kwargs)
-        assert converter._formula_mode == expected
-
-    @pytest.mark.parametrize("ext, patch_target, formula_mode", [
-        ('.pdf',  'book_converter.DoclingParser', FormulaMode.CLEAN),
-        ('.pdf',  'book_converter.DoclingParser', FormulaMode.AUDIO),
-        ('.epub', 'book_converter.EpubParser',    FormulaMode.CLEAN),
-        ('.epub', 'book_converter.EpubParser',    FormulaMode.AUDIO),
-    ])
-    def test_parser_receives_formula_mode(
-            self, mock_audio_generator, tmp_path, ext, patch_target, formula_mode) -> None:
-        """BookToAudio forwards formula_mode to the appropriate parser."""
-        converter = BookToAudio(audio_generator=mock_audio_generator,
-                                formula_mode=formula_mode, dry_run=True)
-        doc_path = tmp_path / f"test{ext}"
-        doc_path.touch()
-        with patch(patch_target) as mock_parser_cls:
-            mock_parser_cls.return_value.run.return_value = ([], [])
-            converter.convert_to_audio(doc_path)
-        _, kwargs = mock_parser_cls.call_args
-        assert kwargs.get('formula_mode') == formula_mode
+    """Tests that formula_mode is set on TextCleaner from the CLI."""
 
     @pytest.mark.parametrize("formula_mode, expected", [
         (None,              FormulaMode.CLEAN),   # omitted → default
         (FormulaMode.CLEAN, FormulaMode.CLEAN),
         (FormulaMode.AUDIO, FormulaMode.AUDIO),
     ])
-    def test_main_passes_formula_mode(self, formula_mode, expected) -> None:
-        """CLI main() forwards formula_mode to BookToAudio; default is CLEAN."""
-        with patch('book_to_audio.BookToAudio') as mock_cls:
-            with patch('book_to_audio._create_engine'):
-                kwargs = {'formula_mode': formula_mode} if formula_mode is not None else {}
-                book_to_audio_main(text="hello world", **kwargs)
-        _, call_kwargs = mock_cls.call_args
+    def test_main_creates_cleaner_with_formula_mode(self, formula_mode, expected) -> None:
+        """CLI main() passes formula_mode to TextCleaner when llm_cleaner is enabled."""
+        with patch('book_to_audio.TextCleaner') as mock_cleaner_cls:
+            with patch('book_to_audio.BookToAudio'):
+                with patch('book_to_audio._create_engine'):
+                    kwargs = {'formula_mode': formula_mode} if formula_mode is not None else {}
+                    book_to_audio_main(text="hello world", llm_cleaner=True, **kwargs)
+        _, call_kwargs = mock_cleaner_cls.call_args
         assert call_kwargs.get('formula_mode') == expected
 
 

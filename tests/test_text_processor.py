@@ -23,9 +23,11 @@ def make_processor(min_paragraph_size: int = 0,
 
 
 def make_formula_cleaner(ocr_result: str = 'cleaned formula',
-                          audio_result: str = 'spoken formula') -> MagicMock:
-    """Create a mock TextCleaner with formula cleaning methods."""
+                          audio_result: str = 'spoken formula',
+                          formula_mode: FormulaMode = FormulaMode.CLEAN) -> MagicMock:
+    """Create a mock TextCleaner with formula cleaning methods and a formula_mode attribute."""
     cleaner = MagicMock()
+    cleaner.formula_mode = formula_mode
     cleaner.clean_formula_ocr.side_effect = lambda formula, page_context='': ocr_result
     cleaner.clean_formula.side_effect = lambda formula, page_context='': audio_result
     return cleaner
@@ -306,8 +308,9 @@ class TestFormulaMode:
 
     def test_clean_calls_ocr_method_and_emits_result(self) -> None:
         """CLEAN mode calls clean_formula_ocr and emits its result."""
-        cleaner = make_formula_cleaner(ocr_result='x + y = z', audio_result='x plus y')
-        processor = TextProcessor(cleaner=cleaner, formula_mode=FormulaMode.CLEAN)
+        cleaner = make_formula_cleaner(ocr_result='x + y = z', audio_result='x plus y',
+                                       formula_mode=FormulaMode.CLEAN)
+        processor = TextProcessor(cleaner=cleaner)
         result = processor.process([make_chunk('x -+- y == z (garbled)', label='formula')])
         assert len(result) == 1
         assert result[0].text == 'x + y = z'
@@ -316,8 +319,9 @@ class TestFormulaMode:
 
     def test_audio_calls_both_passes_in_order(self) -> None:
         """AUDIO mode calls clean_formula_ocr then clean_formula."""
-        cleaner = make_formula_cleaner(ocr_result='x + y = z', audio_result='x plus y equals z')
-        processor = TextProcessor(cleaner=cleaner, formula_mode=FormulaMode.AUDIO)
+        cleaner = make_formula_cleaner(ocr_result='x + y = z', audio_result='x plus y equals z',
+                                       formula_mode=FormulaMode.AUDIO)
+        processor = TextProcessor(cleaner=cleaner)
         result = processor.process([make_chunk('x -+- y == z (garbled)', label='formula')])
         assert len(result) == 1
         assert result[0].text == 'x plus y equals z'
@@ -327,8 +331,9 @@ class TestFormulaMode:
     def test_audio_feeds_ocr_output_into_audio_pass(self) -> None:
         """AUDIO mode must pass clean_formula_ocr's result into clean_formula, not the raw text."""
         cleaner = make_formula_cleaner(ocr_result='x² + y² = z²',
-                                       audio_result='x squared plus y squared equals z squared')
-        processor = TextProcessor(cleaner=cleaner, formula_mode=FormulaMode.AUDIO)
+                                       audio_result='x squared plus y squared equals z squared',
+                                       formula_mode=FormulaMode.AUDIO)
+        processor = TextProcessor(cleaner=cleaner)
         processor.process([make_chunk('x2 + y2 = z2 (OCR mess)', label='formula')])
         cleaner.clean_formula.assert_called_once_with('x² + y² = z²', page_context=ANY)
 
