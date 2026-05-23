@@ -301,8 +301,9 @@ class TestFormulaModeThreading:
         with patch('book_to_audio.TextCleaner') as mock_cleaner_cls:
             with patch('book_to_audio.BookToAudio'):
                 with patch('book_to_audio._create_engine'):
-                    kwargs = {'formula_mode': formula_mode} if formula_mode is not None else {}
-                    book_to_audio_main(text="hello world", llm_cleaner=True, **kwargs)
+                    with patch('sys.argv', ['book_to_audio.py']):
+                        kwargs = {'formula_mode': formula_mode} if formula_mode is not None else {}
+                        book_to_audio_main(text="hello world", llm_cleaner=True, **kwargs)
         _, call_kwargs = mock_cleaner_cls.call_args
         assert call_kwargs.get('formula_mode') == expected
 
