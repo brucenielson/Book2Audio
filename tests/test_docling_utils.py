@@ -118,45 +118,41 @@ class TestIsListItem:
 # --- is_text_break ---
 
 class TestIsTextBreak:
-    def test_returns_true_for_page_header(self) -> None:
-        assert is_text_break(make_text_item(DocItemLabel.PAGE_HEADER.value)) is True
+    @pytest.mark.parametrize("item", [
+        make_text_item(DocItemLabel.PAGE_HEADER.value),
+        make_section_header(),
+        make_text_item(DocItemLabel.FOOTNOTE.value),
+    ])
+    def test_is_true(self, item) -> None:
+        assert is_text_break(item) is True
 
-    def test_returns_true_for_section_header(self) -> None:
-        assert is_text_break(make_section_header()) is True
-
-    def test_returns_true_for_footnote(self) -> None:
-        assert is_text_break(make_text_item(DocItemLabel.FOOTNOTE.value)) is True
-
-    def test_returns_false_for_regular_text(self) -> None:
-        assert is_text_break(make_text_item(DocItemLabel.TEXT.value)) is False
-
-    def test_returns_false_for_none(self) -> None:
-        assert is_text_break(None) is False
+    @pytest.mark.parametrize("item", [
+        make_text_item(DocItemLabel.TEXT.value),
+        None,
+    ])
+    def test_is_false(self, item) -> None:
+        assert is_text_break(item) is False
 
 
 # --- is_body_text ---
 
 class TestIsBodyText:
-    def test_returns_true_for_text(self) -> None:
-        assert is_body_text(make_text_item(DocItemLabel.TEXT.value)) is True
+    @pytest.mark.parametrize("item", [
+        make_text_item(DocItemLabel.TEXT.value),
+        make_list_item(),
+        make_text_item(DocItemLabel.FORMULA.value),
+    ])
+    def test_is_true(self, item) -> None:
+        assert is_body_text(item) is True
 
-    def test_returns_true_for_list_item(self) -> None:
-        assert is_body_text(make_list_item()) is True
-
-    def test_returns_true_for_formula(self) -> None:
-        assert is_body_text(make_text_item(DocItemLabel.FORMULA.value)) is True
-
-    def test_returns_false_for_page_header(self) -> None:
-        assert is_body_text(make_text_item(DocItemLabel.PAGE_HEADER.value)) is False
-
-    def test_returns_false_for_section_header(self) -> None:
-        assert is_body_text(make_text_item(DocItemLabel.SECTION_HEADER.value)) is False
-
-    def test_returns_false_for_footnote(self) -> None:
-        assert is_body_text(make_text_item(DocItemLabel.FOOTNOTE.value)) is False
-
-    def test_returns_false_for_none(self) -> None:
-        assert is_body_text(None) is False
+    @pytest.mark.parametrize("item", [
+        make_text_item(DocItemLabel.PAGE_HEADER.value),
+        make_text_item(DocItemLabel.SECTION_HEADER.value),
+        make_text_item(DocItemLabel.FOOTNOTE.value),
+        None,
+    ])
+    def test_is_false(self, item) -> None:
+        assert is_body_text(item) is False
 
 
 # --- is_too_short ---
@@ -188,20 +184,15 @@ class TestIsTextItem:
     def test_regular_text_is_text_item(self) -> None:
         assert is_text_item(make_text_item(DocItemLabel.TEXT.value)) is True
 
-    def test_section_header_is_not_text_item(self) -> None:
-        assert is_text_item(make_section_header()) is False
-
-    def test_page_footer_is_not_text_item(self) -> None:
-        assert is_text_item(make_text_item(DocItemLabel.PAGE_FOOTER.value)) is False
-
-    def test_page_header_is_not_text_item(self) -> None:
-        assert is_text_item(make_text_item(DocItemLabel.PAGE_HEADER.value)) is False
-
-    def test_none_is_not_text_item(self) -> None:
-        assert is_text_item(None) is False
-
-    def test_plain_doc_item_is_not_text_item(self) -> None:
-        assert is_text_item(MagicMock(spec=DocItem)) is False
+    @pytest.mark.parametrize("item", [
+        make_section_header(),
+        make_text_item(DocItemLabel.PAGE_FOOTER.value),
+        make_text_item(DocItemLabel.PAGE_HEADER.value),
+        None,
+        MagicMock(spec=DocItem),
+    ])
+    def test_is_not_text_item(self, item) -> None:
+        assert is_text_item(item) is False
 
 
 # --- get_next_text ---
@@ -278,17 +269,14 @@ class TestCleanText:
     def test_collapses_internal_whitespace(self) -> None:
         assert clean_text("hello   world") == "hello world"
 
-    def test_removes_space_before_period(self) -> None:
-        assert clean_text("hello .") == "hello."
-
-    def test_removes_space_before_comma(self) -> None:
-        assert clean_text("hello , world") == "hello, world"
-
-    def test_removes_space_before_question_mark(self) -> None:
-        assert clean_text("really ?") == "really?"
-
-    def test_removes_space_before_exclamation(self) -> None:
-        assert clean_text("wow !") == "wow!"
+    @pytest.mark.parametrize("text, expected", [
+        ("hello .",       "hello."),
+        ("hello , world", "hello, world"),
+        ("really ?",      "really?"),
+        ("wow !",         "wow!"),
+    ])
+    def test_removes_space_before_punctuation(self, text: str, expected: str) -> None:
+        assert clean_text(text) == expected
 
     def test_removes_space_inside_parentheses(self) -> None:
         assert clean_text("( hello )") == "(hello)"
@@ -305,24 +293,21 @@ class TestCleanText:
     def test_empty_string(self) -> None:
         assert clean_text("") == ""
 
-    def test_normalizes_fi_ligature(self) -> None:
-        assert clean_text("ﬁle") == "file"
+    @pytest.mark.parametrize("text, expected", [
+        ("ﬁle",  "file"),
+        ("ﬂoor", "floor"),
+        ("ﬀect", "ffect"),  # noinspection SpellCheckingInspection
+    ])
+    def test_normalizes_ligature(self, text: str, expected: str) -> None:
+        assert clean_text(text) == expected
 
-    def test_normalizes_fl_ligature(self) -> None:
-        assert clean_text("ﬂoor") == "floor"
-
-    def test_normalizes_ff_ligature(self) -> None:
-        # noinspection SpellCheckingInspection
-        assert clean_text("ﬀect") == "ffect"
-
-    def test_normalizes_left_double_quote(self) -> None:
-        assert clean_text("\u201chello\u201d") == '"hello"'
-
-    def test_normalizes_smart_single_quotes(self) -> None:
-        assert clean_text("\u2018hello\u2019") == "'hello'"
-
-    def test_normalizes_right_single_quote_possessive(self) -> None:
-        assert clean_text("dog\u2019s") == "dog's"
+    @pytest.mark.parametrize("text, expected", [
+        ("\u201chello\u201d", '"hello"'),
+        ("\u2018hello\u2019", "'hello'"),
+        ("dog\u2019s",        "dog's"),
+    ])
+    def test_normalizes_quotes(self, text: str, expected: str) -> None:
+        assert clean_text(text) == expected
 
 
     def test_preserves_regular_hyphen(self) -> None:
