@@ -292,23 +292,20 @@ class TestFormulaModeThreading:
     """Tests that formula_mode threads correctly from CLI → BookToAudio → parsers."""
 
     @pytest.mark.parametrize("formula_mode, expected", [
-        (FormulaMode.SKIP,  FormulaMode.SKIP),
         (FormulaMode.CLEAN, FormulaMode.CLEAN),
         (FormulaMode.AUDIO, FormulaMode.AUDIO),
-        (None,              FormulaMode.SKIP),   # omitted → default
+        (None,              FormulaMode.CLEAN),   # omitted → default
     ])
     def test_book_to_audio_stores_formula_mode(
             self, mock_audio_generator, formula_mode, expected) -> None:
-        """BookToAudio stores formula_mode; omitting it defaults to SKIP."""
+        """BookToAudio stores formula_mode; omitting it defaults to CLEAN."""
         kwargs = {'formula_mode': formula_mode} if formula_mode is not None else {}
         converter = BookToAudio(audio_generator=mock_audio_generator, **kwargs)
         assert converter._formula_mode == expected
 
     @pytest.mark.parametrize("ext, patch_target, formula_mode", [
-        ('.pdf',  'book_converter.DoclingParser', FormulaMode.SKIP),
         ('.pdf',  'book_converter.DoclingParser', FormulaMode.CLEAN),
         ('.pdf',  'book_converter.DoclingParser', FormulaMode.AUDIO),
-        ('.epub', 'book_converter.EpubParser',    FormulaMode.SKIP),
         ('.epub', 'book_converter.EpubParser',    FormulaMode.CLEAN),
         ('.epub', 'book_converter.EpubParser',    FormulaMode.AUDIO),
     ])
@@ -326,13 +323,12 @@ class TestFormulaModeThreading:
         assert kwargs.get('formula_mode') == formula_mode
 
     @pytest.mark.parametrize("formula_mode, expected", [
-        (None,              FormulaMode.SKIP),   # omitted → default
-        (FormulaMode.SKIP,  FormulaMode.SKIP),
+        (None,              FormulaMode.CLEAN),   # omitted → default
         (FormulaMode.CLEAN, FormulaMode.CLEAN),
         (FormulaMode.AUDIO, FormulaMode.AUDIO),
     ])
     def test_main_passes_formula_mode(self, formula_mode, expected) -> None:
-        """CLI main() forwards formula_mode to BookToAudio; default is SKIP."""
+        """CLI main() forwards formula_mode to BookToAudio; default is CLEAN."""
         with patch('book_to_audio.BookToAudio') as mock_cls:
             with patch('book_to_audio._create_engine'):
                 kwargs = {'formula_mode': formula_mode} if formula_mode is not None else {}

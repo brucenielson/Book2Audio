@@ -8,7 +8,7 @@ from text_chunk import RawChunk, ParsedChunk, LABEL_FOOTNOTE, LABEL_FORMULA
 from word_validator import word_validator
 from utils.general_utils import is_sentence_end, build_paragraph, clean_text
 from utils.logging_utils import vprint
-from text_cleaner import TextCleaner, CLASSIFICATION_FOOTNOTE, CLASSIFICATION_DROP
+from text_cleaner import TextCleaner, CLASSIFICATION_FOOTNOTE, CLASSIFICATION_DROP, FormulaMode
 
 # Debug breakpoint string — set to a snippet of text to pause on that paragraph.
 # Set to None (or empty string) to disable. Easy to remove once debugging is done.
@@ -55,6 +55,7 @@ class TextProcessor:
     def __init__(self, min_paragraph_size: int = 0,
                  include_footnotes: bool = False,
                  cleaner: str | TextCleaner | None = None,
+                 formula_mode: FormulaMode = FormulaMode.CLEAN,
                  verbose: bool = False) -> None:
         """Initialise TextProcessor.
 
@@ -64,11 +65,16 @@ class TextProcessor:
             cleaner: Optional LLM model name (str), TextCleaner instance, or None.
                      A string is interpreted as an Ollama model name and used to
                      create a TextCleaner automatically. Defaults to None.
+            formula_mode: Controls how formula chunks are processed when a cleaner is
+                          active. CLEAN reconstructs OCR notation (default); AUDIO runs
+                          CLEAN then translates to spoken English. Without a cleaner,
+                          formulas are always emitted raw regardless of this setting.
             verbose: If True, prints per-paragraph skip/LLM decisions and timing
                      summary. Defaults to False.
         """
         self._min_paragraph_size: int = min_paragraph_size
         self._include_footnotes: bool = include_footnotes
+        self._formula_mode: FormulaMode = formula_mode
         self._verbose: bool = verbose
         if isinstance(cleaner, str):
             self._cleaner: TextCleaner | None = TextCleaner(model=cleaner)
@@ -256,9 +262,11 @@ class TextProcessor:
     def _handle_formula(self, chunk: RawChunk) -> None:
         """Flush any accumulated paragraph and emit the formula as its own paragraph.
 
-        Bypasses OCR cleaning and word restoration. Uses the formula translation
-        prompt to render mathematical notation as spoken English. If no cleaner is
-        configured the raw formula text is emitted unchanged.
+        Bypasses OCR cleaning and word restoration. Formula processing is controlled
+        by formula_mode when a cleaner is active:
+          - CLEAN: call clean_formula_ocr to fix OCR errors, keep as notation (default).
+          - AUDIO: run CLEAN then translate the result to spoken English.
+        Without a cleaner, the raw formula text is emitted unchanged.
 
         Args:
             chunk: The formula RawChunk.
@@ -271,7 +279,11 @@ class TextProcessor:
         text: str = chunk.text
         if self._cleaner:
             page_context: str = self._page_contexts.get(chunk.meta.get('page_#', ''), '')
-            text = self._cleaner.clean_formula(chunk.text, page_context=page_context)
+            if self._formula_mode == FormulaMode.AUDIO:
+                cleaned = self._cleaner.clean_formula_ocr(chunk.text, page_context=page_context)
+                text = self._cleaner.clean_formula(cleaned, page_context=page_context)
+            else:  # CLEAN
+                text = self._cleaner.clean_formula_ocr(chunk.text, page_context=page_context)
         if text:
             self._para_num += 1
             self._result.append(ParsedChunk(

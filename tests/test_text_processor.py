@@ -297,20 +297,12 @@ class TestCleaner:
 class TestFormulaMode:
     """Tests for formula_mode parameter controlling how formula chunks are handled."""
 
-    @pytest.mark.parametrize("formula_mode", [
-        FormulaMode.SKIP,
-        None,   # omitted → default → same as SKIP
-    ])
-    def test_skip_emits_raw_text_without_llm(self, formula_mode: FormulaMode | None) -> None:
-        """SKIP (and the default) emits raw formula text without any LLM call."""
-        cleaner = make_formula_cleaner()
-        kwargs = {'formula_mode': formula_mode} if formula_mode is not None else {}
-        processor = TextProcessor(cleaner=cleaner, **kwargs)
+    def test_no_cleaner_emits_raw_text(self) -> None:
+        """Without a cleaner, formula text is emitted unchanged."""
+        processor = TextProcessor()
         result = processor.process([make_chunk('x + y = z', label='formula')])
         assert len(result) == 1
         assert result[0].text == 'x + y = z'
-        cleaner.clean_formula_ocr.assert_not_called()
-        cleaner.clean_formula.assert_not_called()
 
     def test_clean_calls_ocr_method_and_emits_result(self) -> None:
         """CLEAN mode calls clean_formula_ocr and emits its result."""

@@ -21,9 +21,11 @@ CLASSIFICATION_DROP: Final = 'drop'
 
 
 class FormulaMode(Enum):
-    """Controls how formula chunks are processed."""
-    SKIP  = 'skip'   # no LLM — emit raw text (default)
-    CLEAN = 'clean'  # LLM reconstructs OCR mess, keeps as notation
+    """Controls how formula chunks are processed when a TextCleaner is active.
+
+    Without a TextCleaner, formulas are always emitted raw regardless of this setting.
+    """
+    CLEAN = 'clean'  # fix OCR notation, keep as notation (default)
     AUDIO = 'audio'  # two-pass: CLEAN then translate to spoken English
 
 ClassificationType: TypeAlias = Literal[CLASSIFICATION_BODY, CLASSIFICATION_FOOTNOTE, CLASSIFICATION_DROP]
