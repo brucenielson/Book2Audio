@@ -1,4 +1,4 @@
-"""Tests for the TextCleaner class."""
+﻿"""Tests for the TextCleaner class."""
 
 import pytest
 from unittest.mock import patch
@@ -868,36 +868,24 @@ class TestRestoreValidWordsCurlyQuotes:
       ["‘", "antibadies’-that"] → "‘antibodies’-that" — OCR fix + stray quote join
     """
 
-    def test_curly_quoted_word_ocr_fix_and_merge_kept(self) -> None:
-        """LLM fixes OCR error in curly-quoted word AND merges semicolon.
-
-        Without curly-quote stripping, is_valid_word(‘justify’) returns False
-        and the originals are wrongly restored.
-        """
-        # ‘jistify’ is the OCR-mangled original; LLM fixes to ‘justify’
-        # and simultaneously merges the trailing semicolon token.
-        # joined_orig = "‘jistify’;" != "‘justify’;" so equality check
-        # does not fire; is_valid_word is what must save the merge.
-        result = _restore_valid_words(
+    @pytest.mark.parametrize("original, cleaned, expected", [
+        # semicolon merge: ‘jistify’ → ‘justify’ + ‘;’ merged
+        (
             "pragmatic sense of ‘jistify’ ; in other words,",
             "pragmatic sense of ‘justify’; in other words,",
-        )
-        assert result == "pragmatic sense of ‘justify’; in other words,"
-
-    def test_curly_quoted_word_ocr_fix_and_comma_merge_kept(self) -> None:
-        """LLM fixes OCR error in curly-quoted word AND merges trailing comma.
-
-        joined_orig = "’eficiency’," != "’efficiency’," so equality check
-        does not fire; strip must remove the wrapping curly quotes so that
-        is_valid_word("efficiency") succeeds.
-        """
-        # ‘eficiency’ is an OCR-mangled original; LLM fixes to ‘efficiency’
-        # and simultaneously merges the trailing comma token.
-        result = _restore_valid_words(
+            "pragmatic sense of ‘justify’; in other words,",
+        ),
+        # comma merge: ‘eficiency’ → ‘efficiency’ + ‘,’ merged
+        (
             "she argued that ‘eficiency’ , was key,",
             "she argued that ‘efficiency’, was key,",
-        )
-        assert result == "she argued that ‘efficiency’, was key,"
+            "she argued that ‘efficiency’, was key,",
+        ),
+    ])
+    def test_curly_quoted_ocr_fix_and_punctuation_merge_kept(
+            self, original: str, cleaned: str, expected: str) -> None:
+        """LLM fixes OCR error in curly-quoted word AND merges a punctuation token."""
+        assert _restore_valid_words(original, cleaned) == expected
 
 
 # --- TestRestoreValidWordsBackslashQuotes ---
@@ -919,26 +907,14 @@ class TestRestoreValidWordsBackslashQuotes:
       original '‘frequency’)'    LLM tried \\'frequency\\'
     """
 
-    def test_backslash_escaped_quotes_not_wrongly_restored(self) -> None:
-        """Curly-quoted OCR word vs LLM backslash-escaped version: keep LLM's token.
-
-        original token: ‘possibility’ (curly quotes, OCR)
-        cleaned token:  \\'possibility\\' (backslash-escaped, from JSON repair)
-        Both strip to 'possibility' after backslash collapse — no restore should fire.
-        """
-        result = _restore_valid_words(
-            "the ‘possibility’ is",
-            "the \\'possibility\\' is",
-        )
-        assert result == "the \\'possibility\\' is"
-
-    def test_backslash_escaped_double_quotes_not_wrongly_restored(self) -> None:
-        """Same as above but with double-quote escaping (\\\"word\\\")."""
-        result = _restore_valid_words(
-            'the “probability” is',
-            'the \\"probability\\" is',
-        )
-        assert result == 'the \\"probability\\" is'
+    @pytest.mark.parametrize("original, cleaned", [
+        ("the ‘possibility’ is", "the \\'possibility\\' is"),   # single-quote escaping
+        ('the "probability" is', 'the \\"probability\\" is'),   # double-quote escaping
+    ])
+    def test_backslash_escaped_quotes_not_wrongly_restored(
+            self, original: str, cleaned: str) -> None:
+        """Backslash-escaped quotes in LLM tokens don’t wrongly trigger restore."""
+        assert _restore_valid_words(original, cleaned) == cleaned
 
 
 # --- TestRestoreValidWordsTrailingHyphen ---
@@ -1045,21 +1021,14 @@ class TestRestoreValidWordsLlmDashJoin:
     both valid words, so the merge must be accepted.
     """
 
-    def test_llm_joins_fragments_and_inserts_em_dash(self) -> None:
-        """3→1 merge where LLM rejoins a split word and inserts an em-dash."""
-        result = _restore_valid_words(
-            "justi fication is",
-            "justification—is",
-        )
-        assert result == "justification—is"
-
-    def test_llm_joins_two_fragments_with_em_dash(self) -> None:
-        """2→1 merge where LLM joins two fragments into word—word."""
-        result = _restore_valid_words(
-            "justifi cation",
-            "justification—and",
-        )
-        assert result == "justification—and"
+    @pytest.mark.parametrize("original, cleaned, expected", [
+        ("justi fication is", "justification—is",  "justification—is"),   # 3→1 merge
+        ("justifi cation",    "justification—and", "justification—and"),  # 2→1 merge
+    ])
+    def test_llm_dash_join_kept(
+            self, original: str, cleaned: str, expected: str) -> None:
+        """N→1 merge where LLM rejoins OCR fragments and inserts an em-dash."""
+        assert _restore_valid_words(original, cleaned) == expected
 
     def test_llm_dash_join_rejected_when_parts_not_valid_words(self) -> None:
         """If either dash-separated part is not a valid word, restore originals.

@@ -28,42 +28,25 @@ from utils.general_utils import (
 # --- is_ends_with_punctuation ---
 
 class TestIsEndsWithPunctuation:
-    def test_period(self) -> None:
-        assert is_ends_with_punctuation("Hello.") is True
+    @pytest.mark.parametrize("text", ["Hello.", "Really?", "Wow!"])
+    def test_is_true(self, text: str) -> None:
+        assert is_ends_with_punctuation(text) is True
 
-    def test_question_mark(self) -> None:
-        assert is_ends_with_punctuation("Really?") is True
-
-    def test_exclamation(self) -> None:
-        assert is_ends_with_punctuation("Wow!") is True
-
-    def test_no_punctuation(self) -> None:
-        assert is_ends_with_punctuation("Hello") is False
-
-    def test_comma(self) -> None:
-        assert is_ends_with_punctuation("Hello,") is False
+    @pytest.mark.parametrize("text", ["Hello", "Hello,"])
+    def test_is_false(self, text: str) -> None:
+        assert is_ends_with_punctuation(text) is False
 
 
 # --- is_sentence_end ---
 
 class TestIsSentenceEnd:
-    def test_ends_with_period(self) -> None:
-        assert is_sentence_end("Hello world.") is True
+    @pytest.mark.parametrize("text", ["Hello world.", "Really?", "Wow!", "Hello world.)"])
+    def test_is_true(self, text: str) -> None:
+        assert is_sentence_end(text) is True
 
-    def test_ends_with_question_mark(self) -> None:
-        assert is_sentence_end("Really?") is True
-
-    def test_ends_with_exclamation(self) -> None:
-        assert is_sentence_end("Wow!") is True
-
-    def test_ends_with_bracket_after_period(self) -> None:
-        assert is_sentence_end("Hello world.)") is True
-
-    def test_no_sentence_end(self) -> None:
-        assert is_sentence_end("Hello world") is False
-
-    def test_ends_with_bracket_no_punctuation(self) -> None:
-        assert is_sentence_end("Hello world)") is False
+    @pytest.mark.parametrize("text", ["Hello world", "Hello world)"])
+    def test_is_false(self, text: str) -> None:
+        assert is_sentence_end(text) is False
 
 
 # --- is_roman_numeral ---
@@ -87,17 +70,14 @@ class TestIsRomanNumeral:
 # --- remove_extra_whitespace ---
 
 class TestRemoveExtraWhitespace:
-    def test_collapses_multiple_spaces(self) -> None:
-        assert remove_extra_whitespace("hello   world") == "hello world"
-
-    def test_strips_leading_trailing(self) -> None:
-        assert remove_extra_whitespace("  hello  ") == "hello"
-
-    def test_handles_tabs_and_newlines(self) -> None:
-        assert remove_extra_whitespace("hello\t\nworld") == "hello world"
-
-    def test_no_change_needed(self) -> None:
-        assert remove_extra_whitespace("hello world") == "hello world"
+    @pytest.mark.parametrize("text, expected", [
+        ("hello   world",  "hello world"),
+        ("  hello  ",      "hello"),
+        ("hello\t\nworld", "hello world"),
+        ("hello world",    "hello world"),
+    ])
+    def test_remove_extra_whitespace(self, text: str, expected: str) -> None:
+        assert remove_extra_whitespace(text) == expected
 
 
 # --- combine_paragraphs ---
@@ -163,102 +143,79 @@ class TestNormalizeWhitespace:
 # --- normalize_hyphens ---
 
 class TestNormalizeHyphens:
-    def test_removes_soft_hyphen(self) -> None:
-        assert normalize_hyphens("explo\u00adration") == "exploration"
-
-    def test_preserves_regular_hyphen(self) -> None:
-        assert normalize_hyphens("well-known") == "well-known"
-
-    def test_removes_soft_hyphen_at_word_boundary(self) -> None:
-        assert normalize_hyphens("some\u00ad thing") == "some thing"
+    @pytest.mark.parametrize("text, expected", [
+        ("explo­ration", "exploration"),
+        ("well-known",        "well-known"),
+        ("some­ thing",  "some thing"),
+    ])
+    def test_normalize_hyphens(self, text: str, expected: str) -> None:
+        assert normalize_hyphens(text) == expected
 
 
 # --- normalize_quotes ---
 
 class TestNormalizeQuotes:
-    def test_normalizes_left_double_quote(self) -> None:
-        assert normalize_quotes("\u201chello\u201d") == '"hello"'
-
-    def test_normalizes_smart_single_quotes(self) -> None:
-        assert normalize_quotes("\u2018hello\u2019") == "'hello'"
-
-    def test_normalizes_right_single_quote_possessive(self) -> None:
-        assert normalize_quotes("dog\u2019s") == "dog's"
+    @pytest.mark.parametrize("text, expected", [
+        ("“hello”", '"hello"'),
+        ("‘hello’", "'hello'"),
+        ("dog’s",        "dog's"),
+    ])
+    def test_normalize_quotes(self, text: str, expected: str) -> None:
+        assert normalize_quotes(text) == expected
 
 
 # --- normalize_ligatures ---
 
 class TestNormalizeLigatures:
-    def test_normalizes_fi_ligature(self) -> None:
-        assert normalize_ligatures("ﬁle") == "file"
-
-    def test_normalizes_fl_ligature(self) -> None:
-        assert normalize_ligatures("ﬂoor") == "floor"
-
-    def test_normalizes_ff_ligature(self) -> None:
-        # noinspection SpellCheckingInspection
-        assert normalize_ligatures("ﬀect") == "ffect"
-
-    def test_normalizes_ffi_ligature(self) -> None:
-        # noinspection SpellCheckingInspection
-        assert normalize_ligatures("ﬃcient") == "fficient"
-
-    def test_normalizes_ffl_ligature(self) -> None:
-        # noinspection SpellCheckingInspection
-        assert normalize_ligatures("ﬄuent") == "ffluent"
-
-    def test_normalizes_st_ligature(self) -> None:
-        assert normalize_ligatures("ﬅar") == "star"
+    @pytest.mark.parametrize("text, expected", [
+        ("ﬁle",    "file"),
+        ("ﬂoor",   "floor"),
+        ("ﬀect",   "ffect"),    # noinspection SpellCheckingInspection
+        ("ﬃcient", "fficient"),  # noinspection SpellCheckingInspection
+        ("ﬄuent",  "ffluent"),   # noinspection SpellCheckingInspection
+        ("ﬅar",    "star"),
+    ])
+    def test_normalize_ligature(self, text: str, expected: str) -> None:
+        assert normalize_ligatures(text) == expected
 
 
 # --- fix_encoding_artifacts ---
 
 class TestFixEncodingArtifacts:
-    def test_fixes_left_double_quote(self) -> None:
-        # noinspection SpellCheckingInspection
-        assert fix_encoding_artifacts("Òhello") == '"hello'
-
-    def test_fixes_right_double_quote(self) -> None:
-        assert fix_encoding_artifacts("helloÓ") == 'hello"'
-
-    def test_fixes_apostrophe(self) -> None:
-        assert fix_encoding_artifacts("todayÕs") == "today's"
-
-    def test_fixes_em_dash(self) -> None:
-        # noinspection SpellCheckingInspection
-        assert fix_encoding_artifacts("helloÑworld") == "hello—world"
-
-    def test_fixes_en_dash(self) -> None:
-        assert fix_encoding_artifacts("1988Ð1998") == "1988–1998"
+    @pytest.mark.parametrize("text, expected", [
+        ("Òhello",     '"hello'),    # noinspection SpellCheckingInspection
+        ("helloÓ",     'hello"'),
+        ("todayÕs",    "today's"),
+        ("helloÑworld", "hello—world"),  # noinspection SpellCheckingInspection
+        ("1988Ð1998",  "1988–1998"),
+    ])
+    def test_fix_encoding_artifact(self, text: str, expected: str) -> None:
+        assert fix_encoding_artifacts(text) == expected
 
 
 # --- fix_punctuation_spacing ---
 
 class TestFixPunctuationSpacing:
-    def test_removes_space_before_period(self) -> None:
-        assert fix_punctuation_spacing("hello .") == "hello."
-
-    def test_removes_space_before_comma(self) -> None:
-        assert fix_punctuation_spacing("hello , world") == "hello, world"
-
-    def test_removes_space_before_question_mark(self) -> None:
-        assert fix_punctuation_spacing("really ?") == "really?"
-
-    def test_removes_space_before_exclamation(self) -> None:
-        assert fix_punctuation_spacing("wow !") == "wow!"
+    @pytest.mark.parametrize("text, expected", [
+        ("hello .",       "hello."),
+        ("hello , world", "hello, world"),
+        ("really ?",      "really?"),
+        ("wow !",         "wow!"),
+    ])
+    def test_removes_space_before_punctuation(self, text: str, expected: str) -> None:
+        assert fix_punctuation_spacing(text) == expected
 
 
 # --- fix_bracket_spacing ---
 
 class TestFixBracketSpacing:
-    def test_removes_space_inside_parentheses(self) -> None:
-        assert fix_bracket_spacing("( hello )") == "(hello)"
-
-    def test_removes_space_inside_square_brackets(self) -> None:
-        assert fix_bracket_spacing("[ hello ]") == "[hello]"
-
-    def test_removes_space_inside_curly_braces(self) -> None:
-        assert fix_bracket_spacing("{ hello }") == "{hello}"
+    @pytest.mark.parametrize("text, expected", [
+        ("( hello )", "(hello)"),
+        ("[ hello ]", "[hello]"),
+        ("{ hello }", "{hello}"),
+    ])
+    def test_removes_space_inside_brackets(self, text: str, expected: str) -> None:
+        assert fix_bracket_spacing(text) == expected
 
 
 # --- fix_apostrophes ---
@@ -274,17 +231,14 @@ class TestFixApostrophes:
 # --- strip_footnote_numbers ---
 
 class TestStripFootnoteNumbers:
-    def test_strips_trailing_digit(self) -> None:
-        assert strip_footnote_numbers("Hello world.1") == "Hello world."
-
-    def test_strips_multiple_trailing_digits(self) -> None:
-        assert strip_footnote_numbers("Hello world.123") == "Hello world."
-
-    def test_no_change_when_ends_with_punctuation(self) -> None:
-        assert strip_footnote_numbers("Hello world.") == "Hello world."
-
-    def test_no_change_when_no_digits(self) -> None:
-        assert strip_footnote_numbers("Hello world") == "Hello world"
+    @pytest.mark.parametrize("text, expected", [
+        ("Hello world.1",   "Hello world."),
+        ("Hello world.123", "Hello world."),
+        ("Hello world.",    "Hello world."),
+        ("Hello world",     "Hello world"),
+    ])
+    def test_strip_footnote_numbers(self, text: str, expected: str) -> None:
+        assert strip_footnote_numbers(text) == expected
 
 
 # --- clean_text ---
@@ -309,8 +263,7 @@ class TestCleanText:
         assert clean_text("the dog 's bone") == "the dog's bone"
 
     def test_normalizes_smart_quotes(self) -> None:
-        assert clean_text("\u201chello\u201d") == '"hello"'
-
+        assert clean_text("“hello”") == '"hello"'
 
     def test_preserves_regular_hyphen(self) -> None:
         assert clean_text("well-known") == "well-known"
@@ -384,29 +337,18 @@ class TestLoadValidPages:
 # --- substitute_math_symbols ---
 
 class TestSubstituteMathSymbols:
-    def test_negation(self) -> None:
-        assert substitute_math_symbols("¬p") == "not p"
-
-    def test_conjunction(self) -> None:
-        assert substitute_math_symbols("p ∧ q") == "p and q"
-
-    def test_disjunction(self) -> None:
-        assert substitute_math_symbols("p ∨ q") == "p or q"
-
-    def test_implication(self) -> None:
-        assert substitute_math_symbols("p → q") == "p implies q"
-
-    def test_universal_quantifier(self) -> None:
-        assert substitute_math_symbols("∀x") == "for all x"
-
-    def test_existential_quantifier(self) -> None:
-        assert substitute_math_symbols("∃x") == "there exists x"
-
-    def test_biconditional(self) -> None:
-        assert substitute_math_symbols("p ↔ q") == "p if and only if q"
-
-    def test_therefore(self) -> None:
-        assert substitute_math_symbols("∴ p") == "therefore p"
+    @pytest.mark.parametrize("text, expected", [
+        ("¬p",    "not p"),
+        ("p ∧ q", "p and q"),
+        ("p ∨ q", "p or q"),
+        ("p → q", "p implies q"),
+        ("∀x",    "for all x"),
+        ("∃x",    "there exists x"),
+        ("p ↔ q", "p if and only if q"),
+        ("∴ p",   "therefore p"),
+    ])
+    def test_single_symbol(self, text: str, expected: str) -> None:
+        assert substitute_math_symbols(text) == expected
 
     def test_symbol_no_spaces(self) -> None:
         """Symbol with no surrounding spaces should not produce run-together words."""
