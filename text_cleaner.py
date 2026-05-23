@@ -410,6 +410,7 @@ class TextCleaner:
     def __init__(self, model: str = 'llama3.1:8b', max_retries: int = 3,
                  temperature: float | None = None,
                  max_length_change: float = 0.20,
+                 formula_mode: FormulaMode = FormulaMode.CLEAN,
                  verbose: bool = False) -> None:
         """Initialise TextCleaner.
 
@@ -422,12 +423,15 @@ class TextCleaner:
             max_length_change: Maximum fractional difference in character count
                 between the original and cleaned text before the response is
                 rejected and retried. Defaults to 0.20 (20%).
+            formula_mode: Controls how formula chunks are processed. CLEAN reconstructs
+                OCR notation (default); AUDIO runs CLEAN then translates to spoken English.
             verbose: If True, prints LLM responses for debugging. Defaults to False.
         """
         self._model: str = model
         self._max_retries: int = max_retries
         self._temperature: float | None = temperature
         self._max_length_change: float = max_length_change
+        self.formula_mode: FormulaMode = formula_mode
         self._verbose: bool = verbose
 
     def clean(self, paragraph: str, page_context: str = "") -> tuple[str, ClassificationType]:

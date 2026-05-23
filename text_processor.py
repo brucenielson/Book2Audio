@@ -55,7 +55,6 @@ class TextProcessor:
     def __init__(self, min_paragraph_size: int = 0,
                  include_footnotes: bool = False,
                  cleaner: str | TextCleaner | None = None,
-                 formula_mode: FormulaMode = FormulaMode.CLEAN,
                  verbose: bool = False) -> None:
         """Initialise TextProcessor.
 
@@ -65,16 +64,11 @@ class TextProcessor:
             cleaner: Optional LLM model name (str), TextCleaner instance, or None.
                      A string is interpreted as an Ollama model name and used to
                      create a TextCleaner automatically. Defaults to None.
-            formula_mode: Controls how formula chunks are processed when a cleaner is
-                          active. CLEAN reconstructs OCR notation (default); AUDIO runs
-                          CLEAN then translates to spoken English. Without a cleaner,
-                          formulas are always emitted raw regardless of this setting.
             verbose: If True, prints per-paragraph skip/LLM decisions and timing
                      summary. Defaults to False.
         """
         self._min_paragraph_size: int = min_paragraph_size
         self._include_footnotes: bool = include_footnotes
-        self._formula_mode: FormulaMode = formula_mode
         self._verbose: bool = verbose
         if isinstance(cleaner, str):
             self._cleaner: TextCleaner | None = TextCleaner(model=cleaner)
@@ -279,7 +273,7 @@ class TextProcessor:
         text: str = chunk.text
         if self._cleaner:
             page_context: str = self._page_contexts.get(chunk.meta.get('page_#', ''), '')
-            if self._formula_mode == FormulaMode.AUDIO:
+            if self._cleaner.formula_mode == FormulaMode.AUDIO:
                 cleaned = self._cleaner.clean_formula_ocr(chunk.text, page_context=page_context)
                 text = self._cleaner.clean_formula(cleaned, page_context=page_context)
             else:  # CLEAN
