@@ -59,60 +59,19 @@ class TestLazyLoading:
 # --- is_valid_word tests ---
 
 class TestIsValidWord:
-    def test_plain_valid_word(self, validator) -> None:
-        """A simple valid English word should return True."""
-        assert validator.is_valid_word("dog") is True
+    @pytest.mark.parametrize("word", ["dog", "Dog", "running", "geese", "empirically"])
+    def test_is_true(self, validator, word: str) -> None:
+        assert validator.is_valid_word(word) is True
 
-    def test_plain_invalid_word(self, validator) -> None:
-        """A nonsense word should return False."""
+    @pytest.mark.parametrize("word", ["xqzjkl", ""])
+    def test_is_false(self, validator, word: str) -> None:
         # noinspection SpellCheckingInspection
-        assert validator.is_valid_word("xqzjkl") is False
+        assert validator.is_valid_word(word) is False
 
-    def test_uppercase_valid_word(self, validator) -> None:
-        """A valid word in uppercase should return True."""
-        assert validator.is_valid_word("Dog") is True
-
-    def test_stemmed_word(self, validator) -> None:
-        """A word valid via stemming should return True."""
-        assert validator.is_valid_word("running") is True
-
-    def test_lemmatized_word(self, validator) -> None:
-        """A word valid via lemmatization should return True."""
-        assert validator.is_valid_word("geese") is True
-
-    def test_suffix_ability(self, validator) -> None:
-        """A word ending in 'ability' should resolve via custom suffix."""
-        assert validator.is_valid_word("testability") is not False
-
-    # noinspection SpellCheckingInspection
-    def test_suffix_iness(self, validator) -> None:
-        # noinspection SpellCheckingInspection
-        """A word ending in 'iness' should resolve via custom suffix."""
-        assert validator.is_valid_word("happiness") is not False
-
-    def test_suffix_tion(self, validator) -> None:
-        """A word ending in 'tion' should resolve via custom suffix."""
-        assert validator.is_valid_word("creation") is not False
-
-    def test_suffix_ing(self, validator) -> None:
-        """A word ending in 'ing' should resolve via custom suffix."""
-        assert validator.is_valid_word("testing") is not False
-
-    def test_suffix_ed(self, validator) -> None:
-        """A word ending in 'ed' should resolve via custom suffix."""
-        assert validator.is_valid_word("tested") is not False
-
-    def test_suffix_s(self, validator) -> None:
-        """A word ending in 's' should resolve via custom suffix."""
-        assert validator.is_valid_word("dogs") is not False
-
-    def test_empty_string(self, validator) -> None:
-        """An empty string should return False without crashing."""
-        assert validator.is_valid_word("") is False
-
-    def test_adverb_empirically(self, validator) -> None:
-        """'empirically' is a common English adverb and should be valid."""
-        assert validator.is_valid_word("empirically") is True
+    @pytest.mark.parametrize("word", ["testability", "happiness", "creation", "testing", "tested", "dogs"])
+    def test_suffix_words(self, validator, word: str) -> None:
+        """Words formed with common suffixes should resolve via custom suffix rules."""
+        assert validator.is_valid_word(word) is not False
 
     def test_adverb_empirically_is_reason_combine_hyphenated_fails(self, validator) -> None:
         """If 'empirically' is invalid, combine_hyphenated_words cannot join 'empiri- cally'."""
@@ -134,9 +93,9 @@ class TestCombineHyphenatedWords:
 
     def test_soft_hyphen_replaced(self, validator) -> None:
         """Soft hyphens should be replaced with regular hyphens before processing."""
-        # soft hyphen is \u00ad
-        result = validator.combine_hyphenated_words("test\u00adword")
-        assert "\u00ad" not in result
+        # soft hyphen is ­
+        result = validator.combine_hyphenated_words("test­word")
+        assert "­" not in result
 
     def test_two_valid_words_keeps_hyphen(self, validator) -> None:
         """Two valid words joined by a hyphen should remain hyphenated."""
@@ -166,26 +125,15 @@ class TestCombineHyphenatedWords:
         result = validator.combine_hyphenated_words("well-known and up-to-date")
         assert isinstance(result, str)
 
-    def test_soft_hyphen_with_space_joined(self, validator) -> None:
+    @pytest.mark.parametrize("word, expected", [
+        ("empiri­ cally", "empirically"),
+        ("demarca­ tion", "demarcation"),
+        ("vol­ ume", "volume"),
+        ("empir­ ical", "empirical"),
+    ])
+    def test_soft_hyphen_with_space(self, validator, word: str, expected: str) -> None:
         """Soft hyphen followed by a space should join the word (page-break artifact)."""
-        # U+00AD followed by a space is how PDF page-break hyphens appear after extraction
-        result = validator.combine_hyphenated_words("empiri­ cally")
-        assert result == "empirically"
-
-    def test_soft_hyphen_with_space_demarcation(self, validator) -> None:
-        """'demarca­ tion' (soft hyphen + space) should join to 'demarcation'."""
-        result = validator.combine_hyphenated_words("demarca­ tion")
-        assert result == "demarcation"
-
-    def test_soft_hyphen_with_space_volume(self, validator) -> None:
-        """'vol­ ume' (soft hyphen + space) should join to 'volume'."""
-        result = validator.combine_hyphenated_words("vol­ ume")
-        assert result == "volume"
-
-    def test_soft_hyphen_with_space_empirical(self, validator) -> None:
-        """'empir­ ical' (soft hyphen + space) should join to 'empirical'."""
-        result = validator.combine_hyphenated_words("empir­ ical")
-        assert result == "empirical"
+        assert validator.combine_hyphenated_words(word) == expected
 
     def test_soft_hyphen_multiple_in_sentence(self, validator) -> None:
         """Multiple soft-hyphen page-break artifacts in one string are all resolved."""
@@ -256,17 +204,14 @@ class TestHyphenIsDash:
         """'demarcation-the': 'the' has no synsets → hyphen is a dash."""
         assert validator.hyphen_is_dash("demarcation", "the") is True
 
-    def test_known_does_not_signal_dash(self, validator) -> None:
-        """'well-known': 'known' has synsets → hyphen is a legitimate compound."""
-        assert validator.hyphen_is_dash("well", "known") is False
-
-    def test_term_does_not_signal_dash(self, validator) -> None:
-        """'long-term': 'term' has synsets → hyphen is a legitimate compound."""
-        assert validator.hyphen_is_dash("long", "term") is False
-
-    def test_date_does_not_signal_dash(self, validator) -> None:
-        """'up-to-date': 'date' has synsets → hyphen is a legitimate compound."""
-        assert validator.hyphen_is_dash("up", "date") is False
+    @pytest.mark.parametrize("first, second", [
+        ("well", "known"),
+        ("long", "term"),
+        ("up",   "date"),
+    ])
+    def test_hyphen_is_not_a_dash(self, validator, first: str, second: str) -> None:
+        """Legitimate compound words should not be flagged as dash artifacts."""
+        assert validator.hyphen_is_dash(first, second) is False
 
     # --- fix_dash_hyphens tests ---
 
@@ -274,13 +219,10 @@ class TestHyphenIsDash:
         """'demarcation-the': the actual PDF artifact should become 'demarcation - the'."""
         assert validator.fix_dash_hyphens("demarcation-the") == "demarcation - the"
 
-    def test_fix_dash_hyphens_preserves_compound(self, validator) -> None:
-        """'well-known' is a genuine compound and should be left unchanged."""
-        assert validator.fix_dash_hyphens("well-known") == "well-known"
-
-    def test_fix_dash_hyphens_preserves_long_term(self, validator) -> None:
-        """'long-term' is a genuine compound and should be left unchanged."""
-        assert validator.fix_dash_hyphens("long-term") == "long-term"
+    @pytest.mark.parametrize("text", ["well-known", "long-term"])
+    def test_fix_dash_hyphens_preserves(self, validator, text: str) -> None:
+        """Genuine compound words should be left unchanged."""
+        assert validator.fix_dash_hyphens(text) == text
 
     def test_fix_dash_hyphens_in_sentence(self, validator) -> None:
         """A full sentence with a dash-hyphen artifact is corrected."""
