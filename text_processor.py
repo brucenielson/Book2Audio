@@ -84,6 +84,7 @@ class TextProcessor:
         self._n_skipped: int = 0
         self._n_llm_calls: int = 0
         self._last_reported_page: int = -1
+        self._pending_header: str = ""
 
     @property
     def _combined_count(self) -> int:
@@ -101,6 +102,7 @@ class TextProcessor:
         self._n_skipped = 0
         self._n_llm_calls = 0
         self._last_reported_page = -1
+        self._pending_header = ""
 
     def _clear_state(self) -> None:
         """Clear processing state after a run to free memory."""
@@ -335,6 +337,7 @@ class TextProcessor:
             # vprint(self._verbose, f"{'[SKIP]' if _skip else '[LLM ] '} {p_str[:100]!r}")
             if not _skip:
                 self._n_llm_calls += 1
+                self._flush_pending_header()
                 page_context = self._page_contexts.get(meta.get('page_#', ''), '')
                 t1 = time.perf_counter()
                 p_str, classification = self._cleaner.clean(p_str, page_context=page_context)
@@ -361,8 +364,18 @@ class TextProcessor:
             ))
         self._paragraph = []
 
+    def _flush_pending_header(self) -> None:
+        """Print and clear the pending page header, if any."""
+        if self._pending_header:
+            print(self._pending_header)
+            self._pending_header = ""
+
     def _report_page_progress(self, chunk: RawChunk) -> None:
-        """Print a progress line when processing crosses a 10-page boundary.
+        """Buffer a page header in _pending_header when the page changes (verbose only).
+
+        The header is only printed when something noteworthy happens on that
+        page (e.g. the LLM is invoked). Pages where all words are valid and
+        the cleaner is skipped produce no output at all.
 
         Uses physical_page_# for milestone arithmetic (always an integer string)
         and falls back to page_# when physical is absent (e.g. EPUB parser).
@@ -371,6 +384,8 @@ class TextProcessor:
         Args:
             chunk: The current chunk whose page number is checked.
         """
+        if not self._verbose:
+            return
         physical_str = chunk.meta.get('physical_page_#', '') or chunk.meta.get('page_#', '')
         if not physical_str:
             return
@@ -378,13 +393,9 @@ class TextProcessor:
             page = int(physical_str)
         except ValueError:
             return
-        milestone = page != self._last_reported_page if self._verbose else page // 10 > self._last_reported_page // 10
-        if milestone:
+        if page != self._last_reported_page:
             label = chunk.meta.get('page_#', physical_str)
-            if label and label != physical_str:
-                print(f"  [Page {label} / Page {page}]")
-            else:
-                print(f"  [Page {page}]")
+            self._pending_header = f"  [Page {label} / Page {page}]" if label and label != physical_str else f"  [Page {page}]"
             self._last_reported_page = page
 
     def _process_chunk(self, chunk: RawChunk, next_chunk: RawChunk | None) -> None:

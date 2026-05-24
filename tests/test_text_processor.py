@@ -582,26 +582,13 @@ class TestReportPageProgress:
         processor._report_page_progress(chunk)
         assert '[Page 7]' in processor._pending_header
 
-    def test_milestone_every_10_pages_non_verbose(self, capsys) -> None:
-        """In non-verbose mode, reports only at every 10-page boundary."""
+    def test_non_verbose_never_sets_pending_header(self) -> None:
+        """In non-verbose mode, _report_page_progress never sets a pending header."""
         processor = TextProcessor(verbose=False)
         processor._init_state()
-        for n in range(1, 10):
-            chunk = make_chunk_with_pages("Text.", page_label=str(n), physical_page=str(n))
-            processor._report_page_progress(chunk)
-        out = capsys.readouterr().out
-        # Pages 1-9 are all in the same decade — only page 1 crosses the 0→1 boundary
-        assert out.count('[Page') == 1
-
-    def test_milestone_crossed_at_page_10(self, capsys) -> None:
-        """Page 10 triggers a new report in non-verbose mode."""
-        processor = TextProcessor(verbose=False)
-        processor._init_state()
-        processor._last_reported_page = 5
         chunk = make_chunk_with_pages("Text.", page_label='10', physical_page='10')
         processor._report_page_progress(chunk)
-        out = capsys.readouterr().out
-        assert '[Page' in out
+        assert processor._pending_header == ""
 
     def test_same_page_not_pending_twice_verbose(self) -> None:
         """The same physical page only sets the pending header once."""
