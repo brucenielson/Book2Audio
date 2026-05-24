@@ -7,7 +7,7 @@ from pathlib import Path
 from text_chunk import RawChunk, ParsedChunk, LABEL_FOOTNOTE, LABEL_FORMULA
 from word_validator import word_validator
 from utils.general_utils import is_sentence_end, build_paragraph, clean_text
-from utils.logging_utils import vprint
+
 from text_cleaner import TextCleaner, CLASSIFICATION_FOOTNOTE, CLASSIFICATION_DROP, FormulaMode
 
 # Debug breakpoint string — set to a snippet of text to pause on that paragraph.
@@ -179,10 +179,10 @@ class TextProcessor:
 
         if self._cleaner and self._verbose:
             total = self._t_validation + self._t_llm
-            vprint(self._verbose,
-                   f"\n[TIMING] validation={self._t_validation:.2f}s ({self._n_skipped} skipped) | "
-                   f"llm={self._t_llm:.2f}s ({self._n_llm_calls} calls) | "
-                   f"total_timed={total:.2f}s")
+            print(
+                f"\n[TIMING] validation={self._t_validation:.2f}s ({self._n_skipped} skipped) | "
+                f"llm={self._t_llm:.2f}s ({self._n_llm_calls} calls) | "
+                f"total_timed={total:.2f}s")
 
         result = self._result
         self._clear_state()
@@ -279,7 +279,13 @@ class TextProcessor:
                 cleaned = self._cleaner.clean_formula_ocr(chunk.text, page_context=page_context)
                 text = self._cleaner.clean_formula(cleaned, page_context=page_context)
             else:  # CLEAN
-                text = self._cleaner.clean_formula_ocr(chunk.text, page_context=page_context)
+                cleaned = self._cleaner.clean_formula_ocr(chunk.text, page_context=page_context)
+                text = cleaned
+            if self._verbose:
+                self._vprint(f"  [FORMULA] original: {chunk.text!r}")
+                self._vprint(f"  [FORMULA] cleaned:  {cleaned!r}")
+                if self._cleaner.formula_mode == FormulaMode.AUDIO:
+                    self._vprint(f"  [FORMULA] audio:    {text!r}")
         if text:
             self._para_num += 1
             self._result.append(ParsedChunk(
@@ -337,17 +343,16 @@ class TextProcessor:
             # vprint(self._verbose, f"{'[SKIP]' if _skip else '[LLM ] '} {p_str[:100]!r}")
             if not _skip:
                 self._n_llm_calls += 1
-                self._flush_pending_header()
                 page_context = self._page_contexts.get(meta.get('page_#', ''), '')
                 t1 = time.perf_counter()
                 p_str, classification = self._cleaner.clean(p_str, page_context=page_context)
                 self._t_llm += time.perf_counter() - t1
                 if classification == CLASSIFICATION_DROP:
-                    vprint(self._verbose, f"  [LLM DROP] {p_str[:100]!r}")
+                    self._vprint(f"  [LLM DROP] {p_str[:100]!r}")
                     self._paragraph = []
                     return
                 if classification == CLASSIFICATION_FOOTNOTE:
-                    vprint(self._verbose, f"  [LLM FOOTNOTE] {p_str[:100]!r}")
+                    self._vprint(f"  [LLM FOOTNOTE] {p_str[:100]!r}")
                     if not self._include_footnotes:
                         self._paragraph = []
                         return
@@ -369,6 +374,12 @@ class TextProcessor:
         if self._pending_header:
             print(self._pending_header)
             self._pending_header = ""
+
+    def _vprint(self, msg: str) -> None:
+        """Print a verbose message, flushing the pending page header first."""
+        if self._verbose:
+            self._flush_pending_header()
+            print(msg)
 
     def _report_page_progress(self, chunk: RawChunk) -> None:
         """Buffer a page header in _pending_header when the page changes (verbose only).
