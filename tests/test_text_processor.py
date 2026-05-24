@@ -16,10 +16,12 @@ def make_chunk(text: str, label: str = 'text', page: str = '') -> RawChunk:
 
 
 def make_processor(min_paragraph_size: int = 0,
-                   include_footnotes: bool = False) -> TextProcessor:
+                   include_footnotes: bool = False,
+                   strip_footnote_markers: bool = True) -> TextProcessor:
     """Create a TextProcessor with the given settings."""
     return TextProcessor(min_paragraph_size=min_paragraph_size,
-                         include_footnotes=include_footnotes)
+                         include_footnotes=include_footnotes,
+                         strip_footnote_markers=strip_footnote_markers)
 
 
 def make_formula_cleaner(ocr_result: str = 'cleaned formula',
@@ -726,3 +728,27 @@ class TestFootnoteChunkNotStripped:
         footnote_results = [r for r in result if r.label == 'footnote']
         assert len(footnote_results) == 1
         assert footnote_results[0].text == "See Jones (1987) for a complete discussion. 4"
+
+
+class TestStripFootnoteMarkersParameter:
+    def test_strip_enabled_by_default_on_body(self) -> None:
+        """Body chunks have trailing footnote numbers stripped by default."""
+        chunks = [make_chunk("The movement grew rapidly. 4")]
+        result = make_processor().process(chunks)
+        assert result[0].text == "The movement grew rapidly."
+
+    def test_strip_disabled_leaves_body_unchanged(self) -> None:
+        """When strip_footnote_markers=False, body chunks are not stripped."""
+        chunks = [make_chunk("The movement grew rapidly. 4")]
+        result = make_processor(strip_footnote_markers=False).process(chunks)
+        assert result[0].text == "The movement grew rapidly. 4"
+
+    def test_footnote_chunk_protected_even_when_strip_enabled(self) -> None:
+        """Footnote chunks are never stripped even when strip_footnote_markers=True."""
+        chunks = [
+            make_chunk("Body text."),
+            make_chunk("See Jones (1987) for details. 4", label='footnote'),
+        ]
+        result = make_processor(include_footnotes=True, strip_footnote_markers=True).process(chunks)
+        footnote_results = [r for r in result if r.label == 'footnote']
+        assert footnote_results[0].text == "See Jones (1987) for details. 4"

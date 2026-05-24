@@ -55,7 +55,8 @@ class TextProcessor:
     def __init__(self, min_paragraph_size: int = 0,
                  include_footnotes: bool = False,
                  cleaner: str | TextCleaner | None = None,
-                 verbose: bool = False) -> None:
+                 verbose: bool = False,
+                 strip_footnote_markers: bool = True) -> None:
         """Initialise TextProcessor.
 
         Args:
@@ -66,9 +67,13 @@ class TextProcessor:
                      create a TextCleaner automatically. Defaults to None.
             verbose: If True, prints per-paragraph skip/LLM decisions and timing
                      summary. Defaults to False.
+            strip_footnote_markers: If True (default), removes footnote reference
+                     numbers from body text chunks. Footnote chunks are never
+                     stripped regardless of this setting.
         """
         self._min_paragraph_size: int = min_paragraph_size
         self._include_footnotes: bool = include_footnotes
+        self._strip_footnote_markers: bool = strip_footnote_markers
         self._verbose: bool = verbose
         if isinstance(cleaner, str):
             self._cleaner: TextCleaner | None = TextCleaner(model=cleaner)
@@ -140,7 +145,8 @@ class TextProcessor:
             if _DEBUG_BREAK_TEXT and _DEBUG_BREAK_TEXT in chunk.text:
                 pass
             chunk.text = word_validator.combine_hyphenated_words(chunk.text)
-            chunk.text = clean_text(chunk.text, remove_footnotes=True)
+            chunk.text = clean_text(chunk.text,
+                                    remove_footnotes=self._strip_footnote_markers and not chunk.is_footnote)
             if chunk.is_body_text and _FOOTNOTE_MARKER_RE.match(chunk.text):
                 chunk.label = LABEL_FOOTNOTE
 
