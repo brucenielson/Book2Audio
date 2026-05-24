@@ -685,3 +685,44 @@ class TestUpfrontFootnoteReclassification:
         chunks = [make_chunk("3See my Poverty of Historicism, section 32.")]
         result = processor.process(chunks)
         assert len(result) == 1
+
+
+class TestFootnoteChunkNotStripped:
+    """Footnote chunks must not have attached numbers stripped — they contain
+    bibliographic references like 'p.14' or nested footnote markers like '.4'
+    that look identical to the pattern we strip from body text."""
+
+    def test_attached_number_in_footnote_chunk_not_stripped(self) -> None:
+        chunks = [
+            make_chunk("Main body paragraph text."),
+            make_chunk("Jones (1987).4 For a complete discussion.", label='footnote'),
+        ]
+        processor = make_processor(include_footnotes=True)
+        result = processor.process(chunks)
+        footnote_results = [r for r in result if r.label == 'footnote']
+        assert len(footnote_results) == 1
+        assert "1987).4" in footnote_results[0].text
+
+    def test_page_citation_in_footnote_chunk_not_stripped(self) -> None:
+        chunks = [
+            make_chunk("Main body paragraph text."),
+            make_chunk("See p.14 for a complete account.", label='footnote'),
+        ]
+        processor = make_processor(include_footnotes=True)
+        result = processor.process(chunks)
+        footnote_results = [r for r in result if r.label == 'footnote']
+        assert len(footnote_results) == 1
+        assert "p.14" in footnote_results[0].text
+
+    def test_trailing_number_in_footnote_chunk_not_stripped(self) -> None:
+        """The existing trailing-number regex must not fire on footnote chunks.
+        A footnote ending with a reference like '. 4' should be left intact."""
+        chunks = [
+            make_chunk("Main body paragraph text."),
+            make_chunk("See Jones (1987) for a complete discussion. 4", label='footnote'),
+        ]
+        processor = make_processor(include_footnotes=True)
+        result = processor.process(chunks)
+        footnote_results = [r for r in result if r.label == 'footnote']
+        assert len(footnote_results) == 1
+        assert footnote_results[0].text == "See Jones (1987) for a complete discussion. 4"

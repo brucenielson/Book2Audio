@@ -237,7 +237,26 @@ class TestStripFootnoteNumbers:
         ("Hello world.",    "Hello world."),
         ("Hello world",     "Hello world"),
     ])
-    def test_strip_footnote_numbers(self, text: str, expected: str) -> None:
+    def test_trailing_footnote_number(self, text: str, expected: str) -> None:
+        assert strip_footnote_numbers(text) == expected
+
+    @pytest.mark.parametrize("text, expected", [
+        # Footnote number directly attached to sentence-ending punctuation, mid-paragraph
+        ("penicillin.4 It describes",   "penicillin. It describes"),
+        ("section 6).1 And being",      "section 6). And being"),
+        ("argument.12 The next",        "argument. The next"),
+    ])
+    def test_mid_paragraph_no_space_footnote(self, text: str, expected: str) -> None:
+        assert strip_footnote_numbers(text) == expected
+
+    @pytest.mark.parametrize("text, expected", [
+        # Decimal numbers must not be stripped
+        ("value 3.14 The next",         "value 3.14 The next"),
+        ("R1.2 (prior) = result.",      "R1.2 (prior) = result."),
+        # Space before number is out of scope for this fix
+        ("penicillin. 12 It describes", "penicillin. 12 It describes"),
+    ])
+    def test_no_false_positives(self, text: str, expected: str) -> None:
         assert strip_footnote_numbers(text) == expected
 
 
