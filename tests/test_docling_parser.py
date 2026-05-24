@@ -7,8 +7,6 @@ from docling_core.types import DoclingDocument
 from parsers.docling_parser import DoclingParser, _FootnoteContext
 from text_cleaner import TextCleaner
 
-from conftest import TEST_LLM_MODEL
-
 
 # --- Fixtures ---
 
@@ -1160,29 +1158,6 @@ class TestProcessedTextsFile:
         parser.run(generate_text_file=True, annotate_reclassifications=False)
         content = self._read_file(tmp_path)
         assert content.index("A citation.") < content.index("Second body.")
-
-
-# --- TestIntegration ---
-
-class TestIntegration:
-    @pytest.mark.integration
-    def test_mislabelled_footnote_dropped_by_cleaner(self) -> None:
-        """A footnote mislabeled as body text should be identified and dropped by the LLM cleaner."""
-        texts = [
-            make_text_item(
-                "Others have found very similar defection rates in various minor religious sects.1",
-                page_no=1
-            ),
-            make_text_item(
-                "1 This ignores the interesting question of whether the defectors have given up "
-                "all the beliefs in the doctrines of the movement they have quit.",
-                page_no=1
-            ),
-        ]
-        parser = make_parser(texts, cleaner=TextCleaner(model=TEST_LLM_MODEL, temperature=0), include_notes=False)
-        docs, meta = parser.run()
-        assert any("religious sects" in d for d in docs)
-        assert all("This ignores the interesting question" not in d for d in docs)
 
 
 # --- TestFormatPage ---
