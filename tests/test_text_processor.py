@@ -338,6 +338,39 @@ class TestFormulaMode:
         cleaner.clean_formula.assert_called_once_with('x² + y² = z²', page_context=ANY)
 
 
+# --- TestFormulaAnnotation ---
+
+class TestFormulaAnnotation:
+    """Tests for verbose annotation of formula chunks."""
+
+    def test_clean_mode_prints_annotation(self, capsys) -> None:
+        """In CLEAN mode with verbose=True, annotation shows original and cleaned text."""
+        cleaner = make_formula_cleaner(ocr_result='x + y = z', formula_mode=FormulaMode.CLEAN)
+        processor = TextProcessor(cleaner=cleaner, verbose=True)
+        processor.process([make_chunk('x -+- y == z', label='formula')])
+        out = capsys.readouterr().out
+        assert '[FORMULA]' in out
+        assert 'x -+- y == z' in out
+        assert 'x + y = z' in out
+
+    def test_audio_mode_annotation_includes_audio_text(self, capsys) -> None:
+        """In AUDIO mode with verbose=True, annotation also shows the final audio text."""
+        cleaner = make_formula_cleaner(ocr_result='x + y = z', audio_result='x plus y equals z',
+                                       formula_mode=FormulaMode.AUDIO)
+        processor = TextProcessor(cleaner=cleaner, verbose=True)
+        processor.process([make_chunk('x -+- y == z', label='formula')])
+        out = capsys.readouterr().out
+        assert 'x plus y equals z' in out
+
+    def test_not_verbose_no_annotation(self, capsys) -> None:
+        """Without verbose=True, no formula annotation is printed."""
+        cleaner = make_formula_cleaner(ocr_result='x + y = z', formula_mode=FormulaMode.CLEAN)
+        processor = TextProcessor(cleaner=cleaner, verbose=False)
+        processor.process([make_chunk('x -+- y == z', label='formula')])
+        out = capsys.readouterr().out
+        assert '[FORMULA]' not in out
+
+
 # --- TestAllWordsValid ---
 
 class TestAllWordsValid:
