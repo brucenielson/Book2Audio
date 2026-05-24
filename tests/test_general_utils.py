@@ -232,10 +232,20 @@ class TestFixApostrophes:
 
 class TestStripFootnoteNumbers:
     @pytest.mark.parametrize("text, expected", [
+        # Basic trailing number after sentence-ending punctuation
         ("Hello world.1",   "Hello world."),
         ("Hello world.123", "Hello world."),
         ("Hello world.",    "Hello world."),
         ("Hello world",     "Hello world"),
+        # Trailing number after closing quote or paren following the punctuation
+        ("came back and hit you.'2",  "came back and hit you.'"),
+        ("came back and hit you.' 2", "came back and hit you.'"),
+        ('came back and hit you."2',  'came back and hit you."'),
+        ("argument.)2",               "argument.)"),
+        ("argument.) 2",              "argument.)"),
+        # Curly quotes (arrive before normalize_quotes runs)
+        ("hit you.’2",           "hit you.’"),
+        ("hit you.”2",           "hit you.”"),
     ])
     def test_trailing_footnote_number(self, text: str, expected: str) -> None:
         assert strip_footnote_numbers(text) == expected
