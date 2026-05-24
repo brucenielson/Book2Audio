@@ -390,9 +390,12 @@ def strip_footnote_numbers(p_str: str) -> str:
     Returns:
         The string with footnote markers removed.
     """
-    # Remove trailing footnote number after sentence-ending punctuation
+    # Remove trailing footnote number after sentence-ending punctuation,
+    # optionally followed by closing quotes or brackets before the number.
     # e.g. "Hello world. 1" -> "Hello world."
-    p_str = re.sub(r'(\w[.!?])\s*\d+\s*$', r'\1', p_str)
+    #      "hit you.'2"     -> "hit you.'"
+    #      "argument.) 2"   -> "argument.)"
+    p_str = re.sub(r'(\w[.!?][\'"‘’“”)\]]*)\s*\d+\s*$', r'\1', p_str)
     return p_str
 
 
