@@ -246,6 +246,11 @@ class TestStripFootnoteNumbers:
         # Curly quotes (arrive before normalize_quotes runs)
         ("hit you.’2",           "hit you.’"),
         ("hit you.”2",           "hit you.”"),
+        # Space between period and quote (actual OCR pattern: ‘hit you. “2’)
+        ("came back and hit you. '2", "came back and hit you."),
+        ("came back and hit you. ’2", "came back and hit you."),
+        ("came back and hit you. ”2", "came back and hit you."),
+        ("came back and hit you. \"2", "came back and hit you."),
     ])
     def test_trailing_footnote_number(self, text: str, expected: str) -> None:
         assert strip_footnote_numbers(text) == expected
