@@ -340,6 +340,43 @@ class TestRetry:
             assert "Full page text." in user_message['content']
             assert "Some text." in user_message['content']
 
+    def test_intermediate_rejections_suppressed_on_success(self, capsys) -> None:
+        """Rejection messages from failed attempts are not shown if a later attempt succeeds."""
+        cleaner = TextCleaner(model=TEST_LLM_MODEL, max_retries=3, temperature=0, verbose=True)
+        bad_response = {'message': {'content': 'not valid json'}}
+        good_response = make_response("Some text.", "body")
+        with patch(patch_llm_chat, side_effect=[bad_response, good_response]):
+            cleaner.clean("Some text.")
+        out = capsys.readouterr().out
+        assert "attempt 1 rejected" not in out
+
+
+# --- TestSizeCheck ---
+
+class TestSizeCheck:
+    def test_size_check_not_applied_to_short_strings(self) -> None:
+        """The size check is skipped for strings below the minimum length threshold.
+
+        Real example: 'p(b,b) 1.' (9 printable chars) cleaned to 'p(b, b) = 1.' (12 chars)
+        is a 33% increase. The LLM is correct — the check should not reject it.
+        """
+        cleaner = make_cleaner()
+        with patch(patch_llm_chat, return_value=make_response("p(b, b) = 1.", "body")) as mock:
+            cleaned, classification = cleaner.clean("p(b,b) 1.")
+        assert cleaned == "p(b, b) = 1."
+        assert mock.call_count == 1  # no retry triggered
+
+    def test_size_check_still_applied_to_longer_strings(self) -> None:
+        """The size check still rejects gross expansions on longer strings."""
+        cleaner = make_cleaner(max_retries=3)
+        original = "This is a longer paragraph text."   # > minimum threshold
+        expanded = "This is a longer paragraph text that has been expanded significantly by the LLM."
+        good_response = make_response(original, "body")
+        bad_response = make_response(expanded, "body")
+        with patch(patch_llm_chat, side_effect=[bad_response, good_response]) as mock:
+            cleaner.clean(original)
+        assert mock.call_count == 2  # first attempt rejected by size check, second succeeds
+
 
 # --- TestSanityCheck ---
 
