@@ -109,6 +109,7 @@ In either case:
 - Return only the cleaned formula. No JSON, no labels, no explanation."""
 
 
+_MIN_SIZE_CHECK_CHARS: Final = 20  # skip the size guard for very short strings
 # noinspection SpellCheckingInspection
 _DROP_HINTS: tuple[str, ...] = (
     'index', 'bibliograph', 'reference', 'encyclop', 'glossar',
@@ -456,6 +457,9 @@ class TextCleaner:
         else:
             user_content = f"Paragraph to clean and classify:\n{paragraph}"
 
+        _last_rejection: str = ""
+        _last_original: str = ""
+        _last_cleaned: str = ""
         for attempt in range(self._max_retries):
             cleaned_candidate: str | None = None
             try:
@@ -518,7 +522,7 @@ class TextCleaner:
 
                 if classification != 'drop':
                     printable_len: int = sum(1 for c in paragraph if c.isprintable())
-                    if printable_len and abs(len(cleaned_candidate) - printable_len) / printable_len > self._max_length_change:
+                    if printable_len >= _MIN_SIZE_CHECK_CHARS and abs(len(cleaned_candidate) - printable_len) / printable_len > self._max_length_change:
                         pct = int(self._max_length_change * 100)
                         raise ValueError(f"Cleaned text size differs by more than {pct}% "
                                          f"(original printable={printable_len}, cleaned={len(cleaned_candidate)})")
@@ -535,12 +539,16 @@ class TextCleaner:
                 return cleaned_candidate, classification
 
             except (json.JSONDecodeError, KeyError, ValueError) as e:
-                vprint(self._verbose, f"  → attempt {attempt + 1} rejected: {e}")
-                if cleaned_candidate is not None:
-                    vprint(self._verbose, f"  original: {paragraph}")
-                    vprint(self._verbose, f"  cleaned:  {cleaned_candidate}")
+                if attempt == self._max_retries - 1:
+                    _last_rejection = f"  → attempt {attempt + 1} rejected: {e}"
+                    _last_original = paragraph if cleaned_candidate is not None else ""
+                    _last_cleaned = cleaned_candidate if cleaned_candidate is not None else ""
                 continue
 
+        if _last_rejection and _last_original and _last_cleaned:
+            vprint(self._verbose, f"Max Retries: {_last_rejection}")
+            vprint(self._verbose, f"  original: {_last_original}")
+            vprint(self._verbose, f"  cleaned:  {_last_cleaned}")
         return paragraph, 'body'
 
     def _call_formula_llm(self, system_prompt: str, user_content: str) -> str | None:
