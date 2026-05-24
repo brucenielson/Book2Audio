@@ -19,27 +19,31 @@ C:\AI\Book2Audio\.venv\Lib\site-packages\torch\nn\modules\rnn.py:990: UserWarnin
 C:\AI\Book2Audio\.venv\Lib\site-packages\torch\nn\utils\weight_norm.py:144: FutureWarning: `torch.nn.utils.weight_norm` is deprecated in favor of `torch.nn.utils.parametrizations.weight_norm`.
   WeightNorm.apply(module, name, dim)
   [Page 3 / Page 44]
-  [LLM FOOTNOTE] "1 HANS CHRISTIAN ØERSTED2 1 Hans Christian Øersted: 'Observations on the History of Chemistry : A Le"
+  → restored 'Oersted:' (LLM tried 'Ørsted:')  context: "1 Hans Christian Oersted: 'Observations on the"
+  [LLM FOOTNOTE] "1 Hans Christian Oersted: 'Observations on the History of Chemistry : A Lecture, 1805-1807', in The "
   [Page 5 / Page 46]
   [Page 6 / Page 47]
   [Page 7 / Page 48]
   → restored 'criticizing' (LLM tried 'criticising')  context: 'fellow, by severely criticizing his views-in the'
   [Page 8 / Page 49]
-  → restored 'specialization' (LLM tried 'specialisation')  context: 'I disbelieve in specialization and in experts.'
+  → restored 'ye' (LLM tried 'you')  context: 'till death do ye part - unless'
   [Page 9 / Page 50]
   [Page 11 / Page 52]
   [Page 12 / Page 53]
   [Page 13 / Page 54]
+  → attempt 1 rejected: Cleaned text size differs by more than 20% (original printable=2088, cleaned=247)
+  original: Having been invited to participate in the discussion, I said that I did not believe in induction at all, although I did believe in empiricism-an empiricism which did not impose upon itself those Kantian limits which Russell was prepared to accept. This statement (which I formulated as pointedly as I could manage with the little English at my disposal) was taken for a joke by the audience, who graciously laughed and clapped. I then suggested that the whole trouble was due to the mistaken belief that scienti fic knowledge was an especially strict or certain or august kind of knowledge. This statement met with the same reception as the first. I concluded with an attempt to explain that, in the usual sense of 'know', whenever I know that it is raining, it must be true that it is raining; for if it is not true, then I simply cannot know that it is raining, however sincerely I may believe that I know it. In this sense of the word, 'knowledge' always means 'true and certain knowledge'; and 'to know' means, in addition, to be in possession of sufficient reason for holding that our knowledge is true and certain. But, I said, there was no such thing as scientific knowledge in this sense. If, nonetheless, we chose to label the results of our scientific endeavours with the customary name ' scientific knowledge', then we ought to be clear that scientific knowledge was not a species of knowledge; least of all, a species distinguished by a high degree of solidity or certainty. On the contrary, measured by the high standards of scientific criticism, ' scientific knowledge' always remained sheer guesswork - although guesswork controlled by criticism and experiment. (It could not even attain any positive degree of 'probability' if this term was used in the sense of the probability calculus, for example, in the form given to it by Keynes or Jeffreys.) I ended by saying that merely by recognizing that scientific knowledge consists of guesses or hypotheses, we can solve the problem of induction without having to assume a principle of induction, or any limits to empiricism.
+  cleaned:  Having been invited to participate in the discussion, I said that I did not believe in induction at all, although I did believe in empiricism—an empiricism which did not impose upon itself those Kantian limits which Russell was prepared to accept.
   [Page 14 / Page 55]
   [Page 15 / Page 56]
-  → restored ["'", "isms'"] (LLM tried '\'isms\'')  context: "helps explain why ' isms' are unfashionable. For"
   [Page 16 / Page 57]
+  → restored 'relations).' (LLM tried 'relations}.')  context: 'a language of relations). This fact, however,'
   [Page 17 / Page 58]
+  → restored 'criticize' (LLM tried 'criticise')  context: 'be unable to criticize or to transcend.'
   → restored 'criticize' (LLM tried 'criticise')  context: 'examine, compare, and criticize coherent systems of'
   → restored 'criticize,' (LLM tried 'criticise,')  context: 'analyse, and to criticize, the approach or'
   [Page 18 / Page 59]
   [Page 19 / Page 60]
-  → restored 'have' (LLM tried 'had')  context: "'baseless' where I have written ' without"
   [Page 20 / Page 61]
   → restored 'criticized' (LLM tried 'criticised')  context: 'in the sense criticized here. Our preferences'
   [Page 21 / Page 62]
@@ -49,33 +53,34 @@ C:\AI\Book2Audio\.venv\Lib\site-packages\torch\nn\utils\weight_norm.py:144: Futu
   → attempt 2 rejected: Cleaned text size differs by more than 20% (original printable=973, cleaned=242)
   original: For according to Bartley all philosophies so f ar have been justi ficationist philosophies, in the sense that all assumed that it was the prima f acie task of the theory of knowledge to show that, and how, we can justi f y our theories or beliefs. Not only the rationalists and the empiricists and the Kantians shared this assumption but also the sceptics and the irrationalists. The sceptics, compelled to admit that we cannot justify our theories or beliefs, declare the bankruptcy of the search for knowledge; while the irrationalists (for example the fideists), owing to the same fundamental admission, declare the bankruptcy of the search for reasons - that is, for rationally valid arguments - and try to justify our knowledge, or rather, our beliefs, by appealing to authority, such as the authority of irrational sources. Both assume that the question of justification, or of the existence of positive reasons, is fundamental : both are classical justificationists.
   cleaned:  For according to Bartley all philosophies so far have been justificationist philosophies, in the sense that all assumed that it was the prima facie task of the theory of knowledge to show that, and how, we can justify our theories or beliefs.
-  → attempt 3 rejected: Cleaned text size differs by more than 20% (original printable=973, cleaned=241)
+  → attempt 3 rejected: Cleaned text size differs by more than 20% (original printable=973, cleaned=239)
   original: For according to Bartley all philosophies so f ar have been justi ficationist philosophies, in the sense that all assumed that it was the prima f acie task of the theory of knowledge to show that, and how, we can justi f y our theories or beliefs. Not only the rationalists and the empiricists and the Kantians shared this assumption but also the sceptics and the irrationalists. The sceptics, compelled to admit that we cannot justify our theories or beliefs, declare the bankruptcy of the search for knowledge; while the irrationalists (for example the fideists), owing to the same fundamental admission, declare the bankruptcy of the search for reasons - that is, for rationally valid arguments - and try to justify our knowledge, or rather, our beliefs, by appealing to authority, such as the authority of irrational sources. Both assume that the question of justification, or of the existence of positive reasons, is fundamental : both are classical justificationists.
-  cleaned:  For according to Bartley all philosophies so far have been justificational philosophies, in the sense that all assumed that it was the prima facie task of the theory of knowledge to show that, and how, we can justify our theories or beliefs.
+  cleaned:  For according to Bartley all philosophies so far have been justificatory philosophies, in the sense that all assumed that it was the prima facie task of the theory of knowledge to show that, and how, we can justify our theories or beliefs.
   [Page 22 / Page 63]
   [Page 23 / Page 64]
   [Page 24 / Page 65]
   [Page 25 / Page 66]
   → restored 'criticized;' (LLM tried 'criticised;')  context: 'refute the theory criticized; that is to'
   [Page 26 / Page 67]
+  → attempt 1 rejected: Cleaned text size differs by more than 20% (original printable=1312, cleaned=343)
+  original: There is no need to be shocked by the discovery that we cannot justify or even support by arguments or reasons the claim that our theories are true. For critical reasoning still has a most important function with respect to the evaluation of theories : we can criticize and discriminate among our theories as a result of our critical tragically mistaken in his doubts concerning general relativity ; see for example, Charles W. Misner and john A. Wheeler, 'Classical Physics as Geometry', Annals of Physics 2, 1 957, pp. 525 f f, where attention is drawn to G. Y. Rainich, Transactions o f the American Mathematical Society 27, 1 925, pp. 1 06 - 136. See also Rainich, 'Eiectromagnetics in the General Relativity Theory', Proceedin g s of the National Academy of Sciences of the U.S.A. 10, 1 924, pp. 124f!. ; The Mathematics of Relativity, New York, 1950; and Wheeler's later papers, especially his report in Logic, Methodology, and Philosophy of Science, Proceedings of the 1960 International Congress, ed. E. Nagel, P. Suppes, and A. Tarski, 1962, pp. 361 - 374. ·:·since this footnote was written, the Misner-Wheeler theory, now called 'Geometrodynamics,' has greatly developed. See especially Wheeler's Geometrodynamics, 1 962 ; and Charles W. Misner, Kip S. Thorne, and John A. Wheeler, Gravitation, 1 973.
+  cleaned:  There is no need to be shocked by the discovery that we cannot justify or even support by arguments or reasons the claim that our theories are true. For critical reasoning still has a most important function with respect to the evaluation of theories : we can criticise and discriminate among our theories as a result of our critical analysis.
+  → attempt 2 rejected: Cleaned text size differs by more than 20% (original printable=1312, cleaned=333)
+  original: There is no need to be shocked by the discovery that we cannot justify or even support by arguments or reasons the claim that our theories are true. For critical reasoning still has a most important function with respect to the evaluation of theories : we can criticize and discriminate among our theories as a result of our critical tragically mistaken in his doubts concerning general relativity ; see for example, Charles W. Misner and john A. Wheeler, 'Classical Physics as Geometry', Annals of Physics 2, 1 957, pp. 525 f f, where attention is drawn to G. Y. Rainich, Transactions o f the American Mathematical Society 27, 1 925, pp. 1 06 - 136. See also Rainich, 'Eiectromagnetics in the General Relativity Theory', Proceedin g s of the National Academy of Sciences of the U.S.A. 10, 1 924, pp. 124f!. ; The Mathematics of Relativity, New York, 1950; and Wheeler's later papers, especially his report in Logic, Methodology, and Philosophy of Science, Proceedings of the 1960 International Congress, ed. E. Nagel, P. Suppes, and A. Tarski, 1962, pp. 361 - 374. ·:·since this footnote was written, the Misner-Wheeler theory, now called 'Geometrodynamics,' has greatly developed. See especially Wheeler's Geometrodynamics, 1 962 ; and Charles W. Misner, Kip S. Thorne, and John A. Wheeler, Gravitation, 1 973.
+  cleaned:  There is no need to be shocked by the discovery that we cannot justify or even support by arguments or reasons the claim that our theories are true. For critical reasoning still has a most important function with respect to the evaluation of theories : we can criticise and discriminate among our theories as a result of our critical
   [Page 27 / Page 68]
   [Page 28 / Page 69]
   [Page 29 / Page 70]
   [Page 30 / Page 71]
   [LLM FOOTNOTE] "101 owe the remark in parentheses to a comment of Alan E. Musgrave's on this passage."
   [Page 31 / Page 72]
-  → attempt 1 rejected: Cleaned text size differs by more than 20% (original printable=240, cleaned=386)
-  original: The critical approach which I have described here leads almost immediately to a straightforward solution of Hume's problem of induction (1 739). 1 1 Let us remember what Hume tried to show (in my opinion successfully, as far as logic goes).
-  cleaned:  The critical approach which I have described here leads almost immediately to a straightforward solution of Hume's problem of induction. 1 This ignores the fact that the second number seems to be stuck in the text; it should likely be on the next line, as '2' is mentioned later in the chapter.
-Let us remember what Hume tried to show (in my opinion successfully, as far as logic goes).
   [Page 32 / Page 73]
   [Page 33 / Page 74]
-  → restored ['p', 'referring'] (LLM tried 'preferrring')  context: 'critical reasons for p referring them to other'
   [Page 34 / Page 75]
   [Page 35 / Page 76]
   [Page 36 / Page 77]
   [Page 37 / Page 78]
-  → restored ['f', "acti'"] (LLM tried 'facit'')  context: "the questions 'quid f acti' and 'quid juris'3)."
+  → restored '-that' (LLM tried '—that')  context: "not be 'reasonable' -that is, conform to"
   → restored 'criticize' (LLM tried 'criticise')  context: 'going on to criticize this fashionable view'
   [Page 38 / Page 79]
   → restored 'behaviorist' (LLM tried 'behaviourist')  context: 'unsound pragmatist or behaviorist or language-analytic argument.'
@@ -86,6 +91,9 @@ Let us remember what Hume tried to show (in my opinion successfully, as far as l
   [Page 43 / Page 84]
   [Page 44 / Page 85]
   [Page 45 / Page 86]
+  → attempt 1 rejected: Cleaned text size differs by more than 20% (original printable=1569, cleaned=229)
+  original: The view presented here stands in sharp opposition to the theories of association and of conditioned reflex (see section 9 below). The first of these works by assuming that simple terms of association or 'data' are ' g iv e n ' to us. This assumption is naive and untenable, even if we forget about the complex stimulus situation, and assume that the stimuli are simple. The second of these theories is very different, and less objectionable, in so far as it makes no assumption about simple data or terms but tries to explain how stimuli (which may be highly complex) originally unrelated to an expectation (which also may be highly complex) may become signals able to release just this expectation. This is quite acceptable as a problem; yet the solution, the theory of the conditioned reflex, is unacceptable. It assumes the existence of elementary non-complex, nonconditioned reflexes out of which the conditioned reflex is built, and it assumes that all learning is to be explained as the conditioning of reflexes. Both assumptions are mistaken. Learning in the first and fundamental sense, that is, learning by trial and error, contains an element of invention or of creative action which goes far beyond any mere reflex; and to talk here, where invention and plasticity of action are paramount, of the 'conditioning of reflexes' wrongly suggests that all learning, even discovery and invention, can be explained by repetition. But we have seen that learning by repetition is less fundamental (and therefore also less elementary) than learning by trial and error.
+  cleaned:  The view presented here stands in sharp opposition to the theories of association and of conditioned reflex (see section 9 below). The first of these works by assuming that simple terms of association or 'data' are 'given' to us.
   → restored 'nonconditioned' (LLM tried 'non-conditioned')  context: 'of elementary non-complex, nonconditioned reflexes out of'
   [Page 46 / Page 87]
   [Page 47 / Page 88]
@@ -96,44 +104,38 @@ Let us remember what Hume tried to show (in my opinion successfully, as far as l
   [Page 52 / Page 93]
   [Page 53 / Page 94]
   [Page 54 / Page 95]
-  → restored ['good-or', 'as'] (LLM tried 'good-as')  context: 'arbitrary, becomes as good-or as justifiable--as any other,'
   [Page 55 / Page 96]
   [Page 56 / Page 97]
   [Page 57 / Page 98]
   → restored 'truthlikeness' (LLM tried 'truth-likeness')  context: "may call the truthlikeness (or 'verisimilitude') of"
   [Page 58 / Page 99]
-  → restored 'criticized' (LLM tried 'criticised')  context: 'theories have been criticized and tested as'
+  → restored 'truthlikeness' (LLM tried 'truth-likeness')  context: 'degree of the truthlikeness of a theory,'
+  → restored 'truthlikeness.' (LLM tried 'truth-likeness.')  context: 'certain degree of) truthlikeness.'
   [Page 59 / Page 100]
   [Page 60 / Page 101]
   [Page 61 / Page 102]
   [Page 62 / Page 103]
   [Page 63 / Page 104]
   [Page 64 / Page 105]
-  → restored 'summarized' (LLM tried 'summarised')  context: 'nothing but a summarized report, or an'
+  → restored 'by' (LLM tried 'with')  context: 'are not satisfied by these answers, and'
   [Page 65 / Page 106]
   [Page 66 / Page 107]
   [Page 67 / Page 108]
   [Page 68 / Page 109]
-  [LLM FOOTNOTE] '15 Cp. L. Sc. D., sections 13 to 15 and Appendix → x. 16 [Cp. L. Sc. D., section 79. Ed.]'
+  → restored ['1', '5Cp.'] (LLM tried 'Cp.')  context: '1 5Cp. L. Sc. D.,'
+  [LLM FOOTNOTE] '1 5Cp. L. Sc. D., sections 13 to 15 and Appendix : x. 16[ Cp. L. Sc. D., section 79. Ed. ]'
   [Page 69 / Page 110]
   → restored 'giver.' (LLM tried 'given')  context: 'or explains any giver. evidence. On the'
   [Page 70 / Page 111]
   [Page 71 / Page 112]
   [Page 72 / Page 113]
   → restored 'howsoever' (LLM tried 'however')  context: "are white' from howsoever many observations (or"
-  → attempt 1 rejected: Cleaned text size differs by more than 20% (original printable=715, cleaned=502)
-  original: Our assertion-'There are true natural laws'-being existential, does not even refer to any particular physical law, but merely asserts that at least one such law is true. This is of considerable importance. I, for one, would not be prepared to point to any particular law of physics and say: 'This law is true, in its present formulation and interpretation : I feel certain that it will never be falsified, or modifi ed, or recognized as merely conditionally valid, or as valid merely within certain limits.' At the same time, I do believe that at least some of the laws of our present system of physics are true in this sense; I should even say many of them are, if we include those on lower levels of universality.
-  cleaned:  Our assertion-There are true natural laws-being existential, does not even refer to any particular physical law, but merely asserts that at least one such law is true. This is of considerable importance. I, for one, would not be prepared to point to any particular law of physics and say: This law is true, in its present formulation and interpretation : I feel certain that it will never be falsified, or modified, or recognized as merely conditionally valid, or as valid merely within certain limits.
   [Page 73 / Page 114]
   [Page 74 / Page 115]
-  → restored 'presupposition.' (LLM tried 'presumption.')  context: 'is a methodological presupposition.'
   [Page 75 / Page 116]
   [Page 76 / Page 117]
   [Page 77 / Page 118]
   [Page 78 / Page 119]
-  → attempt 1 rejected: Cleaned text size differs by more than 20% (original printable=1564, cleaned=196)
-  original: In fact, all formulations like 'Will the future resemble the past?', are naively based upon the uncritical and unconscious acceptance of an intuitively 'natural' yet highly suspect theory of time. It is a theory which was held and expressed, for example, by St. Augustine, and which Newton was one of the first to formulate explicitly, in the words: 'Absolute, true, and mathematical time flows equably of itself, and from its own nature, without relation to anything external.'2 Those who formulate the problem of induction in temporal terms (like 'the future' or 'tomorrow') unconsciously presuppose this or an essentially similar theory of time, without, it appears, being aware of its problematical character. For they consider whether the laws of nature may change in the sense that in the future, or tomorrow, there will be regularities different from those in force until now. But this entails the theory that the f uture, or tomorrow, will come, independently of a change in the laws of nature. So they assume a flow of time which is independent of whatever happens, and independent of any change in the laws of nature. They thus assume precisely what Newton tries to describe. But they are more naive than Newton, and are unaware that, in the very formulation of their problem, they unconsciously assume that certain laws of nature - the laws of the flow of absolute time--are exempt from Hume's doubt. In other words, although they believe themselves to be empiricists and inductivists, they assume with Kant that these laws of t i me are valid a priori.
-  cleaned:  In fact, all formulations like 'Will the future resemble the past?', are naively based upon the uncritical and unconscious acceptance of an intuitively 'natural' yet highly suspect theory of time.
   [Page 79 / Page 120]
   [Page 80 / Page 121]
   [Page 81 / Page 122]
@@ -143,7 +145,7 @@ Let us remember what Hume tried to show (in my opinion successfully, as far as l
   [Page 85 / Page 126]
   [Page 86 / Page 127]
   [Page 87 / Page 128]
-  [LLM DROP] '.op. cit., p. 16. (The italics are not in the original.)'
+  [LLM DROP] 'Op. cit., p. 16. (The italics are not in the original.)'
   [Page 88 / Page 129]
   [Page 89 / Page 130]
   [LLM DROP] 'See The Philosophy of Bertrand Russell, Library of Living Philosophers, ed. by P. A. Schilpp'
@@ -153,7 +155,6 @@ Let us remember what Hume tried to show (in my opinion successfully, as far as l
   [Page 93 / Page 134]
   → restored 'results' (LLM tried 'result')  context: 'are largely the results of my having'
   [Page 94 / Page 135]
-  → restored 'recognize'' (LLM tried 'recognise'')  context: "senses, and ' recognize' certain things (food,"
   [Page 95 / Page 136]
   [Page 96 / Page 137]
   [Page 97 / Page 138]
@@ -166,34 +167,41 @@ Let us remember what Hume tried to show (in my opinion successfully, as far as l
   [Page 104 / Page 145]
   [Page 105 / Page 146]
   → restored 'or' (LLM tried 'nor')  context: 'neither a perception or impression, nor a'
-  → restored 'considering' (LLM tried 'given')  context: 'would be trivial, considering that Hume has'
+  → restored ['Hume', 'syllogizes'] (LLM tried 'Hume'syllogizes')  context: "therefore meaningless. For Hume syllogizes : ' We"
   [Page 106 / Page 147]
+  → restored ['·', '·', '·'] (LLM tried '...')  context: 'science of MAN. · · · Here then is'
   [Page 107 / Page 148]
   [Page 108 / Page 149]
   [Page 109 / Page 150]
-  → attempt 1 rejected: Cleaned text size differs by more than 20% (original printable=3508, cleaned=659)
+  → attempt 1 rejected: Cleaned text size differs by more than 20% (original printable=3508, cleaned=660)
   original: Indeed, in Berkeley's sense of 'occult', all our scientific concepts are occult: they are used to describe unseen, and indeed invisible, structural properties of an unseen and invisible world. 4 But this does not mean that the theories formulated with the help of these concepts are 'occult' or 'metaphysical' or 'non-empirical' : they may well have testable consequences. I am not afraid of ' occult' scientific concepts precisely because I have a criterion of demarcation which allows me to detect non-scientific theories by means that are more effective than any alleged criterion of the empirical or non-empirical character of the concepts or words involved. s Turning now to criticize Berkeley's instrumentalist interpretation of scientific theories, I may perhaps say first that he did not go far enough in his criticism of theoretical concepts. Although he realized the non-existence of what he called 'abstract general ideas', he failed to realize that most predicates of ordinary language are also abstract in his sense. Berkeley himself, when using language, constantly uses abstract terms. Thus, where he speaks of 'infidelity' (in the sense of unbelief), as for example in that last thrust of The Analyst against ' the modern growth of infidelity', he clearly does not intend to designate by the word 'infidel' merely an increasing collection of his fellow men whom he dislikes (and who, say, behave in a certain observable manner), but he uses it as a name of a truly abstract property of these men. Universal terms in ordinary language are not merely general names, shared (as one might think in view of such words as 'table' or 'dog') by a concrete collection of concrete things, but they denote, like 'copper', 'crystal', 'apple', 'food', 'poison' or ' money', structural or relational or 'dispositional' properties of things which are 'abstract' precisely in Berkeley's sense. All universal concepts incorporate theories. And although some of these can be tested, they can never be exhaustively tested (and can never be verified). The statement 'Here is a glass of water' is open to an indefinite and inexhaustible number of tests-chemical tests, for example - because water, like anything else, is recognizable only by its law-like behaviour (cp. the end of section 25 of L.Sc.D.). Thus ' water' is dispositional, like every other universal concept. Even ' red' is dispositional, for 'This surface is red' asserts that this surface has a disposition to reflect red light. (The fact that there are no such things as non - dispositional universals invalidates, incidentally, the programme, proposed in Carnap's 'Testability and Meaning', of ' reducing' dispositions to non - dispositional observable proper- section-! thought; optimistically, that positivists had become aware of the fact that statements and not concepts are important and that they had given up the attempt to demarcate metaphysics from science on the basis of the character of the concepts or words used. But I was mistaken. The operational analysis of the meaning of concepts is still very influential. And even members of the former Vienna Circle still continue in the ways of 'the older positivists', as I called them in 1 934. For instance Carnap in his paper ('The Methodological Character of Theoretical Concepts', in Minnesota Studies in the Philosophy of Science, Vol. I, ed. Herbert Feigl and Michael Scriven, 195 1), bases his definition of significant sentences (p. 60) upon that of significant concepts (p. 51).
-  cleaned:  Indeed, in Berkeley's sense of 'occult', all our scientific concepts are occult: they are used to describe unseen, and indeed invisible, structural properties of an unseen and invisible world. But this does not mean that the theories formulated with the help of these concepts are 'occult' or 'metaphysical' or 'non-empirical': they may well have testable consequences. I am not afraid of ' occult' scientific concepts precisely because I have a criterion of demarcation which allows me to detect non-scientific theories by means that are more effective than any alleged criterion of the empirical or non-empirical character of the concepts or words involved.
-  → attempt 2 rejected: Invalid \uXXXX escape: line 2 column 306 (char 307)
-  → attempt 3 rejected: Cleaned text size differs by more than 20% (original printable=3508, cleaned=847)
+  cleaned:  Indeed, in Berkeley's sense of 'occult', all our scientific concepts are occult: they are used to describe unseen, and indeed invisible, structural properties of an unseen and invisible world. 4 But this does not mean that the theories formulated with the help of these concepts are 'occult' or 'metaphysical' or 'non-empirical': they may well have testable consequences. I am not afraid of 'occult' scientific concepts precisely because I have a criterion of demarcation which allows me to detect non-scientific theories by means that are more effective than any alleged criterion of the empirical or non-empirical character of the concepts or words involved.
+  → attempt 2 rejected: Cleaned text size differs by more than 20% (original printable=3508, cleaned=657)
   original: Indeed, in Berkeley's sense of 'occult', all our scientific concepts are occult: they are used to describe unseen, and indeed invisible, structural properties of an unseen and invisible world. 4 But this does not mean that the theories formulated with the help of these concepts are 'occult' or 'metaphysical' or 'non-empirical' : they may well have testable consequences. I am not afraid of ' occult' scientific concepts precisely because I have a criterion of demarcation which allows me to detect non-scientific theories by means that are more effective than any alleged criterion of the empirical or non-empirical character of the concepts or words involved. s Turning now to criticize Berkeley's instrumentalist interpretation of scientific theories, I may perhaps say first that he did not go far enough in his criticism of theoretical concepts. Although he realized the non-existence of what he called 'abstract general ideas', he failed to realize that most predicates of ordinary language are also abstract in his sense. Berkeley himself, when using language, constantly uses abstract terms. Thus, where he speaks of 'infidelity' (in the sense of unbelief), as for example in that last thrust of The Analyst against ' the modern growth of infidelity', he clearly does not intend to designate by the word 'infidel' merely an increasing collection of his fellow men whom he dislikes (and who, say, behave in a certain observable manner), but he uses it as a name of a truly abstract property of these men. Universal terms in ordinary language are not merely general names, shared (as one might think in view of such words as 'table' or 'dog') by a concrete collection of concrete things, but they denote, like 'copper', 'crystal', 'apple', 'food', 'poison' or ' money', structural or relational or 'dispositional' properties of things which are 'abstract' precisely in Berkeley's sense. All universal concepts incorporate theories. And although some of these can be tested, they can never be exhaustively tested (and can never be verified). The statement 'Here is a glass of water' is open to an indefinite and inexhaustible number of tests-chemical tests, for example - because water, like anything else, is recognizable only by its law-like behaviour (cp. the end of section 25 of L.Sc.D.). Thus ' water' is dispositional, like every other universal concept. Even ' red' is dispositional, for 'This surface is red' asserts that this surface has a disposition to reflect red light. (The fact that there are no such things as non - dispositional universals invalidates, incidentally, the programme, proposed in Carnap's 'Testability and Meaning', of ' reducing' dispositions to non - dispositional observable proper- section-! thought; optimistically, that positivists had become aware of the fact that statements and not concepts are important and that they had given up the attempt to demarcate metaphysics from science on the basis of the character of the concepts or words used. But I was mistaken. The operational analysis of the meaning of concepts is still very influential. And even members of the former Vienna Circle still continue in the ways of 'the older positivists', as I called them in 1 934. For instance Carnap in his paper ('The Methodological Character of Theoretical Concepts', in Minnesota Studies in the Philosophy of Science, Vol. I, ed. Herbert Feigl and Michael Scriven, 195 1), bases his definition of significant sentences (p. 60) upon that of significant concepts (p. 51).
-  cleaned:  Indeed, in Berkeley's sense of 'occult', all our scientific concepts are occult: they are used to describe unseen, and indeed invisible, structural properties of an unseen and invisible world. 4 But this does not mean that the theories formulated with the help of these concepts are 'occult' or 'metaphysical' or 'non-empirical': they may well have testable consequences. I am not afraid of 'occult' scientific concepts precisely because I have a criterion of demarcation which allows me to detect non-scientific theories by means that are more effective than any alleged criterion of the empirical or non-empirical character of the concepts or words involved. Turning now to criticize Berkeley's instrumentalist interpretation of scientific theories, I may perhaps say first that he did not go far enough in his criticism of theoretical concepts.
+  cleaned:  Indeed, in Berkeley's sense of 'occult', all our scientific concepts are occult: they are used to describe unseen and indeed invisible, structural properties of an unseen and invisible world. But this does not mean that the theories formulated with the help of these concepts are 'occult' or 'metaphysical' or 'non-empirical': they may well have testable consequences. I am not afraid of 'occult' scientific concepts precisely because I have a criterion of demarcation which allows me to detect non-scientific theories by means that are more effective than any alleged criterion of the empirical or non-empirical character of the concepts or words involved.
+  → attempt 3 rejected: Cleaned text size differs by more than 20% (original printable=3508, cleaned=658)
+  original: Indeed, in Berkeley's sense of 'occult', all our scientific concepts are occult: they are used to describe unseen, and indeed invisible, structural properties of an unseen and invisible world. 4 But this does not mean that the theories formulated with the help of these concepts are 'occult' or 'metaphysical' or 'non-empirical' : they may well have testable consequences. I am not afraid of ' occult' scientific concepts precisely because I have a criterion of demarcation which allows me to detect non-scientific theories by means that are more effective than any alleged criterion of the empirical or non-empirical character of the concepts or words involved. s Turning now to criticize Berkeley's instrumentalist interpretation of scientific theories, I may perhaps say first that he did not go far enough in his criticism of theoretical concepts. Although he realized the non-existence of what he called 'abstract general ideas', he failed to realize that most predicates of ordinary language are also abstract in his sense. Berkeley himself, when using language, constantly uses abstract terms. Thus, where he speaks of 'infidelity' (in the sense of unbelief), as for example in that last thrust of The Analyst against ' the modern growth of infidelity', he clearly does not intend to designate by the word 'infidel' merely an increasing collection of his fellow men whom he dislikes (and who, say, behave in a certain observable manner), but he uses it as a name of a truly abstract property of these men. Universal terms in ordinary language are not merely general names, shared (as one might think in view of such words as 'table' or 'dog') by a concrete collection of concrete things, but they denote, like 'copper', 'crystal', 'apple', 'food', 'poison' or ' money', structural or relational or 'dispositional' properties of things which are 'abstract' precisely in Berkeley's sense. All universal concepts incorporate theories. And although some of these can be tested, they can never be exhaustively tested (and can never be verified). The statement 'Here is a glass of water' is open to an indefinite and inexhaustible number of tests-chemical tests, for example - because water, like anything else, is recognizable only by its law-like behaviour (cp. the end of section 25 of L.Sc.D.). Thus ' water' is dispositional, like every other universal concept. Even ' red' is dispositional, for 'This surface is red' asserts that this surface has a disposition to reflect red light. (The fact that there are no such things as non - dispositional universals invalidates, incidentally, the programme, proposed in Carnap's 'Testability and Meaning', of ' reducing' dispositions to non - dispositional observable proper- section-! thought; optimistically, that positivists had become aware of the fact that statements and not concepts are important and that they had given up the attempt to demarcate metaphysics from science on the basis of the character of the concepts or words used. But I was mistaken. The operational analysis of the meaning of concepts is still very influential. And even members of the former Vienna Circle still continue in the ways of 'the older positivists', as I called them in 1 934. For instance Carnap in his paper ('The Methodological Character of Theoretical Concepts', in Minnesota Studies in the Philosophy of Science, Vol. I, ed. Herbert Feigl and Michael Scriven, 195 1), bases his definition of significant sentences (p. 60) upon that of significant concepts (p. 51).
+  cleaned:  Indeed, in Berkeley's sense of 'occult', all our scientific concepts are occult: they are used to describe unseen, and indeed invisible, structural properties of an unseen and invisible world. But this does not mean that the theories formulated with the help of these concepts are 'occult' or 'metaphysical' or 'non-empirical': they may well have testable consequences. I am not afraid of 'occult' scientific concepts precisely because I have a criterion of demarcation which allows me to detect non-scientific theories by means that are more effective than any alleged criterion of the empirical or non-empirical character of the concepts or words involved.
   [Page 110 / Page 151]
   [Page 111 / Page 152]
+  → restored 'criticize' (LLM tried 'criticise')  context: 'be necessary to criticize instrumentalism as such,'
   [Page 112 / Page 153]
+  → restored 'criticized' (LLM tried 'criticised')  context: 'experience. Since I criticized this doctrine too'
   [Page 113 / Page 154]
+  → restored 'the' (LLM tried 'both')  context: 'computation rules on the other are not'
+  → restored 'other' (LLM tried 'hands')  context: 'rules on the other are not symmetrical.'
   [Page 114 / Page 155]
   [Page 115 / Page 156]
   [Page 116 / Page 157]
   [Page 117 / Page 158]
+  → restored ['-', 'cannot'] (LLM tried '—cannot')  context: "Newton's, or atomism - cannot be the result"
   [Page 118 / Page 159]
-  → restored 'generalizations' (LLM tried 'generalisations')  context: 'believed that simple generalizations of a low'
-  → restored 'generalizations,' (LLM tried 'generalisations,')  context: 'even of simple generalizations, was invalid, and'
   [Page 119 / Page 160]
   [Page 120 / Page 161]
   [Page 121 / Page 162]
   [Page 122 / Page 163]
   [Page 123 / Page 164]
+  → restored 'conception',' (LLM tried 'conception,3')  context: "of any philosophical conception', he writes. 3"
   [Page 124 / Page 165]
   [Page 125 / Page 166]
   [Page 126 / Page 167]
@@ -201,19 +209,15 @@ Let us remember what Hume tried to show (in my opinion successfully, as far as l
   [Page 128 / Page 169]
   [Page 129 / Page 170]
   [Page 130 / Page 171]
-  → restored 'criticize' (LLM tried 'criticise')  context: 'to say, to criticize them, to refute'
   [Page 131 / Page 172]
   [Page 132 / Page 173]
   [Page 133 / Page 174]
   [Page 134 / Page 175]
   [Page 135 / Page 176]
   [Page 136 / Page 177]
-  → restored 'phenomena...' (LLM tried 'phenomena…')  context: 'have explained the phenomena... y the force'
-  → restored 'itself...' (LLM tried 'itself…')  context: 'cause of gravity itself... nd I do'
   [Page 137 / Page 178]
   [Page 138 / Page 179]
   [Page 139 / Page 180]
-  → restored 'analyzed' (LLM tried 'analysed')  context: 'which can be analyzed logically. I shall'
   [Page 140 / Page 181]
   [Page 141 / Page 182]
   → restored 'ass' (LLM tried 'pass')  context: 'of the earth,... ass into space p'
@@ -221,9 +225,6 @@ Let us remember what Hume tried to show (in my opinion successfully, as far as l
   [Page 143 / Page 184]
   → restored 'hold' (LLM tried 'holds')  context: 'approximately hold for two planets'
   [Page 144 / Page 185]
-  → attempt 1 rejected: Cleaned text size differs by more than 20% (original printable=378, cleaned=466)
-  original: I suggest that if in the empirical sciences a new theory of a higher level of universality successfully explains some older theory by correcting it, then this is a sure sign that the new theory has penetrated deeper than the old one. The demand that a new theory should '2"fhe concepts of force (cp. footnote 9, above) and of action at a distance introduce further difficulties.
-  cleaned:  I suggest that if in the empirical sciences a new theory of a higher level of universality successfully explains some older theory by correcting it, then this is a sure sign that the new theory has penetrated deeper than the old one. The demand that a new theory should be consistent with all previously accepted facts is a necessary condition for its success. The concepts of force (cp. footnote 9, above) and of action at a distance introduce further difficulties.
   [Page 145 / Page 186]
   [Page 146 / Page 187]
   [Page 147 / Page 188]
@@ -231,16 +232,14 @@ Let us remember what Hume tried to show (in my opinion successfully, as far as l
   [Page 148 / Page 189]
   [Page 149 / Page 190]
   [Page 150 / Page 191]
-  → restored ['super', '-', 'luminar'] (LLM tried 'super-luminal')  context: 'can spread with super - luminar velocity make it'
   [Page 151 / Page 192]
   [Page 152 / Page 193]
   [Page 153 / Page 194]
   [Page 154 / Page 195]
   [Page 155 / Page 196]
   [Page 156 / Page 197]
-  → restored ['so...', 'ial'] (LLM tried 'so–ial')  context: 'hands of modern so... ial science is, of'
+  → restored 'wat' (LLM tried 'that')  context: 'by the fact wat we have transcended'
   [Page 157 / Page 198]
-  → restored 'criticizing' (LLM tried 'criticising')  context: 'each other by criticizing one language, or'
   [Page 158 / Page 199]
   [Page 159 / Page 200]
   [Page 160 / Page 201]
@@ -248,18 +247,20 @@ Let us remember what Hume tried to show (in my opinion successfully, as far as l
   [Page 162 / Page 203]
   [Page 163 / Page 204]
   [Page 164 / Page 205]
+  → restored 'analyzing' (LLM tried 'analysing')  context: 'to show, by analyzing a famous case,'
+  → restored 'analyze' (LLM tried 'analyse')  context: 'my attempts to analyze its arguments played'
   [Page 165 / Page 206]
   [Page 166 / Page 207]
   [Page 167 / Page 208]
-  → attempt 1 rejected: Cleaned text size differs by more than 20% (original printable=3021, cleaned=2061)
-  original: frequent dreams which appear to stand in contradiction to my theory'7; and very soon we get an inkling that the programme of reducing anxiety dreams to wish-fulfilment dreams may have to remain an unfulfilled wish dream; for on p. 161 we learn that in anxiety dreams, the anxiety has to be separated from the dream to whose content it is only 'superficially attached'. (See also p. 162, and the editor's footnote thereto.) On p. 236, we learn that anxiety ' may be psycho-neurotic.... Where this is so... we come near to the limit at which the wish-fulfilling purpose of dreams breaks down.' (Italics mine; see also the bottom of p. 487.) So there is a limit, after all. On p. 580, Freud himself becomes conscious that so far he has only evaded the issue of reducing anxiety dreams to wishfulfilment dreams: 'I am alluding, of course', he writes, 'to the issue of the anxiety-dream; and in order not to confirm the impression that I am trying to evade the evidence of this chief witness against the theory of wish-fulfilment whenever I am confronted with it, I will now give at least some hints towards an explanation of the anxiety-dream. '8 But the hints are unsatisfactory; at least, they do not satisfy Freud. For after two pages from which nothing more enlightening emerges concerning our problem than a repetition of the old assertion that 'there is no longer anything contradictory in the notion that a physical process which develops anxiety can nevertheless be the fulfilment of a wish', Freud gives up the attempt altogether. He finally tells us, on p. 582, that the whole topic of anxiety dreams falls definitely 'outside the psychological framework of dream formation. If it were not for the fact that our topic [the theory of dreams] is connected with anxiety by the single factor of the liberation of the unconscious during sleep, I should be able to omit any discussion of anxiety-dreams and avoid the necessity for entering in these pages into all the obscurities surrounding them.'9 In 1 9 1 1, but not in subsequent editions, Freud summarized his dabo- rate though only implicit and apparently unconscious repudiation of his programme in a single sentence: 'Anxiety in dreams, I should like to insist, is an anxiety problem and not a dream problem.' 10 On the next four pages Freud discusses, and partly analyzes, three anxiety dreams. His purpose is no longer to prove that they are wish-fulfilments, but merely to support his assertion 'that neurotic anxiety arises from sexual sources' (p. 582). This, clearly, entails the view that anxiety is connected with certain wishes. But it does not justify the inference that all anxiety dreams must have the character of wish-f l fil u m e n ts. (This mistaken inference seems to have been drawn by some of Freud's readers; but it should be noted that Freud himself merely suggests that the first of the three dreams may have been, in part, a wish-ful filment, and that he suggests nothing of the kind in connection with the second and third of the dreams.)
-  cleaned:  frequent dreams which appear to stand in contradiction to my theory'7; and very soon we get an inkling that the programme of reducing anxiety dreams to wish-fulfilment dreams may have to remain an unfulfilled wish dream; for on p. 161 we learn that in anxiety dreams, the anxiety has to be separated from the dream to whose content it is only 'superficially attached'. (See also p. 162, and the editor's footnote thereto.) On p. 236, we learn that anxiety 'may be psycho-neurotic.... Where this is so... we come near to the limit at which the wish-fulfilling purpose of dreams breaks down.' (Italics mine; see also the bottom of p. 487.) So there is a limit, after all. On p. 580, Freud himself becomes conscious that so far he has only evaded the issue of reducing anxiety dreams to wish-fulfilment dreams: 'I am alluding, of course', he writes, 'to the issue of the anxiety-dream; and in order not to confirm the impression that I am trying to evade the evidence of this chief witness against the theory of wish-fulfilment whenever I am confronted with it, I will now give at least some hints towards an explanation of the anxiety-dream. '8 But the hints are unsatisfactory; at least, they do not satisfy Freud. For after two pages from which nothing more enlightening emerges concerning our problem than a repetition of the old assertion that 'there is no longer anything contradictory in the notion that a physical process which develops anxiety can nevertheless be the fulfilment of a wish', Freud gives up the attempt altogether. He finally tells us, on p. 582, that the whole topic of anxiety dreams falls definitely 'outside the psychological framework of dream formation. If it were not for the fact that our topic [the theory of dreams] is connected with anxiety by the single factor of the liberation of the unconscious during sleep, I should be able to omit any discussion of anxiety-dreams and avoid the necessity for entering in these pages into all the obscurities surrounding them.'9 In 1911, but not in subsequent editions, Freud summarized his
-  → attempt 2 rejected: Cleaned text size differs by more than 20% (original printable=3021, cleaned=2082)
-  original: frequent dreams which appear to stand in contradiction to my theory'7; and very soon we get an inkling that the programme of reducing anxiety dreams to wish-fulfilment dreams may have to remain an unfulfilled wish dream; for on p. 161 we learn that in anxiety dreams, the anxiety has to be separated from the dream to whose content it is only 'superficially attached'. (See also p. 162, and the editor's footnote thereto.) On p. 236, we learn that anxiety ' may be psycho-neurotic.... Where this is so... we come near to the limit at which the wish-fulfilling purpose of dreams breaks down.' (Italics mine; see also the bottom of p. 487.) So there is a limit, after all. On p. 580, Freud himself becomes conscious that so far he has only evaded the issue of reducing anxiety dreams to wishfulfilment dreams: 'I am alluding, of course', he writes, 'to the issue of the anxiety-dream; and in order not to confirm the impression that I am trying to evade the evidence of this chief witness against the theory of wish-fulfilment whenever I am confronted with it, I will now give at least some hints towards an explanation of the anxiety-dream. '8 But the hints are unsatisfactory; at least, they do not satisfy Freud. For after two pages from which nothing more enlightening emerges concerning our problem than a repetition of the old assertion that 'there is no longer anything contradictory in the notion that a physical process which develops anxiety can nevertheless be the fulfilment of a wish', Freud gives up the attempt altogether. He finally tells us, on p. 582, that the whole topic of anxiety dreams falls definitely 'outside the psychological framework of dream formation. If it were not for the fact that our topic [the theory of dreams] is connected with anxiety by the single factor of the liberation of the unconscious during sleep, I should be able to omit any discussion of anxiety-dreams and avoid the necessity for entering in these pages into all the obscurities surrounding them.'9 In 1 9 1 1, but not in subsequent editions, Freud summarized his dabo- rate though only implicit and apparently unconscious repudiation of his programme in a single sentence: 'Anxiety in dreams, I should like to insist, is an anxiety problem and not a dream problem.' 10 On the next four pages Freud discusses, and partly analyzes, three anxiety dreams. His purpose is no longer to prove that they are wish-fulfilments, but merely to support his assertion 'that neurotic anxiety arises from sexual sources' (p. 582). This, clearly, entails the view that anxiety is connected with certain wishes. But it does not justify the inference that all anxiety dreams must have the character of wish-f l fil u m e n ts. (This mistaken inference seems to have been drawn by some of Freud's readers; but it should be noted that Freud himself merely suggests that the first of the three dreams may have been, in part, a wish-ful filment, and that he suggests nothing of the kind in connection with the second and third of the dreams.)
-  cleaned:  frequent dreams which appear to stand in contradiction to my theory.7; and very soon we get an inkling that the programme of reducing anxiety dreams to wish-fulfilment dreams may have to remain an unfulfilled wish dream; for on p. 161 we learn that in anxiety dreams, the anxiety has to be separated from the dream to whose content it is only superficially attached. (See also p. 162, and the editor's footnote thereto.) On p. 236, we learn that anxiety 'may be psycho-neurotic.... Where this is so... we come near to the limit at which the wish-fulfilling purpose of dreams breaks down.' (Italics mine; see also the bottom of p. 487.) So there is a limit, after all. On p. 580, Freud himself becomes conscious that so far he has only evaded the issue of reducing anxiety dreams to wish-fulfilment dreams: 'I am alluding, of course', he writes, 'to the issue of the anxiety-dream; and in order not to confirm the impression that I am trying to evade the evidence of this chief witness against the theory of wish-fulfilment whenever I am confronted with it, I will now give at least some hints towards an explanation of the anxiety-dream.8 But the hints are unsatisfactory; at least, they do not satisfy Freud. For after two pages from which nothing more enlightening emerges concerning our problem than a repetition of the old assertion that 'there is no longer anything contradictory in the notion that a physical process which develops anxiety can nevertheless be the fulfilment of a wish', Freud gives up the attempt altogether. He finally tells us, on p. 582, that the whole topic of anxiety dreams falls definitely 'outside the psychological framework of dream formation. If it were not for the fact that our topic [the theory of dreams] is connected with anxiety by the single factor of the liberation of the unconscious during sleep, I should be able to omit any discussion of anxiety-dreams and avoid the necessity for entering in these pages into all the obscurities surrounding them.'9 In 1911, but not in subsequent editions, Freud summarized his thoughts on this matter.
-  → attempt 3 rejected: Cleaned text size differs by more than 20% (original printable=3021, cleaned=67)
+  → attempt 1 rejected: Cleaned text size differs by more than 20% (original printable=3021, cleaned=67)
   original: frequent dreams which appear to stand in contradiction to my theory'7; and very soon we get an inkling that the programme of reducing anxiety dreams to wish-fulfilment dreams may have to remain an unfulfilled wish dream; for on p. 161 we learn that in anxiety dreams, the anxiety has to be separated from the dream to whose content it is only 'superficially attached'. (See also p. 162, and the editor's footnote thereto.) On p. 236, we learn that anxiety ' may be psycho-neurotic.... Where this is so... we come near to the limit at which the wish-fulfilling purpose of dreams breaks down.' (Italics mine; see also the bottom of p. 487.) So there is a limit, after all. On p. 580, Freud himself becomes conscious that so far he has only evaded the issue of reducing anxiety dreams to wishfulfilment dreams: 'I am alluding, of course', he writes, 'to the issue of the anxiety-dream; and in order not to confirm the impression that I am trying to evade the evidence of this chief witness against the theory of wish-fulfilment whenever I am confronted with it, I will now give at least some hints towards an explanation of the anxiety-dream. '8 But the hints are unsatisfactory; at least, they do not satisfy Freud. For after two pages from which nothing more enlightening emerges concerning our problem than a repetition of the old assertion that 'there is no longer anything contradictory in the notion that a physical process which develops anxiety can nevertheless be the fulfilment of a wish', Freud gives up the attempt altogether. He finally tells us, on p. 582, that the whole topic of anxiety dreams falls definitely 'outside the psychological framework of dream formation. If it were not for the fact that our topic [the theory of dreams] is connected with anxiety by the single factor of the liberation of the unconscious during sleep, I should be able to omit any discussion of anxiety-dreams and avoid the necessity for entering in these pages into all the obscurities surrounding them.'9 In 1 9 1 1, but not in subsequent editions, Freud summarized his dabo- rate though only implicit and apparently unconscious repudiation of his programme in a single sentence: 'Anxiety in dreams, I should like to insist, is an anxiety problem and not a dream problem.' 10 On the next four pages Freud discusses, and partly analyzes, three anxiety dreams. His purpose is no longer to prove that they are wish-fulfilments, but merely to support his assertion 'that neurotic anxiety arises from sexual sources' (p. 582). This, clearly, entails the view that anxiety is connected with certain wishes. But it does not justify the inference that all anxiety dreams must have the character of wish-f l fil u m e n ts. (This mistaken inference seems to have been drawn by some of Freud's readers; but it should be noted that Freud himself merely suggests that the first of the three dreams may have been, in part, a wish-ful filment, and that he suggests nothing of the kind in connection with the second and third of the dreams.)
   cleaned:  frequent dreams which appear to stand in contradiction to my theory
+  → attempt 2 rejected: Cleaned text size differs by more than 20% (original printable=3021, cleaned=1988)
+  original: frequent dreams which appear to stand in contradiction to my theory'7; and very soon we get an inkling that the programme of reducing anxiety dreams to wish-fulfilment dreams may have to remain an unfulfilled wish dream; for on p. 161 we learn that in anxiety dreams, the anxiety has to be separated from the dream to whose content it is only 'superficially attached'. (See also p. 162, and the editor's footnote thereto.) On p. 236, we learn that anxiety ' may be psycho-neurotic.... Where this is so... we come near to the limit at which the wish-fulfilling purpose of dreams breaks down.' (Italics mine; see also the bottom of p. 487.) So there is a limit, after all. On p. 580, Freud himself becomes conscious that so far he has only evaded the issue of reducing anxiety dreams to wishfulfilment dreams: 'I am alluding, of course', he writes, 'to the issue of the anxiety-dream; and in order not to confirm the impression that I am trying to evade the evidence of this chief witness against the theory of wish-fulfilment whenever I am confronted with it, I will now give at least some hints towards an explanation of the anxiety-dream. '8 But the hints are unsatisfactory; at least, they do not satisfy Freud. For after two pages from which nothing more enlightening emerges concerning our problem than a repetition of the old assertion that 'there is no longer anything contradictory in the notion that a physical process which develops anxiety can nevertheless be the fulfilment of a wish', Freud gives up the attempt altogether. He finally tells us, on p. 582, that the whole topic of anxiety dreams falls definitely 'outside the psychological framework of dream formation. If it were not for the fact that our topic [the theory of dreams] is connected with anxiety by the single factor of the liberation of the unconscious during sleep, I should be able to omit any discussion of anxiety-dreams and avoid the necessity for entering in these pages into all the obscurities surrounding them.'9 In 1 9 1 1, but not in subsequent editions, Freud summarized his dabo- rate though only implicit and apparently unconscious repudiation of his programme in a single sentence: 'Anxiety in dreams, I should like to insist, is an anxiety problem and not a dream problem.' 10 On the next four pages Freud discusses, and partly analyzes, three anxiety dreams. His purpose is no longer to prove that they are wish-fulfilments, but merely to support his assertion 'that neurotic anxiety arises from sexual sources' (p. 582). This, clearly, entails the view that anxiety is connected with certain wishes. But it does not justify the inference that all anxiety dreams must have the character of wish-f l fil u m e n ts. (This mistaken inference seems to have been drawn by some of Freud's readers; but it should be noted that Freud himself merely suggests that the first of the three dreams may have been, in part, a wish-ful filment, and that he suggests nothing of the kind in connection with the second and third of the dreams.)
+  cleaned:  frequent dreams which appear to stand in contradiction to my theory7; and very soon we get an inkling that the programme of reducing anxiety dreams to wish-fulfilment dreams may have to remain an unfulfilled wish dream; for on p. 161 we learn that in anxiety dreams, the anxiety has to be separated from the dream to whose content it is only superficially attached (See also p. 162, and the editor's footnote thereto); On p. 236, we learn that anxiety may be psycho-neurotic.... Where this is so... we come near to the limit at which the wish-fulfilling purpose of dreams breaks down; So there is a limit, after all; On p. 580, Freud himself becomes conscious that so far he has only evaded the issue of reducing anxiety dreams to wish-fulfilment dreams: I am alluding, of course, to the issue of the anxiety-dream; and in order not to confirm the impression that I am trying to evade the evidence of this chief witness against the theory of wish-fulfilment whenever I am confronted with it, I will now give at least some hints towards an explanation of the anxiety-dream. 8 But the hints are unsatisfactory; at least, they do not satisfy Freud; For after two pages from which nothing more enlightening emerges concerning our problem than a repetition of the old assertion that there is no longer anything contradictory in the notion that a physical process which develops anxiety can nevertheless be the fulfilment of a wish, Freud gives up the attempt altogether; He finally tells us, on p. 582, that the whole topic of anxiety dreams falls definitely outside the psychological framework of dream formation; If it were not for the fact that our topic [the theory of dreams] is connected with anxiety by the single factor of the liberation of the unconscious during sleep, I should be able to omit any discussion of anxiety-dreams and avoid the necessity for entering in these pages into all the obscurities surrounding them; In 1911, but not in subsequent editions, Freud summarized his
+  → attempt 3 rejected: Cleaned text size differs by more than 20% (original printable=3021, cleaned=2084)
+  original: frequent dreams which appear to stand in contradiction to my theory'7; and very soon we get an inkling that the programme of reducing anxiety dreams to wish-fulfilment dreams may have to remain an unfulfilled wish dream; for on p. 161 we learn that in anxiety dreams, the anxiety has to be separated from the dream to whose content it is only 'superficially attached'. (See also p. 162, and the editor's footnote thereto.) On p. 236, we learn that anxiety ' may be psycho-neurotic.... Where this is so... we come near to the limit at which the wish-fulfilling purpose of dreams breaks down.' (Italics mine; see also the bottom of p. 487.) So there is a limit, after all. On p. 580, Freud himself becomes conscious that so far he has only evaded the issue of reducing anxiety dreams to wishfulfilment dreams: 'I am alluding, of course', he writes, 'to the issue of the anxiety-dream; and in order not to confirm the impression that I am trying to evade the evidence of this chief witness against the theory of wish-fulfilment whenever I am confronted with it, I will now give at least some hints towards an explanation of the anxiety-dream. '8 But the hints are unsatisfactory; at least, they do not satisfy Freud. For after two pages from which nothing more enlightening emerges concerning our problem than a repetition of the old assertion that 'there is no longer anything contradictory in the notion that a physical process which develops anxiety can nevertheless be the fulfilment of a wish', Freud gives up the attempt altogether. He finally tells us, on p. 582, that the whole topic of anxiety dreams falls definitely 'outside the psychological framework of dream formation. If it were not for the fact that our topic [the theory of dreams] is connected with anxiety by the single factor of the liberation of the unconscious during sleep, I should be able to omit any discussion of anxiety-dreams and avoid the necessity for entering in these pages into all the obscurities surrounding them.'9 In 1 9 1 1, but not in subsequent editions, Freud summarized his dabo- rate though only implicit and apparently unconscious repudiation of his programme in a single sentence: 'Anxiety in dreams, I should like to insist, is an anxiety problem and not a dream problem.' 10 On the next four pages Freud discusses, and partly analyzes, three anxiety dreams. His purpose is no longer to prove that they are wish-fulfilments, but merely to support his assertion 'that neurotic anxiety arises from sexual sources' (p. 582). This, clearly, entails the view that anxiety is connected with certain wishes. But it does not justify the inference that all anxiety dreams must have the character of wish-f l fil u m e n ts. (This mistaken inference seems to have been drawn by some of Freud's readers; but it should be noted that Freud himself merely suggests that the first of the three dreams may have been, in part, a wish-ful filment, and that he suggests nothing of the kind in connection with the second and third of the dreams.)
+  cleaned:  Frequent dreams which appear to stand in contradiction to my theory7; and very soon we get an inkling that the programme of reducing anxiety dreams to wish-fulfilment dreams may have to remain an unfulfilled wish dream; for on p. 161 we learn that in anxiety dreams, the anxiety has to be separated from the dream to whose content it is only superficially attached. (See also p. 162, and the editor's footnote thereto.) On p. 236, we learn that anxiety 'may be psycho-neurotic.... Where this is so... we come near to the limit at which the wish-fulfilling purpose of dreams breaks down.' (Italics mine; see also the bottom of p. 487.) So there is a limit, after all. On p. 580, Freud himself becomes conscious that so far he has only evaded the issue of reducing anxiety dreams to wish-fulfilment dreams: 'I am alluding, of course', he writes, 'to the issue of the anxiety-dream; and in order not to confirm the impression that I am trying to evade the evidence of this chief witness against the theory of wish-fulfilment whenever I am confronted with it, I will now give at least some hints towards an explanation of the anxiety-dream.8 But the hints are unsatisfactory; at least, they do not satisfy Freud. For after two pages from which nothing more enlightening emerges concerning our problem than a repetition of the old assertion that 'there is no longer anything contradictory in the notion that a physical process which develops anxiety can nevertheless be the fulfilment of a wish', Freud gives up the attempt altogether. He finally tells us, on p. 582, that the whole topic of anxiety dreams falls definitely 'outside the psychological framework of dream formation. If it were not for the fact that our topic [the theory of dreams] is connected with anxiety by the single factor of the liberation of the unconscious during sleep, I should be able to omit any discussion of anxiety-dreams and avoid the necessity for entering in these pages into all the obscurities surrounding them.'9 In 1911, but not in subsequent editions, Freud summarized his position on anxiety dreams.
   [Page 168 / Page 209]
   → restored 'criticize' (LLM tried 'criticise')  context: 'the last to criticize such a change'
   → restored 'criticize' (LLM tried 'criticise')  context: "I wish to criticize Freud's way of"
@@ -276,6 +277,7 @@ Let us remember what Hume tried to show (in my opinion successfully, as far as l
   → restored 'a' (LLM tried 'à')  context: 'antirational philosophical messianism a Ia Heidegger from'
   [Page 178 / Page 219]
   [Page 179 / Page 220]
+  → restored 'upon' (LLM tried 'on')  context: 'this will depend upon the context, and'
   [Page 180 / Page 221]
   [Page 181 / Page 222]
   → restored 'criticize' (LLM tried 'criticise')  context: "an attempt to criticize Heisenberg's Machian positivism"
@@ -291,15 +293,11 @@ Let us remember what Hume tried to show (in my opinion successfully, as far as l
   [Page 191 / Page 232]
   [Page 192 / Page 233]
   [Page 193 / Page 234]
-  → restored 'programmes' (LLM tried 'programs')  context: 'as these metaphysical programmes have been for'
-  → restored 'programmes' (LLM tried 'programs')  context: 'way. From these programmes he derives his'
-  → restored 'programmes' (LLM tried 'programs')  context: 'these metaphysical research programmes are open to'
   [Page 194 / Page 235]
   [Page 195 / Page 236]
   [Page 196 / Page 237]
   → restored 'characterized' (LLM tried 'characterised')  context: 'x which is characterized by its relation'
   [Page 197 / Page 238]
-  → restored 'analyze' (LLM tried 'analyse')  context: ': I shall analyze certain simple conjectures'
   → restored 'evert' (LLM tried 'even')  context: 'is the only evert number which is'
   [Page 198 / Page 239]
   [Page 199 / Page 240]
@@ -310,21 +308,31 @@ Let us remember what Hume tried to show (in my opinion successfully, as far as l
   [Page 204 / Page 245]
   [Page 205 / Page 246]
   [Page 206 / Page 247]
+  → restored ''completely' (LLM tried '‗completely')  context: "also be called 'completely metaphysical predicates'.)"
   [Page 207 / Page 248]
   [Page 208 / Page 249]
   [Page 209 / Page 250]
   [Page 210 / Page 251]
+  → restored 'the' (LLM tried 'a')  context: 'was only as the result of the'
   [Page 211 / Page 252]
   [Page 212 / Page 253]
-  → restored 'which' (LLM tried 'that')  context: 'be the herb which cures it, if'
   [Page 213 / Page 254]
   [Page 214 / Page 255]
   [Page 215 / Page 256]
   [Page 216 / Page 257]
   [Page 217 / Page 258]
   [Page 218 / Page 259]
+  → attempt 1 rejected: Cleaned text size differs by more than 20% (original printable=595, cleaned=760)
+  original: Inferences which establish a conclusion as probable-or probable inferences, as we may say-do exist. As the example shows, they are inferences in which the conclusion, somehow or other, goes beyond what is stated in the premises : it is not fully entailed by the premises. -Clearly, this is so with all inductive conclusions. This seems to show that the problem of induction will be solved as soon as we have developed a theory of probability which allows us to assess the probability of an inductive conclusion - that is, of a hypothesisgiven some inductive, or evidential, premises. If we write
+  cleaned:  Inferences which establish a conclusion as probable-or probable inferences, as we may say-do exist. As the example shows, they are inferences in which the conclusion, somehow or other, goes beyond what is stated in the premises : it is not fully entailed by the premises. -Clearly, this is so with all inductive conclusions. This seems to show that the problem of induction will be solved as soon as we have developed a theory of probability which allows us to assess the probability of an inductive conclusion - that is, of a hypothesis given some inductive, or evidential, premises. If we write p(a,b) = r, to mean 'the probability of a given b equals r' (where r is some fraction between 0 and 1, then we can put the persuasive argument) finally as follows.
+  → restored '-Clearly,' (LLM tried '—Clearly,')  context: 'by the premises. -Clearly, this is so'
   [Page 219 / Page 260]
-  → restored ['=', 'p(b,b)', '1.'] (LLM tried 'p(b,b).')  context: '(1) p(a,a) = = p(b,b) 1.'
+  → attempt 1 rejected: Cleaned text size differs by more than 20% (original printable=9, cleaned=12)
+  original: p(b,b) 1.
+  cleaned:  p(b, b) = 1.
+  → attempt 2 rejected: Cleaned text size differs by more than 20% (original printable=9, cleaned=12)
+  original: p(b,b) 1.
+  cleaned:  p(b, b) = 1.
   [Page 220 / Page 261]
   [Page 221 / Page 262]
   → restored 'criticize' (LLM tried 'criticise')  context: 'in order to criticize and, especially, to'
@@ -332,7 +340,6 @@ Let us remember what Hume tried to show (in my opinion successfully, as far as l
   [Page 223 / Page 264]
   [Page 224 / Page 265]
   [Page 225 / Page 266]
-  → restored 'teste' (LLM tried 'tested')  context: 'and more severely teste d -even in'
   [Page 226 / Page 267]
   [Page 227 / Page 268]
   [Page 228 / Page 269]
@@ -350,28 +357,35 @@ Let us remember what Hume tried to show (in my opinion successfully, as far as l
   [Page 239 / Page 280]
   [Page 240 / Page 281]
   [Page 241 / Page 282]
-  → restored ['p', 'h', '(,', 'b)'] (LLM tried 'p(h|b)')  context: '1 : (cc) p h (, b) = 0.'
-  → restored ['p', '(h,b)', '=f.'] (LLM tried 'p(h,b)=f')  context: 'generally even, if p (h,b) =f. 0, the maximum'
   [Page 242 / Page 283]
   [Page 243 / Page 284]
   [Page 244 / Page 285]
   [Page 245 / Page 286]
-  → restored ['tautology-an', 'analytic'] (LLM tried 'tautology-analytic')  context: '(4) A tautology-an analytic statement - cannot'
-  → restored ['self', '-', 'coatradictory'] (LLM tried 'self-contradictory')  context: 'either by excluding self - coatradictory hypotheses or by'
   [Page 246 / Page 287]
-  [LLM FOOTNOTE] "1 See Appendix ·:·ix of L.Sc.D., where my three papers on 'Degree of Confirmation' are reprinted. (B"
-  → restored ["'", 'C', '(a', 't)', "'"] (LLM tried ''C(a^t)'')  context: "by b, and ' C (a t) ' for the empirical"
+  → attempt 1 rejected: Cleaned text size differs by more than 20% (original printable=1012, cleaned=615)
+  original: 1 See Appendix ·:·ix of L.Sc.D., where my three papers on 'Degree of Confirmation' are reprinted. (Brit.]ourn. Phil. Science 5, 1 954, pp. 1 43!f. See also corrections in 5, pp. 334 and 359; 6, 1 955, pp. 1 57 f f ; 7, 1 956, pp. 244 f, 249 f f, and 350 f f) Note that in these papers I used the term 'confirmation' instead of 'corroboration', and that I used the symbol ' C(x) ' for the content of x, while I use here the symbol ' Ct(x) '. In the first of these papers, several desiderata are stated which are not mentioned here. See also Appendices ''ii and ·:·iv. [See also the Addenda to Conjectures and Refutations. Ed.) I (7) This is advisable since in view of the convention of ma in k g the factor of proportionality e qual to 1, formulated i n po int (3,) the maximal degree of corroboration which even the most testable hypothesis can obtain is + 1. Thus w e o btai n s ymmetr c i al l im t i s, - 1 and + 1, for degree of corroboration, while 0 means no corroboration, as in the case of the tautology.
+  cleaned:  1 See Appendix ·:·ix of L.Sc.D., where my three papers on 'Degree of Confirmation' are reprinted. (Brit.) journal Phil. Science 5, 1954, pp. 143ff. See also corrections in 5, pp. 334 and 359; 6, 1955, pp. 157ff; 7, 1956, pp. 244f, 249fff, and 350ff) Note that in these papers I used the term 'confirmation' instead of 'corroboration', and that I used the symbol ' C(x) ' for the content of x, while I use here the symbol ' Ct(x) '. In the first of these papers, several desiderata are stated which are not mentioned here. See also Appendices 'ii and ·:·iv. [See also the Addenda to Conjectures and Refutations. Ed.)
+  → attempt 2 rejected: Cleaned text size differs by more than 20% (original printable=1012, cleaned=635)
+  original: 1 See Appendix ·:·ix of L.Sc.D., where my three papers on 'Degree of Confirmation' are reprinted. (Brit.]ourn. Phil. Science 5, 1 954, pp. 1 43!f. See also corrections in 5, pp. 334 and 359; 6, 1 955, pp. 1 57 f f ; 7, 1 956, pp. 244 f, 249 f f, and 350 f f) Note that in these papers I used the term 'confirmation' instead of 'corroboration', and that I used the symbol ' C(x) ' for the content of x, while I use here the symbol ' Ct(x) '. In the first of these papers, several desiderata are stated which are not mentioned here. See also Appendices ''ii and ·:·iv. [See also the Addenda to Conjectures and Refutations. Ed.) I (7) This is advisable since in view of the convention of ma in k g the factor of proportionality e qual to 1, formulated i n po int (3,) the maximal degree of corroboration which even the most testable hypothesis can obtain is + 1. Thus w e o btai n s ymmetr c i al l im t i s, - 1 and + 1, for degree of corroboration, while 0 means no corroboration, as in the case of the tautology.
+  cleaned:  See Appendix ·:·ix of L.Sc.D., where my three papers on 'Degree of Confirmation' are reprinted. (British) Journal of Philosophy and Science 5, 1954, pp. 143-145. See also corrections in 5, pp. 334 and 359; 6, 1955, pp. 157-159; 7, 1956, pp. 244-249 and 350-352. Note that in these papers I used the term 'confirmation' instead of 'corroboration', and that I used the symbol 'C(x)' for the content of x, while I use here the symbol 'Ct(x)'. In the first of these papers, several desiderata are stated which are not mentioned here. See also Appendices ''ii and ·:·iv. [See also the Addenda to Conjectures and Refutations. Editor's note.]
+  → attempt 3 rejected: Cleaned text size differs by more than 20% (original printable=1012, cleaned=621)
+  original: 1 See Appendix ·:·ix of L.Sc.D., where my three papers on 'Degree of Confirmation' are reprinted. (Brit.]ourn. Phil. Science 5, 1 954, pp. 1 43!f. See also corrections in 5, pp. 334 and 359; 6, 1 955, pp. 1 57 f f ; 7, 1 956, pp. 244 f, 249 f f, and 350 f f) Note that in these papers I used the term 'confirmation' instead of 'corroboration', and that I used the symbol ' C(x) ' for the content of x, while I use here the symbol ' Ct(x) '. In the first of these papers, several desiderata are stated which are not mentioned here. See also Appendices ''ii and ·:·iv. [See also the Addenda to Conjectures and Refutations. Ed.) I (7) This is advisable since in view of the convention of ma in k g the factor of proportionality e qual to 1, formulated i n po int (3,) the maximal degree of corroboration which even the most testable hypothesis can obtain is + 1. Thus w e o btai n s ymmetr c i al l im t i s, - 1 and + 1, for degree of corroboration, while 0 means no corroboration, as in the case of the tautology.
+  cleaned:  1 See Appendix ·:·ix of L.Sc.D., where my three papers on 'Degree of Confirmation' are reprinted. (Brit.)ourn. Phil. Science 5, 1954, pp. 143-ff. See also corrections in 5, pp. 334 and 359; 6, 1955, pp. 157-ff.; 7, 1956, pp. 244-ff., 249-ff., and 350-ff. Note that in these papers I used the term 'confirmation' instead of 'corroboration', and that I used the symbol ' C(x) ' for the content of x, while I use here the symbol ' Ct(x) '. In the first of these papers, several desiderata are stated which are not mentioned here. See also Appendices ''ii and ·:·iv. [See also the Addenda to Conjectures and Refutations. Ed.)
   [Page 247 / Page 288]
   [Page 248 / Page 289]
   [Page 249 / Page 290]
-  → restored ['and', '(iv),.'] (LLM tried 'and(iv).')  context: 'analogy between (iv) and (iv),.'
   → restored 'be,' (LLM tried 'bc,')  context: 'to the conjunction be, and 0 =I='
   → restored 'be,' (LLM tried 'bc,')  context: 'since a = be, we have'
+  → restored 'be,' (LLM tried 'bc,')  context: 'example, the conjunction be, that is, a'
   [Page 250 / Page 291]
   → restored '()-all' (LLM tried '()—all')  context: 'under (3) and ()-all derive from our'
   [Page 251 / Page 292]
   [Page 252 / Page 293]
   [Page 253 / Page 294]
+  → restored 'alled' (LLM tried 'called')  context: 'based upon p(b,a}- alled the likelihood of'
+  → attempt 1 rejected: Cleaned text size differs by more than 20% (original printable=372, cleaned=265)
+  original: But this is absurd ; for we may choose p(x) as near to 1 as we like, or equal to 1 ; and if we then choose p(y,z) equal to 112, say, and p(y) equal to 1/4, say, we get a contradiction; also, more generally, if we choose y = xz, and assume x and z to be independent. (See Brit.]ourn. Phil. Science 7, 1956, pp. 254 f; also my introductory remarks to Appendix ·�ix, L.Sc.D.)
+  cleaned:  But this is absurd ; for we may choose p(x) as near to 1 as we like, or equal to 1 ; and if we then choose p(y,z) equal to 1/2, say, and p(y) equal to 1/4, say, we get a contradiction; also, more generally, if we choose y = xz, and assume x and z to be independent.
   [Page 254 / Page 295]
   [Page 255 / Page 296]
   [Page 256 / Page 297]
@@ -381,6 +395,7 @@ Let us remember what Hume tried to show (in my opinion successfully, as far as l
   [Page 260 / Page 301]
   [Page 261 / Page 302]
   → restored 'of' (LLM tried 'on')  context: "Bacon's naive views of induction - of"
+  → restored 'philosophers-!' (LLM tried 'philosophers—I')  context: 'fear, to most philosophers-! feel convinced of'
   [Page 262 / Page 303]
   [Page 263 / Page 304]
   [Page 264 / Page 305]
@@ -388,52 +403,63 @@ Let us remember what Hume tried to show (in my opinion successfully, as far as l
   [Page 266 / Page 307]
   → restored 'function)' (LLM tried 'function}')  context: 'increase of a function) has been made'
   [Page 267 / Page 308]
+  → attempt 1 rejected: Cleaned text size differs by more than 20% (original printable=27, cleaned=21)
+  original: (e) X = 2018 - (15 X 1 33).
+  cleaned:  X = 2018 - (15 × 133)
+  → attempt 2 rejected: Cleaned text size differs by more than 20% (original printable=27, cleaned=21)
+  original: (e) X = 2018 - (15 X 1 33).
+  cleaned:  X = 2018 - (15 × 133)
+  → attempt 3 rejected: Cleaned text size differs by more than 20% (original printable=27, cleaned=21)
+  original: (e) X = 2018 - (15 X 1 33).
+  cleaned:  X = 2018 - (15 × 133)
+  → attempt 1 rejected: Cleaned text size differs by more than 20% (original printable=440, cleaned=344)
+  original: Most people will say that the equivalences (a) and (b) may define ' 23', and perhaps also (c), if we want a definition in terms of powers of 2; but neither (d) nor (e) will be a 'reasonable definition' of ' 23', although they are of course true equivalences; for in no way do they analyse or elucidate or explicate the meaning of ' 23'. Nobody who 'Bertrand Russell, Mysticism and Logic, 1 9 1 8 ; cf the penultimate paragraph of Chapter v.
+  cleaned:  Most people will say that the equivalences (a) and (b) may define '23', and perhaps also (c), if we want a definition in terms of powers of 2; but neither (d) nor (e) will be a 'reasonable definition' of '23', although they are of course true equivalences; for in no way do they analyse or elucidate or explicate the meaning of '23'. Nobody who
+  → attempt 2 rejected: Cleaned text size differs by more than 20% (original printable=440, cleaned=344)
+  original: Most people will say that the equivalences (a) and (b) may define ' 23', and perhaps also (c), if we want a definition in terms of powers of 2; but neither (d) nor (e) will be a 'reasonable definition' of ' 23', although they are of course true equivalences; for in no way do they analyse or elucidate or explicate the meaning of ' 23'. Nobody who 'Bertrand Russell, Mysticism and Logic, 1 9 1 8 ; cf the penultimate paragraph of Chapter v.
+  cleaned:  Most people will say that the equivalences (a) and (b) may define '23', and perhaps also (c), if we want a definition in terms of powers of 2; but neither (d) nor (e) will be a 'reasonable definition' of '23', although they are of course true equivalences; for in no way do they analyse or elucidate or explicate the meaning of '23'. Nobody who
+  → attempt 3 rejected: Cleaned text size differs by more than 20% (original printable=440, cleaned=344)
+  original: Most people will say that the equivalences (a) and (b) may define ' 23', and perhaps also (c), if we want a definition in terms of powers of 2; but neither (d) nor (e) will be a 'reasonable definition' of ' 23', although they are of course true equivalences; for in no way do they analyse or elucidate or explicate the meaning of ' 23'. Nobody who 'Bertrand Russell, Mysticism and Logic, 1 9 1 8 ; cf the penultimate paragraph of Chapter v.
+  cleaned:  Most people will say that the equivalences (a) and (b) may define '23', and perhaps also (c), if we want a definition in terms of powers of 2; but neither (d) nor (e) will be a 'reasonable definition' of '23', although they are of course true equivalences; for in no way do they analyse or elucidate or explicate the meaning of '23'. Nobody who
   [Page 268 / Page 309]
   [Page 269 / Page 310]
   [Page 270 / Page 311]
+  → restored 'which' (LLM tried 'that')  context: 'denoted an idea which we have now'
   [Page 271 / Page 312]
-  → attempt 1 rejected: Invalid control character at: line 2 column 992 (char 993)
-  → attempt 2 rejected: Cleaned text size differs by more than 20% (original printable=1802, cleaned=949)
-  original: We now know that Berkeley was right when, in The Analyst, he blamed Newton as well as 'the foreign mathematicians' (such as Leibniz) for obtaining their mathematical results in the theory of fluxions or 'in the calculus di f f erentia/is' by illegitimate reasoning. And he was completely right when he indicated that their symbols were without meaning.'Nothing is easier', he wrote, 'than to devise expressions and notations, for fluxions and infinitesimals of the fi rst, second, third, fourth, and subsequent orders, x, x, x, i,..., etc. These expressions indeed are clear and distinct, and the mind finds no difficulty in conceiving them to be continued beyond any assignable bounds. But if... we look underneath, if, laying aside the expressions, we set ourselves attentively to consider the things themselves which are supposed to be expressed or marked thereby, we shall discover much emptiness, darkness, and confusion..., direct impossibilities, and contradictions.'12 But the mathematicians of his day did not listen to Berkeley. They got their results, and they were not afraid of contradictions as long as they felt that they could dodge them with a little skill. This was fortunate. For the attempt to 'analyse the meaning' or to ' explicate' their concepts would, we know now, have led to nothing. Berkeley was right: all these concepts were meaningless, in his sense and in the traditional sense of the word 'meaning' : they were empty, for they denoted nothing, they stood for nothing. Had this fact been realized at the time, the development of the calculus might have been stopped again, as it had been stopped before. It was the neglect of precision, the almost instinctive neglect of all meaning analysis or explication, which made the wonderful development of the calculus possible.
-  cleaned:  We now know that Berkeley was right when, in The Analyst, he blamed Newton as well as 'the foreign mathematicians' (such as Leibniz) for obtaining their mathematical results in the theory of fluxions or 'in the calculus differetia/is' by illegitimate reasoning. And he was completely right when he indicated that their symbols were without meaning. Nothing is easier, than to devise expressions and notations, for fluxions and infinitesimals of the first, second, third, fourth, and subsequent orders, x, y, z,..., etc. These expressions indeed are clear and distinct, and the mind finds no difficulty in conceiving them to be continued beyond any assignable bounds. But if we look underneath, if laying aside the expressions, we set ourselves attentively to consider the things themselves which are supposed to be expressed or marked thereby, we shall discover much emptiness, darkness, and confusion..., direct impossibilities, and contradictions.
-  → attempt 3 rejected: Cleaned text size differs by more than 20% (original printable=1802, cleaned=969)
-  original: We now know that Berkeley was right when, in The Analyst, he blamed Newton as well as 'the foreign mathematicians' (such as Leibniz) for obtaining their mathematical results in the theory of fluxions or 'in the calculus di f f erentia/is' by illegitimate reasoning. And he was completely right when he indicated that their symbols were without meaning.'Nothing is easier', he wrote, 'than to devise expressions and notations, for fluxions and infinitesimals of the fi rst, second, third, fourth, and subsequent orders, x, x, x, i,..., etc. These expressions indeed are clear and distinct, and the mind finds no difficulty in conceiving them to be continued beyond any assignable bounds. But if... we look underneath, if, laying aside the expressions, we set ourselves attentively to consider the things themselves which are supposed to be expressed or marked thereby, we shall discover much emptiness, darkness, and confusion..., direct impossibilities, and contradictions.'12 But the mathematicians of his day did not listen to Berkeley. They got their results, and they were not afraid of contradictions as long as they felt that they could dodge them with a little skill. This was fortunate. For the attempt to 'analyse the meaning' or to ' explicate' their concepts would, we know now, have led to nothing. Berkeley was right: all these concepts were meaningless, in his sense and in the traditional sense of the word 'meaning' : they were empty, for they denoted nothing, they stood for nothing. Had this fact been realized at the time, the development of the calculus might have been stopped again, as it had been stopped before. It was the neglect of precision, the almost instinctive neglect of all meaning analysis or explication, which made the wonderful development of the calculus possible.
-  cleaned:  We now know that Berkeley was right when, in The Analyst, he blamed Newton as well as 'the foreign mathematicians' (such as Leibniz) for obtaining their mathematical results in the theory of fluxions or 'in the calculus differ-entia/is' by illegitimate reasoning. And he was completely right when he indicated that their symbols were without meaning. Nothing is easier, he wrote, 'than to devise expressions and notations, for fluxions and infinitesimals of the first, second, third, fourth, and subsequent orders, x, x, x, i,..., etc. These expressions indeed are clear and distinct, and the mind finds no difficulty in conceiving them to be continued beyond any assignable bounds. But if we look underneath, if, laying aside the expressions, we set ourselves attentively to consider the things themselves which are supposed to be expressed or marked thereby, we shall discover much emptiness, darkness, and confusion..., direct impossibilities, and contradictions.'12
+  → attempt 1 rejected: Invalid control character at: line 2 column 972 (char 973)
+  → restored ['di', 'f', 'f', "erentia/is'"] (LLM tried 'differentialis'')  context: "'in the calculus di f f erentia/is' by illegitimate reasoning."
+  → restored ['x,', 'i,...,'] (LLM tried '...,')  context: 'orders, x, x, x, i,..., etc. These expressions'
   [Page 272 / Page 313]
   [Page 273 / Page 314]
   [Page 274 / Page 315]
   [Page 275 / Page 316]
-  → attempt 1 rejected: Cleaned text size differs by more than 20% (original printable=1233, cleaned=793)
-  original: As to the intuitive ordinary everyday concept of truth, Tarski's work did provide, I think, something like a valuable meaning analysis. Not, however, by providing us with a definition of this concept. On the contrary, Tarski showed that if we introduce, without special artificial precautions, a definition of truth into ordinary language (that is to say, into a language which is 'universalistic' in the sense that we can talk in it about everything), then this language becomes inconsistent. In this sense, then, an 'exact' definition of the intuitive idea of truth turns out to be impossible. Nevertheless, we can of course use the concept of truth quite consistently within ordinary language if we learn a lesson which can easily be drawn from Tarski's work. The lesson, in brief, is this. 16 We must distinguish between use and mention; that is to say, between the language in use and the parts of the language which are talked about; and we must remember that if we assert of a statement that it is true, then this statement belongs to the language mentioned, as distinct from the language in use--the language in which we assert that a statement is true. But this lesson is not, of course, the same as a ' precise definition'.
-  cleaned:  As to the intuitive ordinary everyday concept of truth, Tarski's work did provide, I think, something like a valuable meaning analysis. Not, however, by providing us with a definition of this concept. On the contrary, Tarski showed that if we introduce, without special artificial precautions, a definition of truth into ordinary language (that is to say, into a language which is 'universalistic' in the sense that we can talk in it about everything), then this language becomes inconsistent. In this sense, then, an 'exact' definition of the intuitive idea of truth turns out to be impossible. Nevertheless, we can of course use the concept of truth quite consistently within ordinary language if we learn a lesson which can easily be drawn from Tarski's work. The lesson, in brief, is this.
-  → attempt 2 rejected: Cleaned text size differs by more than 20% (original printable=1233, cleaned=793)
-  original: As to the intuitive ordinary everyday concept of truth, Tarski's work did provide, I think, something like a valuable meaning analysis. Not, however, by providing us with a definition of this concept. On the contrary, Tarski showed that if we introduce, without special artificial precautions, a definition of truth into ordinary language (that is to say, into a language which is 'universalistic' in the sense that we can talk in it about everything), then this language becomes inconsistent. In this sense, then, an 'exact' definition of the intuitive idea of truth turns out to be impossible. Nevertheless, we can of course use the concept of truth quite consistently within ordinary language if we learn a lesson which can easily be drawn from Tarski's work. The lesson, in brief, is this. 16 We must distinguish between use and mention; that is to say, between the language in use and the parts of the language which are talked about; and we must remember that if we assert of a statement that it is true, then this statement belongs to the language mentioned, as distinct from the language in use--the language in which we assert that a statement is true. But this lesson is not, of course, the same as a ' precise definition'.
-  cleaned:  As to the intuitive ordinary everyday concept of truth, Tarski's work did provide, I think, something like a valuable meaning analysis. Not, however, by providing us with a definition of this concept. On the contrary, Tarski showed that if we introduce, without special artificial precautions, a definition of truth into ordinary language (that is to say, into a language which is 'universalistic' in the sense that we can talk in it about everything), then this language becomes inconsistent. In this sense, then, an 'exact' definition of the intuitive idea of truth turns out to be impossible. Nevertheless, we can of course use the concept of truth quite consistently within ordinary language if we learn a lesson which can easily be drawn from Tarski's work. The lesson, in brief, is this.
   [Page 276 / Page 317]
   [Page 277 / Page 318]
   [Page 278 / Page 319]
   [Page 281 / Page 322]
   [Page 282 / Page 323]
   [Page 283 / Page 324]
-  → restored ['·:', '·'] (LLM tried ':')  context: 'Appendices ·:·ii and ·: · v i), relative'
+  → restored ['·:', '·', 'v', 'i),'] (LLM tried ':vi),')  context: 'Appendices ·:·ii and ·: · v i), relative frequencies satisfy'
   [Page 284 / Page 325]
   [Page 285 / Page 326]
   [Page 286 / Page 327]
   [Page 287 / Page 328]
-  → restored ['state', 'm', 'ents'] (LLM tried 'state\ments')  context: "explain singular probability state m ents -such as 'There"
   [Page 288 / Page 329]
   [Page 289 / Page 330]
   [Page 290 / Page 331]
+  → restored 'which' (LLM tried 'that')  context: 'interested in experiments which involve after-effects (such'
   [Page 291 / Page 332]
-  → restored 'emphasized' (LLM tried 'emphasised')  context: 'This fact is emphasized by the following'
-  → restored ['p', 'a', 'b)', '(;'] (LLM tried 'p(a|b);')  context: '> 0 then p a b) (; c = p(a,b)'
+  → restored 'realize' (LLM tried 'realise')  context: 'propensity r to realize the result a.)'
+  → restored ['a', 'b)'] (LLM tried '(a;b)')  context: '0 then p a b) (; c ='
   → restored 'i' (LLM tried 'is')  context: 'b (and c, i rrelevant to a,'
   [Page 292 / Page 333]
   → restored ['p(a', 'b),'] (LLM tried 'p(a,b),')  context: 'of statements, then p(a b), = r may'
   [Page 293 / Page 334]
   [Page 294 / Page 335]
+  → restored ['p', 'a', 'b', '(,)--say,'] (LLM tried 'pab,—say,')  context: 'certain value of p a b (,)--say, the value s'
   [Page 295 / Page 336]
   [Page 296 / Page 337]
+  → restored ["'b", "'"] (LLM tried '\"b\"')  context: "Subjectivist Interpretations of 'b ' in ' p(a,"
   [Page 297 / Page 338]
   [Page 298 / Page 339]
   [Page 299 / Page 340]
@@ -444,85 +470,106 @@ Let us remember what Hume tried to show (in my opinion successfully, as far as l
   [Page 302 / Page 343]
   → restored 'dies?' (LLM tried 'dice?')  context: 'cases like loaded dies? And how should'
   [Page 303 / Page 344]
-  → restored 'th,' (LLM tried '1/2,')  context: '= p(a,b) = th, where a is'
-  → restored 'a' (LLM tried 'b')  context: 'of a and a is not independent.'
   [Page 304 / Page 345]
   [Page 305 / Page 346]
-  → restored 'which' (LLM tried 'that')  context: 'And the difference which we found to'
   [Page 306 / Page 347]
+  → restored 'homogeneous')' (LLM tried 'homogeneous”}')  context: "{'this die is homogeneous') by a new"
+  → restored 'extent').' (LLM tried 'extent”}.')  context: "and such an extent'). That is to"
   [Page 307 / Page 348]
   [Page 308 / Page 349]
+  → restored ['r', "'"] (LLM tried 'r\'')  context: "'p(,b) a = r ' is a hypothesis,"
   [Page 309 / Page 350]
   [Page 310 / Page 351]
-  → restored 'absolution' (LLM tried 'absorption')  context: 'respective rules of absolution before they can'
-  → restored 'absolution' (LLM tried 'absorption')  context: 'the rule of absolution is no longer'
+  → restored 'absolution' (LLM tried 'absolutation')  context: 'respective rules of absolution before they can'
+  → restored 'absolution' (LLM tried 'absolutation')  context: 'the rule of absolution is no longer'
   [Page 311 / Page 352]
+  → restored 'absolution,' (LLM tried 'absorption,')  context: 'probabilistic rule of absolution, then we find'
   [Page 312 / Page 353]
-  → restored 'absolution.' (LLM tried 'absolutism.')  context: 'probabilistic rule of absolution. There is clearly'
+  → restored 'absolution.' (LLM tried 'absolute.')  context: 'probabilistic rule of absolution. There is clearly'
+  → restored 'a)' (LLM tried '|a)')  context: 'asking for p(,b a) he is asking'
   [Page 313 / Page 354]
-  → restored 'be,' (LLM tried 'bc,')  context: 'case b = be, and as a'
   [Page 314 / Page 355]
-  → restored 'min.' (LLM tried 'mn.')  context: 'the same as min.'
+  → restored 'min,' (LLM tried 'm(n),')  context: 'approximately equal to min, where n is'
+  → restored 'min;' (LLM tried 'mn;')  context: 'statistics expressed by min; and we have'
   [Page 315 / Page 356]
   [Page 316 / Page 357]
   [Page 317 / Page 358]
   → attempt 1 rejected: Cleaned text size differs by more than 20% (original printable=59, cleaned=326)
   original: As we have seen, the subjective theory must interpret b, in
   cleaned:  As we have seen, the subjective theory must interpret b, in p(a,b) = r as a summary of our total knowledge-or of our relevant total knowledge. This is a consequence of its basic view that 'p(a,b) = r' is to be interpreted as a statement of the degree of our rational belief, rational in view of the evidence in our possession.
-  → attempt 2 rejected: Cleaned text size differs by more than 20% (original printable=59, cleaned=142)
+  → attempt 2 rejected: Cleaned text size differs by more than 20% (original printable=59, cleaned=144)
   original: As we have seen, the subjective theory must interpret b, in
-  cleaned:  As we have seen, the subjective theory must interpret b, in p(a,b) = r as a summary of our total knowledge-or of our relevant total knowledge.
-  → attempt 3 rejected: Cleaned text size differs by more than 20% (original printable=59, cleaned=139)
+  cleaned:  As we have seen, the subjective theory must interpret b, in p(a,b) = r as a summary of our total knowledge - or of our relevant total knowledge.
+  → attempt 3 rejected: Cleaned text size differs by more than 20% (original printable=59, cleaned=324)
   original: As we have seen, the subjective theory must interpret b, in
-  cleaned:  As we have seen, the subjective theory must interpret b, in p(a,b) = r as a summary of our total knowledge—of our relevant total knowledge.
+  cleaned:  As we have seen, the subjective theory must interpret b, in p(a,b) = r as a summary of our total knowledge-or of our relevant total knowledge. This is a consequence of its basic view that 'p(a,b)=r' is to be interpreted as a statement of the degree of our rational belief, rational in view of the evidence in our possession.
   [Page 318 / Page 359]
   [Page 319 / Page 360]
   [Page 320 / Page 361]
-  → attempt 1 rejected: Cleaned text size differs by more than 20% (original printable=565, cleaned=234)
-  original: The balls may have certain properties. They may be of steel or of brass, and they may be painted in a number of different colours. We now assume that our artificial universe may be operated in accordance with a number of 'natural laws'. For example, we may so adjust it that steel balls always come in sequences of three, and after these a longish but varying sequence of copper balls; or we may so adjust it that, out of each hundred steel balls, 1 0 balls are blue, 20 green, 30 red, and 40 yellow: this would be a statistical 'law'. Other 'laws' can be arranged.
-  cleaned:  The balls may have certain properties. They may be of steel or of brass, and they may be painted in a number of different colours. We now assume that our artificial universe may be operated in accordance with a number of natural laws.
   [Page 321 / Page 362]
   [Page 322 / Page 363]
   [Page 323 / Page 364]
-  → restored ['inductive', 'logicians'] (LLM tried 'inductivists')  context: 'version of what inductive logicians seem to have'
   [Page 324 / Page 365]
   [Page 325 / Page 366]
+  → restored 'a.' (LLM tried '¬a.')  context: 'neither a nor a.'
   [Page 326 / Page 367]
-  → restored ['p(x', 'b)'] (LLM tried 'p(x|b)')  context: 'i:. 0.) Let p(x b) = p(x)p(b), so'
   [Page 327 / Page 368]
+  → attempt 1 rejected: Cleaned text size differs by more than 20% (original printable=1000, cleaned=769)
+  original: But if this interpretation is correct - and it seems to me clear that For the theory it is -then probability logic cannot be inductive logic. of induction tries to justify the attempt to obtain more from the David Miller has some important comments on this, premises than there is in them : to go with the conclusion a beyond the premise b, even at the price of a loss in certainty. Yet logical probability says that if the content of a goes beyond the premise b, then only that part of a which follows from b is made certain, and the rest remains exactly as probable or improbable as it was without b. The increase in the probability of a which b may procure is thus entirely due to the fact that part of a is logically entailed by b; it is not due to any effect of b upon that part of a which does not follow from b. (*Thus there is in probability theory no ampliative probabilistic inference. The apparent ampliative inference is due to the fact that part of the content of a is deducible from b.]
+  cleaned:  But if this interpretation is correct - and it seems to me clear that for the theory it is - then probability logic cannot be inductive logic. Of induction tries to justify the attempt to obtain more from the premises than there is in them : to go with the conclusion a beyond the premise b, even at the price of a loss in certainty. Yet logical probability says that if the content of a goes beyond the premise b, then only that part of a which follows from b is made certain, and the rest remains exactly as probable or improbable as it was without b. The increase in the probability of a which b may procure is thus entirely due to the fact that part of a is logically entailed by b; it is not due to any effect of b upon that part of a which does not follow from b.
   [Page 328 / Page 369]
-  → restored 'ne' (LLM tried 'an')  context: "follows : '... ne instance of a"
   [Page 329 / Page 370]
+  → attempt 1 rejected: Cleaned text size differs by more than 20% (original printable=393, cleaned=482)
+  original: But the formulation of the inductive rule just given shows its nonlogical character not only by being in conflict with the gambler's fallacy, or with our game of 'Red or Blue' ; it is in conflict with any normal random sequence. For interpreted objectively, it postulates an after-effect which in a normal random sequence does not occur. The rule thus conflicts, for example, with the estimate
+  cleaned:  But the formulation of the inductive rule just given shows its non-logical character not only by being in conflict with the gambler's fallacy, or with our game of 'Red or Blue'; it is in conflict with any normal random sequence. For interpreted objectively, it postulates an after-effect which in a normal random sequence does not occur. The rule thus conflicts, for example, with the estimate p(a,b) = 1/12, where a is throwing heads with a coin that is homogeneous, as b tells us.
+  → restored 'nonlogical' (LLM tried 'non-logical')  context: 'given shows its nonlogical character not only'
   [Page 330 / Page 371]
   [Page 331 / Page 372]
   [Page 332 / Page 373]
-  → restored ['1', 'effreys'] (LLM tried 'Effres')  context: 'inductivists such as 1 effreys or Carnap have'
-  → restored ['1', 'effreys'] (LLM tried 'Effres')  context: 'emphasize this point. 1 effreys puts the question'
+  → restored ['1', 'effreys'] (LLM tried 'Effrey's')  context: 'inductivists such as 1 effreys or Carnap have'
+  → restored ['1', 'effreys'] (LLM tried 'Effrey's')  context: 'emphasize this point. 1 effreys puts the question'
   [Page 333 / Page 374]
-  → attempt 1 rejected: Invalid control character at: line 2 column 769 (char 770)
-  → restored ["'", '1'] (LLM tried ''.')  context: "statement by Einstein... ' 1 A little later,"
   [Page 334 / Page 375]
   → attempt 1 rejected: Cleaned text size differs by more than 20% (original printable=541, cleaned=319)
   original: 'Thus we see that X need not take the roundabout way through the law I at all, as is usually believed ; he can instead go from his observational knowledge... directly to the singular prediction.... ' He continues : ' Customary thinking in everyday life likewise often takes this short cut, which is now justified by inductive logic.'2 And he concludes : ' We see that the use of laws is not indispensable for making predictions. Nevertheless it is expedient, of course, to state universal laws in books on physics, biology, psychology, etc.'
   cleaned:  Thus we see that X need not take the roundabout way through the law I at all, as is usually believed; he can instead go from his observational knowledge directly to the singular prediction. He continues: Customary thinking in everyday life likewise often takes this short cut, which is now justified by inductive logic.
   [Page 335 / Page 376]
-  → restored ['p(a,b)', '=', 'min', '=', 'r'] (LLM tried 'p(a,b)=min/r')  context: 'we have, approximately p(a,b) = min = r and that the'
   [Page 336 / Page 377]
   [Page 337 / Page 378]
   [Page 338 / Page 379]
   [LLM FOOTNOTE] "71 find this tacit suggestion contained in R. Carnap's paper 'Probability as a Guide in Life', journ"
   [Page 339 / Page 380]
-  → restored ['p', '(,', 'a,', 'b)'] (LLM tried 'p,(a,b)')  context: 'that value of p (, a, b) which corresponds to'
   [Page 340 / Page 381]
+  → restored 'a' (LLM tried 'α')  context: 'either a or a from the evidence'
   [Page 341 / Page 382]
   → restored 'criticizing' (LLM tried 'criticising')  context: 'help me, by criticizing my assertion, and'
   [Page 342 / Page 383]
-  → restored ['p', 'h,e', '(t)'] (LLM tried 'p_{h,e}(t)')  context: 'h,e (2) > p h,e (t) if e2 contains'
+  → attempt 1 rejected: Cleaned text size differs by more than 20% (original printable=491, cleaned=682)
+  original: (B) The indubitable fact that, according to the probability calculus, the probability of a statement increases (unless it was zero to start with) with the accumulating evidence in its favour, especially with the accumulation of successful predictions. In terms of the probability calculus: Let h be a hypothesis whose initial probability (or prior probability) p(h) may be as small as we like, as long as it is different from zero. Let e be some evidence in its favour. Then we have not only
+  cleaned:  The indubitable fact that, according to the probability calculus, the probability of a statement increases (unless it was zero to start with) with the accumulating evidence in its favour, especially with the accumulation of successful predictions. In terms of the probability calculus: Let h be a hypothesis whose initial probability (or prior probability) p(h) may be as small as we like, as long as it is different from zero. Let e be some evidence in its favour. Then we have not only
+p(h,e) > p(h)
+but also
+p_{h,e}(2) > p_{h,e}(t)
+if e2 contains favourable evidence not yet contained in e1 · Thus the probability of h continues to increase with accumulating favourable evidence.
+  → attempt 2 rejected: Cleaned text size differs by more than 20% (original printable=491, cleaned=680)
+  original: (B) The indubitable fact that, according to the probability calculus, the probability of a statement increases (unless it was zero to start with) with the accumulating evidence in its favour, especially with the accumulation of successful predictions. In terms of the probability calculus: Let h be a hypothesis whose initial probability (or prior probability) p(h) may be as small as we like, as long as it is different from zero. Let e be some evidence in its favour. Then we have not only
+  cleaned:  (B) The indubitable fact that, according to the probability calculus, the probability of a statement increases (unless it was zero to start with) with the accumulating evidence in its favour, especially with the accumulation of successful predictions. In terms of the probability calculus: Let h be a hypothesis whose initial probability (or prior probability) p(h) may be as small as we like, as long as it is different from zero. Let e be some evidence in its favour. Then we have not only
+p(h,e) > p(h)
+but also
+p{h,e2} > p{h,e1}
+if e2 contains favourable evidence not yet contained in e1 · Thus the probability of h continues to increase with accumulating favourable evidence.
+  → attempt 3 rejected: Cleaned text size differs by more than 20% (original printable=491, cleaned=686)
+  original: (B) The indubitable fact that, according to the probability calculus, the probability of a statement increases (unless it was zero to start with) with the accumulating evidence in its favour, especially with the accumulation of successful predictions. In terms of the probability calculus: Let h be a hypothesis whose initial probability (or prior probability) p(h) may be as small as we like, as long as it is different from zero. Let e be some evidence in its favour. Then we have not only
+  cleaned:  (B) The indubitable fact that, according to the probability calculus, the probability of a statement increases (unless it was zero to start with) with the accumulating evidence in its favour, especially with the accumulation of successful predictions. In terms of the probability calculus: Let h be a hypothesis whose initial probability (or prior probability) p(h) may be as small as we like, as long as it is different from zero. Let e be some evidence in its favour. Then we have not only
+  p(h,e) > p(h)
+  but also
+  p(h,e2) > p(h,e1) if e2 contains favourable evidence not yet contained in e1 · Thus the probability of h continues to increase with accumulating favourable evidence.
   [Page 343 / Page 384]
   → restored 'generalization'' (LLM tried 'generalisation'')  context: "a typical 'inductive generalization' of e, while"
   → restored 'generalization' (LLM tried 'generalisation')  context: 'from being a generalization of e; or'
-  → restored 'that' (LLM tried 'indicate')  context: 'of observed swans that they are white,'
   [Page 344 / Page 385]
+  → attempt 1 rejected: Expecting ',' delimiter: line 3 column 5 (char 476)
+  → attempt 2 rejected: Expecting ',' delimiter: line 3 column 5 (char 473)
   [Page 345 / Page 386]
   [Page 346 / Page 387]
   [Page 347 / Page 388]
@@ -533,25 +580,19 @@ Let us remember what Hume tried to show (in my opinion successfully, as far as l
   [Page 350 / Page 391]
   → restored 'infinite)' (LLM tried 'infinite}')  context: 'extremely long {perhaps infinite) sequence of events.'
   → restored 'he' (LLM tried 'be')  context: 'third throw may he regarded as a'
-  → attempt 1 rejected: Cleaned text size differs by more than 20% (original printable=1067, cleaned=289)
-  original: In the present section I propose to argue against this interpretation, and in favour of the propensity interpretation, by making use of the results reached in the preceding chapter concerning the signi ficance of the objective experimental conditions f or the interpretation of probabilities. I propose to proceed as follows. (1) I will first show that, from the point of view of the frequency interpretation, objections must be raised against the propensity interpretation which seem to make the latter unacceptable. (2) I will next give a preliminary reply to these objections; and I will then present, as point (3), a certain difficulty which the frequency interpretation has to face, though it does not, when first raised, look like a serious difficulty. (4) Ultimately I will show that in order to get over this difficulty, the frequency interpretation is forced to adopt a modification which appears to be slight at first sight; yet the adoption of this apparently slight modification turns out to be equivalent to the adoption of the propensity interpretation.
-  cleaned:  In the present section I propose to argue against this interpretation and in favour of the propensity interpretation, by making use of the results reached in the preceding chapter concerning the significance of the objective experimental conditions for the interpretation of probabilities.
   [Page 351 / Page 392]
   [Page 352 / Page 393]
   [Page 353 / Page 394]
   [Page 354 / Page 395]
-  → restored 'be' (LLM tried 'bc')  context: 'this kind. For be is not, in'
-  → restored 'be' (LLM tried 'bc')  context: 'three elements. In be the six may'
-  → restored 'be' (LLM tried 'bc')  context: 'in the sequence be because we know'
   [Page 355 / Page 396]
-  → restored 'be,' (LLM tried 'bc,')  context: 'The other part, be, consists of throws'
+  → restored 'the' (LLM tried 'a')  context: 'of throws with the loaded die will'
   [Page 356 / Page 397]
-  → attempt 1 rejected: Cleaned text size differs by more than 20% (original printable=395, cleaned=306)
+  → attempt 1 rejected: Cleaned text size differs by more than 20% (original printable=395, cleaned=290)
   original: The frequency interpretation always takes probability as relative to a sequence which is assumed as 'given' ; and it works on the assumption that a probability is a property of some given sequence. But with our modification, the sequence in its turn is defined by its set of generating conditions; and in such a way that probability may now be said to be a property of the generating conditions.
-  cleaned:  The frequency interpretation always takes probability as relative to a sequence which is assumed as 'given'; but with our modification, the sequence in its turn is defined by its set of generating conditions; and in such a way that probability may now be said to be a property of the generating conditions.
-  → attempt 2 rejected: Cleaned text size differs by more than 20% (original printable=395, cleaned=294)
+  cleaned:  The frequency interpretation always takes probability as relative to a sequence which is assumed as 'given'; but with our modification, the sequence is defined by its set of generating conditions, in such a way that probability may now be said to be a property of the generating conditions.
+  → attempt 2 rejected: Cleaned text size differs by more than 20% (original printable=395, cleaned=292)
   original: The frequency interpretation always takes probability as relative to a sequence which is assumed as 'given' ; and it works on the assumption that a probability is a property of some given sequence. But with our modification, the sequence in its turn is defined by its set of generating conditions; and in such a way that probability may now be said to be a property of the generating conditions.
-  cleaned:  The frequency interpretation always takes probability as relative to a sequence which is assumed as 'given'; but with our modification, the sequence is defined by its set of generating conditions; and in such a way that probability may now be said to be a property of the generating conditions.
+  cleaned:  The frequency interpretation always takes probability as relative to a sequence which is assumed as given; but with our modification, the sequence is defined by its set of generating conditions, and in such a way that probability may now be said to be a property of the generating conditions.
   → attempt 3 rejected: Cleaned text size differs by more than 20% (original printable=395, cleaned=306)
   original: The frequency interpretation always takes probability as relative to a sequence which is assumed as 'given' ; and it works on the assumption that a probability is a property of some given sequence. But with our modification, the sequence in its turn is defined by its set of generating conditions; and in such a way that probability may now be said to be a property of the generating conditions.
   cleaned:  The frequency interpretation always takes probability as relative to a sequence which is assumed as 'given'; but with our modification, the sequence in its turn is defined by its set of generating conditions; and in such a way that probability may now be said to be a property of the generating conditions.
@@ -561,7 +602,6 @@ Let us remember what Hume tried to show (in my opinion successfully, as far as l
   [Page 360 / Page 401]
   [Page 361 / Page 402]
   [Page 362 / Page 403]
-  → restored 'its' (LLM tried 'their')  context: "Wald's result7 received its finishing touches, as"
   [Page 363 / Page 404]
   [Page 364 / Page 405]
   → restored 'terns' (LLM tried 'terms')  context: 'terns must always exist,'
@@ -571,18 +611,16 @@ Let us remember what Hume tried to show (in my opinion successfully, as far as l
   → restored 'which' (LLM tried 'that')  context: 'the greatest interest which cannot be brought'
   → restored ["n'", 'In'] (LLM tried 'n'/n')  context: "a, so that n' In is the relative"
   [Page 368 / Page 409]
-  → restored ["n'", 'In'] (LLM tried 'n'ln')  context: "will say that n' In has a limit"
-  → restored ['p', 'l', '(,'] (LLM tried 'p(l,')  context: 'may call it p l (, a}-if and only'
   [Page 369 / Page 410]
-  → restored 'log' (LLM tried '∇')  context: '(2 E2 4 log E + 4'
-  → restored 'log' (LLM tried '∇')  context: 'E + 4 log 2 -2 log'
   [Page 370 / Page 411]
   [Page 371 / Page 412]
   [Page 372 / Page 413]
-  → restored ['n-1', '-insensitive'] (LLM tried 'n-insensitive')  context: 'its predecessors, or n-1 -insensitive to predecessor selection;'
   [Page 373 / Page 414]
+  → restored 'which' (LLM tried 'that')  context: 'The problem which I have called'
   [Page 374 / Page 415]
   [Page 375 / Page 416]
+  [LLM FOOTNOTE] 'The neo-classical theory does not assume preferential status for equi-probability; more especially, '
+  → restored 'of' (LLM tried 'for')  context: 'other method exists of assessing the actual'
   [Page 376 / Page 417]
   [Page 377 / Page 418]
   [Page 378 / Page 419]
@@ -592,17 +630,18 @@ Let us remember what Hume tried to show (in my opinion successfully, as far as l
   → attempt 1 rejected: Cleaned text size differs by more than 20% (original printable=837, cleaned=199)
   original: Secondly, it is quite true that if we interpret 'probability' in this way we are bound to concede that a probability of 0. 50 implies, with probability 1, that the event occurs in 50 cases out of 1 00. Indeed, the fact that this conclusion is justified is now demonstrable. But it is now demonstrable without assuming a frequency definition. Thus there is no question of the frequency definition being inadequate. It has merely become unnecessary: we can now derive consequences concerning frequency limits even if we do not assume that probability means a frequency limit; and we thus make it possible to attach to 'probability' a wider and vaguer meaning, without threatening the bridge on which we can move from probability s t atements on the one side to frequency statements which can be subjected to statistical tests on the other.
   cleaned:  Secondly, it is quite true that if we interpret 'probability' in this way we are bound to concede that a probability of 0.50 implies, with probability 1, that the event occurs in 50 cases out of 100.
+  → attempt 2 rejected: Cleaned text size differs by more than 20% (original printable=837, cleaned=199)
+  original: Secondly, it is quite true that if we interpret 'probability' in this way we are bound to concede that a probability of 0. 50 implies, with probability 1, that the event occurs in 50 cases out of 1 00. Indeed, the fact that this conclusion is justified is now demonstrable. But it is now demonstrable without assuming a frequency definition. Thus there is no question of the frequency definition being inadequate. It has merely become unnecessary: we can now derive consequences concerning frequency limits even if we do not assume that probability means a frequency limit; and we thus make it possible to attach to 'probability' a wider and vaguer meaning, without threatening the bridge on which we can move from probability s t atements on the one side to frequency statements which can be subjected to statistical tests on the other.
+  cleaned:  Secondly, it is quite true that if we interpret 'probability' in this way we are bound to concede that a probability of 0.50 implies, with probability 1, that the event occurs in 50 cases out of 100.
   [Page 382 / Page 423]
-  → restored 'realize' (LLM tried 'realise')  context: 'neo-classical theory might realize the main intention'
   [LLM FOOTNOTE] '81 do not think that the point was adequately brought out in the highly interesting discussions of 1'
   [Page 383 / Page 424]
   [Page 384 / Page 425]
   [Page 385 / Page 426]
-  → restored 'hypothetically' (LLM tried 'hypotheitcally')  context: 'freely assigned (or hypothetically estimated) numbers will'
-  → restored 'hypothetically' (LLM tried 'hypotheitcally')  context: 'freely chosen (or hypothetically estimated), subject to'
-  → restored 'I' (LLM tried '1)')  context: '2 m - I different possible sequences.'
   [Page 386 / Page 427]
+  → restored 'generalized' (LLM tried 'generalised')  context: 'theory, probabilities are generalized measures of possibilities'
   [Page 387 / Page 428]
+  → restored ['f', 'f'] (LLM tried 'ff.')  context: '10, pp. 6 f f Kemble speaks of'
   [Page 388 / Page 429]
   → restored 'analysed' (LLM tried 'analyzed')  context: 'next throw-may be analysed along the following'
   [Page 389 / Page 430]
@@ -618,12 +657,11 @@ Let us remember what Hume tried to show (in my opinion successfully, as far as l
   [Page 396 / Page 437]
   [Page 397 / Page 438]
   [Page 398 / Page 439]
-  → restored 'realized' (LLM tried 'realised')  context: 'that I first realized the need for'
   [Page 399 / Page 440]
   [Page 400 / Page 441]
   [Page 401 / Page 442]
 
-[TIMING] validation=0.87s (200 skipped) | llm=7747.63s (1395 calls) | total_timed=7748.50s
+[TIMING] validation=1.22s (220 skipped) | llm=6437.32s (1408 calls) | total_timed=6438.54s
 Dry run: Did not generate audio.
 
 Saved to ..\output\Realism and the Aim of Science -- Karl Popper -- 2017_processed_paragraphs.txt

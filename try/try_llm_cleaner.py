@@ -55,6 +55,7 @@ main(
     verbose=True,
     skip_index=True,
     skip_front_matter=True,
+    formula_mode='clean',
 )
 
 if not SOURCE.exists():
