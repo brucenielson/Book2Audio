@@ -17,10 +17,11 @@ from text_cleaner import TextCleaner
 from conftest import TEST_LLM_MODEL
 
 
-# ── TextCleaner helpers ───────────────────────────────────────────────────────
+# ── Shared LLM cleaner ────────────────────────────────────────────────────────
 
-def make_cleaner(model: str = TEST_LLM_MODEL, max_retries: int = 3) -> TextCleaner:
-    return TextCleaner(model=model, max_retries=max_retries, temperature=0)
+@pytest.fixture(scope="session")
+def cleaner() -> TextCleaner:
+    return TextCleaner(model=TEST_LLM_MODEL, max_retries=3, temperature=0)
 
 
 # ── DoclingParser helpers ─────────────────────────────────────────────────────
@@ -110,7 +111,7 @@ def _compare_files(output_path: Path, canonical_path: Path) -> None:
 
 
 @pytest.fixture(scope="session")
-def process_all_documents_with_cleaner():
+def process_all_documents_with_cleaner(cleaner):
     """Process all PDFs and EPUBs using the LLM cleaner and write output to test_documents_llm/."""
     pdf_files = list(TEST_DOCUMENTS_LLM.glob("*.pdf"))
     epub_files = list(TEST_DOCUMENTS_LLM.glob("*.epub"))
@@ -119,7 +120,6 @@ def process_all_documents_with_cleaner():
         pytest.skip("No PDF or EPUB files found in test_documents_llm/")
 
     TEST_DOCUMENTS_LLM.mkdir(exist_ok=True)
-    cleaner = TextCleaner(model=TEST_LLM_MODEL, temperature=0)
 
     for pdf_path in pdf_files:
         parser = DoclingParser(source=pdf_path, meta_data={"source": pdf_path.name},
@@ -146,9 +146,8 @@ def process_all_documents_with_cleaner():
 
 class TestTextCleanerIntegration:
     @pytest.mark.integration
-    def test_real_llm_call_body(self) -> None:
+    def test_real_llm_call_body(self, cleaner) -> None:
         """Integration test — requires a running LLM."""
-        cleaner = make_cleaner()
         paragraph = "This is a sample paragraph from a book about philosophy and rationality."
         cleaned, classification = cleaner.clean(paragraph)
         assert classification == 'body'
@@ -157,9 +156,8 @@ class TestTextCleanerIntegration:
         assert cleaned == paragraph
 
     @pytest.mark.integration
-    def test_real_llm_call_footnote(self) -> None:
+    def test_real_llm_call_footnote(self, cleaner) -> None:
         """Integration test — requires a running LLM."""
-        cleaner = make_cleaner()
         page_context = (
             "Others have found very similar defection rates in various minor religious sects.1\n\n"
             "1 This ignores the interesting question of whether the defectors have given up "
@@ -176,45 +174,40 @@ class TestTextCleanerIntegration:
                            "all the beliefs in the doctrines of the movement they have quit.")
 
     @pytest.mark.integration
-    def test_real_llm_call_drop(self) -> None:
+    def test_real_llm_call_drop(self, cleaner) -> None:
         """Integration test — requires a running LLM."""
-        cleaner = make_cleaner()
         cleaned, classification = cleaner.clean(
             "Chapter 1 ... 1\nChapter 2 ... 15\nChapter 3 ... 42"
         )
         assert classification == 'drop'
 
     @pytest.mark.integration
-    def test_real_llm_call_body_unchanged(self) -> None:
+    def test_real_llm_call_body_unchanged(self, cleaner) -> None:
         """Clean prose with no issues should be returned exactly as-is."""
-        cleaner = make_cleaner()
         paragraph = "The French Revolution began in 1789 and fundamentally transformed the political landscape of Europe."
         cleaned, classification = cleaner.clean(paragraph)
         assert classification == 'body'
         assert cleaned == paragraph
 
     @pytest.mark.integration
-    def test_real_llm_call_ocr_word_break_fixed(self) -> None:
+    def test_real_llm_call_ocr_word_break_fixed(self, cleaner) -> None:
         """Mid-word line breaks introduced by OCR should be rejoined."""
-        cleaner = make_cleaner()
         paragraph = "The development of mod- ern philosophy can be traced to the six- teenth century."
         cleaned, classification = cleaner.clean(paragraph)
         assert classification == 'body'
         assert cleaned == "The development of modern philosophy can be traced to the sixteenth century."
 
     @pytest.mark.integration
-    def test_real_llm_call_trailing_footnote_marker_stripped(self) -> None:
+    def test_real_llm_call_trailing_footnote_marker_stripped(self, cleaner) -> None:
         """A trailing footnote number at the end of a body paragraph should be removed."""
-        cleaner = make_cleaner()
         paragraph = "The movement grew rapidly throughout the nineteenth century, attracting followers from across the social spectrum. 4"
         cleaned, classification = cleaner.clean(paragraph)
         assert classification == 'body'
         assert cleaned == "The movement grew rapidly throughout the nineteenth century, attracting followers from across the social spectrum."
 
     @pytest.mark.integration
-    def test_real_llm_call_footnote_identified_with_page_context(self) -> None:
+    def test_real_llm_call_footnote_identified_with_page_context(self, cleaner) -> None:
         """A footnote paragraph should be identified and its leading number stripped when page context is provided."""
-        cleaner = make_cleaner()
         page_context = (
             "The movement grew rapidly throughout the nineteenth century, "
             "attracting followers from across the social spectrum.4\n\n"
@@ -226,18 +219,16 @@ class TestTextCleanerIntegration:
         assert cleaned.replace('–', '-') == "For full membership statistics by region, see Jones (1987), pp. 142-156."
 
     @pytest.mark.integration
-    def test_real_llm_call_footnote_without_page_context(self) -> None:
+    def test_real_llm_call_footnote_without_page_context(self, cleaner) -> None:
         """Without page context the response should still be valid, even if classification varies."""
-        cleaner = make_cleaner()
         paragraph = "4 For full membership statistics by region, see Jones (1987), pp. 142-156."
         cleaned, classification = cleaner.clean(paragraph)
         assert classification in ('body', 'footnote', 'drop')
         assert isinstance(cleaned, str)
 
     @pytest.mark.integration
-    def test_real_llm_call_drop_toc(self) -> None:
+    def test_real_llm_call_drop_toc(self, cleaner) -> None:
         """An obvious table of contents should be classified as drop."""
-        cleaner = make_cleaner()
         cleaned, classification = cleaner.clean(
             "Introduction ... 1\nChapter One: The Early Years ... 15\n"
             "Chapter Two: The Middle Period ... 47\nConclusion ... 203"
@@ -249,7 +240,7 @@ class TestTextCleanerIntegration:
 
 class TestDoclingParserIntegration:
     @pytest.mark.integration
-    def test_mislabelled_footnote_dropped_by_cleaner(self) -> None:
+    def test_mislabelled_footnote_dropped_by_cleaner(self, cleaner) -> None:
         """A footnote mislabeled as body text should be identified and dropped by the LLM cleaner."""
         texts = [
             _make_text_item(
@@ -262,8 +253,7 @@ class TestDoclingParserIntegration:
                 page_no=1
             ),
         ]
-        parser = _make_parser(texts, cleaner=TextCleaner(model=TEST_LLM_MODEL, temperature=0),
-                               include_notes=False)
+        parser = _make_parser(texts, cleaner=cleaner, include_notes=False)
         docs, meta = parser.run()
         assert any("religious sects" in d for d in docs)
         assert all("This ignores the interesting question" not in d for d in docs)
