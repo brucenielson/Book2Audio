@@ -539,48 +539,48 @@ def make_chunk_with_pages(text: str, page_label: str, physical_page: str) -> Raw
 class TestReportPageProgress:
     """Tests for TextProcessor._report_page_progress.
 
-    Progress is printed when a milestone page is crossed.  The milestone
-    calculation must use physical_page_# (always an integer) so that Roman
-    numeral PDF labels don't silently suppress reporting.  The display
-    should show the PDF label when it differs from the physical number.
+    In verbose mode, progress is buffered in _pending_header rather than
+    printed immediately, and only flushed when something noteworthy happens
+    on that page (e.g. the LLM is invoked).  In non-verbose mode, progress
+    is still printed immediately at every 10-page boundary.
+
+    The milestone calculation must use physical_page_# (always an integer)
+    so that Roman numeral PDF labels don't silently suppress reporting.  The
+    display should show the PDF label when it differs from the physical number.
     """
 
-    def test_roman_numeral_label_still_reports_using_physical(self, capsys) -> None:
+    def test_roman_numeral_label_still_reports_using_physical(self) -> None:
         """When page_# is a Roman numeral, physical_page_# drives reporting."""
         processor = TextProcessor(verbose=True)
         processor._init_state()
         chunk = make_chunk_with_pages("Text.", page_label='i', physical_page='1')
         processor._report_page_progress(chunk)
-        out = capsys.readouterr().out
-        assert '[Page' in out
+        assert '[Page' in processor._pending_header
 
-    def test_matching_label_prints_single_page_number(self, capsys) -> None:
-        """When label equals physical, print just '[Page N]'."""
+    def test_matching_label_pending_header_contains_single_page_number(self) -> None:
+        """When label equals physical, pending header contains '[Page N]'."""
         processor = TextProcessor(verbose=True)
         processor._init_state()
         chunk = make_chunk_with_pages("Text.", page_label='42', physical_page='42')
         processor._report_page_progress(chunk)
-        out = capsys.readouterr().out
-        assert '[Page 42]' in out
-        assert '/' not in out
+        assert '[Page 42]' in processor._pending_header
+        assert '/' not in processor._pending_header
 
-    def test_differing_label_prints_both(self, capsys) -> None:
-        """When label differs from physical, print '[Page <label> / Page <physical>]'."""
+    def test_differing_label_pending_header_contains_both(self) -> None:
+        """When label differs from physical, pending header contains both."""
         processor = TextProcessor(verbose=True)
         processor._init_state()
         chunk = make_chunk_with_pages("Text.", page_label='1', physical_page='41')
         processor._report_page_progress(chunk)
-        out = capsys.readouterr().out
-        assert '[Page 1 / Page 41]' in out
+        assert '[Page 1 / Page 41]' in processor._pending_header
 
-    def test_no_physical_falls_back_to_page_label(self, capsys) -> None:
+    def test_no_physical_falls_back_to_page_label(self) -> None:
         """Without physical_page_#, falls back to page_# for backward compatibility."""
         processor = TextProcessor(verbose=True)
         processor._init_state()
         chunk = make_chunk("Complete sentence.", page='7')
         processor._report_page_progress(chunk)
-        out = capsys.readouterr().out
-        assert '[Page 7]' in out
+        assert '[Page 7]' in processor._pending_header
 
     def test_milestone_every_10_pages_non_verbose(self, capsys) -> None:
         """In non-verbose mode, reports only at every 10-page boundary."""
@@ -603,15 +603,34 @@ class TestReportPageProgress:
         out = capsys.readouterr().out
         assert '[Page' in out
 
-    def test_same_page_not_reported_twice_verbose(self, capsys) -> None:
-        """The same physical page is only reported once even in verbose mode."""
+    def test_same_page_not_pending_twice_verbose(self) -> None:
+        """The same physical page only sets the pending header once."""
         processor = TextProcessor(verbose=True)
         processor._init_state()
         chunk = make_chunk_with_pages("Text.", page_label='5', physical_page='5')
         processor._report_page_progress(chunk)
+        first_pending = processor._pending_header
         processor._report_page_progress(chunk)
+        assert processor._pending_header == first_pending
+
+    def test_page_header_not_printed_when_all_words_valid(self, capsys) -> None:
+        """Page header is not printed when the cleaner is skipped (all words valid)."""
+        cleaner = make_cleaner(classification='body')
+        processor = TextProcessor(cleaner=cleaner, verbose=True)
+        chunk = make_chunk_with_pages("The dog ran quickly.", page_label='5', physical_page='5')
+        processor.process([chunk])
         out = capsys.readouterr().out
-        assert out.count('[Page') == 1
+        assert '[Page' not in out
+
+    def test_page_header_flushed_before_noteworthy_output(self, capsys) -> None:
+        """Page header is printed before LLM output when the cleaner is invoked."""
+        cleaner = make_cleaner(classification='drop')
+        processor = TextProcessor(cleaner=cleaner, verbose=True)
+        chunk = make_chunk_with_pages("Table of c0ntents.", page_label='5', physical_page='5')
+        processor.process([chunk])
+        out = capsys.readouterr().out
+        assert '[Page' in out
+        assert out.index('[Page') < out.index('[LLM DROP]')
 
 
 # --- TestUprfontFootnoteReclassification ---
