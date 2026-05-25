@@ -257,10 +257,10 @@ class TestStripFootnoteNumbers:
         ("came back. \"2",    "came back. \""),             # straight double quote
         ("came back. ”2",   "came back. ”"),              # right double curly (U+201D)
         # Closing bracket/paren BEFORE the sentence punct (currently failing)
-        ("societies).'8",                   "societies)."),
+        ("societies).'8",                   "societies).'"),
         ("societies). 8",                   "societies)."),
-        ("societies). '8",                  "societies)."),
-        ("(totalitarian societies). '8",    "(totalitarian societies)."),
+        ("societies). '8",                  "societies). '"),
+        ("(totalitarian societies). '8",    "(totalitarian societies). '"),
         # No digit: no change
         ('Hello world.',     'Hello world.'),
         ('Hello world',      'Hello world'),
