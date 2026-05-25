@@ -322,7 +322,19 @@ class TestStripFootnoteNumbers:
         ("section 6).1 And being",      "section 6). And being"),
         ("argument.12 The next",        "argument. The next"),
         ("A single observation incompatible with his theory [may demonstrate  ]14 that he has been employing the wrong theory all along. His conceptual scheme must then be abandoned and replaced.'15",
-         "A single observation incompatible with his theory [may demonstrate  ] that he has been employing the wrong theory all along. His conceptual scheme must then be abandoned and replaced.'")
+         "A single observation incompatible with his theory [may demonstrate  ] that he has been employing the wrong theory all along. His conceptual scheme must then be abandoned and replaced.'"),
+        # Right curly single quote (U+2019) as closing quote before footnote, mid-paragraph
+        # e.g. "logic offers for our choice.'2 The key words" (PDF typography)
+        ("logic offers for our choice.’2 The key words",
+         "logic offers for our choice.’ The key words"),
+        # Right curly double quote (U+201D) as closing quote before footnote, mid-paragraph
+        ("he writes: “some text.”3 The next sentence",
+         "he writes: “some text.” The next sentence"),
+
+        ("logic offers for our choice.'2 The key words",
+         "logic offers for our choice.' The key words"),
+        ("he writes: “some text.\"3 The next sentence",
+         "he writes: “some text.\" The next sentence"),
     ])
     def test_mid_paragraph_no_space_footnote(self, text: str, expected: str) -> None:
         assert strip_footnote_numbers(text) == expected
