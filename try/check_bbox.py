@@ -2,7 +2,7 @@ import json
 import sys
 sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 
-path = "documents/Realism and the Aim of Science -- Karl Popper -- 2017.json"
+path = "../documents/Realism and the Aim of Science -- Karl Popper -- 2017.json"
 with open(path, "r", encoding="utf-8") as f:
     data = json.load(f)
 

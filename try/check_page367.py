@@ -5,7 +5,7 @@ sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 from docling_core.types import DoclingDocument
 
 TARGET_PAGE = 293
-path = "documents/Realism and the Aim of Science -- Karl Popper -- 2017.json"
+path = "../documents/Realism and the Aim of Science -- Karl Popper -- 2017.json"
 
 doc = DoclingDocument.model_validate_json(open(path, encoding='utf-8').read())
 
