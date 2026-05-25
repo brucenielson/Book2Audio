@@ -330,6 +330,21 @@ class TestStripFootnoteNumbers:
         # Right curly double quote (U+201D) as closing quote before footnote, mid-paragraph
         ("he writes: “some text.”3 The next sentence",
          "he writes: “some text.” The next sentence"),
+        # space + right curly single (U+2019) — the Popper regression
+        (f"which logic offers for our choice. {chr(0x2019)}2 The key words",
+         f"which logic offers for our choice. {chr(0x2019)} The key words"),
+
+        # space + straight single (U+0027)
+        ("which logic offers for our choice. '2 The key words",
+         "which logic offers for our choice. ' The key words"),
+
+        # space + right curly double (U+201D)
+        (f"which logic offers for our choice. {chr(0x201D)}2 The key words",
+         f"which logic offers for our choice. {chr(0x201D)} The key words"),
+
+        # space + straight double (U+0022)
+        ('which logic offers for our choice. "2 The key words',
+         'which logic offers for our choice. " The key words'),
 
         ("logic offers for our choice.'2 The key words",
          "logic offers for our choice.' The key words"),
