@@ -372,8 +372,33 @@ class TestStripFootnoteNumbers:
          "if true, would make them valid. ' Thus Russell was prepared to adopt what Kant"),
 
         # Full paragraph regression: '9 mid-paragraph after long quoted passage
-        ("Following the passage already quoted,  Russell writes :  'If I  ever have  the  leisure  to  undertake  another  serious  investigation  of  a philosophical  problem, I shall  attempt  to  analyze  the  inferences from experience to the world of physics, assuming them capable of validity, and  seeking to  discover what  principles  of inference,  if true, would make them valid.  '9 Thus Russell was prepared to adopt what Kant called a 'transcendental' method: the method of taking scientific knowledge as a fact, and of asking for the principles which would  explain  how  this  fact  was  possible.  The  result  (given  in Russell's Human Knowledge, Its Scope and Its Limits, 1 948) could have been predicted-in fact, I had correctly diagnosed it by my remark  at  the  Aristotelian  Society.  It was  a  theory  of  induction which accepted an inductive principle-or some rules of inductive inference-as valid a  priori. The difference between Russell's aprior­ ism and Kant's mainly lies in Russell's formulation of his inductive principle as a set of rules of probable inference.",
-         "Following the passage already quoted,  Russell writes :  'If I  ever have  the  leisure  to  undertake  another  serious  investigation  of  a philosophical  problem, I shall  attempt  to  analyze  the  inferences from experience to the world of physics, assuming them capable of validity, and  seeking to  discover what  principles  of inference,  if true, would make them valid.  ' Thus Russell was prepared to adopt what Kant called a 'transcendental' method: the method of taking scientific knowledge as a fact, and of asking for the principles which would  explain  how  this  fact  was  possible.  The  result  (given  in Russell's Human Knowledge, Its Scope and Its Limits, 1 948) could have been predicted-in fact, I had correctly diagnosed it by my remark  at  the  Aristotelian  Society.  It was  a  theory  of  induction which accepted an inductive principle-or some rules of inductive inference-as valid a  priori. The difference between Russell's aprior­ ism and Kant's mainly lies in Russell's formulation of his inductive principle as a set of rules of probable inference."),
+        ("if true, would make them valid.  '9 Thus Russell",
+         "if true, would make them valid.  ' Thus Russell"),
+        # Double-space OCR artifact between sentence punct and closing quote
+        (f"would make them valid.  {chr(0x2019)}9 Thus Russell was prepared",
+         f"would make them valid.  {chr(0x2019)} Thus Russell was prepared"),
+
+        # Double-space OCR artifact + straight single quote
+        ("would make them valid.  '9 Thus Russell was prepared",
+         "would make them valid.  ' Thus Russell was prepared"),
+        # Double-space OCR artifact + straight double quote
+        ('would make them valid.  "9 Thus Russell was prepared',
+         'would make them valid.  " Thus Russell was prepared'),
+        # Double-space OCR artifact + right curly single (U+2019)
+        (f"would make them valid.  {chr(0x2019)}9 Thus Russell was prepared",
+         f"would make them valid.  {chr(0x2019)} Thus Russell was prepared"),
+        # Double-space OCR artifact + right curly double (U+201D)
+        (f"would make them valid.  {chr(0x201D)}9 Thus Russell was prepared",
+         f"would make them valid.  {chr(0x201D)} Thus Russell was prepared"),
+        # Double-space after exclamation mark
+        (f"Remarkable!  {chr(0x2019)}9 Thus Russell was prepared",
+         f"Remarkable!  {chr(0x2019)} Thus Russell was prepared"),
+        # Double-space after question mark
+        (f"Is it true?  {chr(0x2019)}9 Thus Russell was prepared",
+         f"Is it true?  {chr(0x2019)} Thus Russell was prepared"),
+        # Triple-space (verify handles more than exactly 2 spaces)
+        (f"would make them valid.   {chr(0x2019)}9 Thus Russell was prepared",
+         f"would make them valid.   {chr(0x2019)} Thus Russell was prepared"),
     ])
     def test_mid_paragraph_no_space_footnote(self, text: str, expected: str) -> None:
         assert strip_footnote_numbers(text) == expected
