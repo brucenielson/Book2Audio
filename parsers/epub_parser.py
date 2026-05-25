@@ -411,7 +411,8 @@ class EpubParser(BaseParser):
 
         processor: TextProcessor = TextProcessor(min_paragraph_size=self._min_paragraph_size,
                                                   cleaner=self._cleaner,
-                                                  verbose=self._verbose)
+                                                  verbose=self._verbose,
+                                                  strip_footnote_markers=False)
         parsed_chunks = processor.process(chunks)
 
         docs: list[str] = [chunk.text for chunk in parsed_chunks]
