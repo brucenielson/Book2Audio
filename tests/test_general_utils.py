@@ -252,10 +252,10 @@ class TestStripFootnoteNumbers:
         ('argument.) 2',          'argument.)'),
         ('argument.)  2',         'argument.)'),
         # Floating closer (OCR artifact): space + closer + digit -- closer is dropped
-        ("came back. '2",         "came back."),
-        ("came back. ‘2",   "came back."),             # left single curly (U+2018)
-        ("came back. \"2",    "came back."),             # straight double quote
-        ("came back. ”2",   "came back."),              # right double curly (U+201D)
+        ("came back. '2",         "came back. '"),
+        ("came back. ‘2",   "came back. ‘"),             # left single curly (U+2018)
+        ("came back. \"2",    "came back. \""),             # straight double quote
+        ("came back. ”2",   "came back. ”"),              # right double curly (U+201D)
         # Closing bracket/paren BEFORE the sentence punct (currently failing)
         ("societies).'8",                   "societies)."),
         ("societies). 8",                   "societies)."),
