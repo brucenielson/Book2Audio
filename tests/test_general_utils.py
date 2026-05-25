@@ -447,6 +447,10 @@ class TestStripFootnoteNumbers:
         # Mathematical quoted statement opening with a number — must not strip the number
         (f"the statement {chr(0x2018)}23 is the smallest prime greater than 19",
          f"the statement {chr(0x2018)}23 is the smallest prime greater than 19"),
+
+        # Parenthetical citation — page number must not be stripped
+        ("discourse proves impossible. (Harris 2006, p. 25)",
+         "discourse proves impossible. (Harris 2006, p. 25)"),
     ])
     def test_no_false_positives(self, text: str, expected: str) -> None:
         assert strip_footnote_numbers(text) == expected
