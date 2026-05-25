@@ -399,10 +399,14 @@ def strip_footnote_numbers(p_str: str) -> str:
     # e.g. "Hello world. 1" -> "Hello world."
     #      "hit you.'2"     -> "hit you.'"
     #      "argument.) 2"   -> "argument.)"
-    p_str = re.sub('(\\w[\'"\\’”)\\]]*\s*[.!?][\'"\\’”)\\]]*)\\s*\\d+\\s*$', r'\1', p_str)
+    #      "defined'. 3)"   -> "defined'.)"
+    _cl = chr(0x27) + '"' + chr(0x2019) + chr(0x201D) + r')\]'
+    p_str = re.sub(rf'(\w[{_cl}]*\s*[.!?][{_cl}]*)\s*\d+\s*([{_cl}]*)\s*$',
+                   r'\1\2', p_str)
     # Strip trailing footnote when a space separates sentence-ending punctuation
     # from a closing quote before the number, e.g. 'hit you. "2' -> 'hit you.'
-    p_str = re.sub('(\\w[\'"\\’”)\\]]*\s*[.!?]\\s+[\'"\\’”)\\]]*)\\s*\\d+\\s*$', r'\1', p_str)
+    p_str = re.sub(rf'(\w[{_cl}]*\s*[.!?]\s+[{_cl}]*)\s*\d+\s*([{_cl}]*)\s*$',
+                   r'\1\2', p_str)
     # Remove footnote numbers directly attached (no space) to sentence-ending
     # punctuation, mid-paragraph or at end of string.
     # e.g. "section).1 And" -> "section). And", "penicillin.4 It" -> "penicillin. It"
@@ -410,7 +414,7 @@ def strip_footnote_numbers(p_str: str) -> str:
     # Quotes (' and ") only count as footnote separators when directly preceded by
     # sentence-ending punctuation, preventing false positives on opening quotes like
     # "The '10 percent'" where the quote introduces a quoted phrase.
-    p_str = re.sub(r"(?:(?<!\d)\.|[!?)\]]|(?<=[.!?])['\"])\d+(?=\s|$)",
+    p_str = re.sub(r"(?:(?<!\d)(?<![.][A-Z])\.|[!?)\]]|(?<=[.!?])['\"])\d+(?=\s|$)",
                    lambda m: m.group(0)[0], p_str)
     return p_str
 

@@ -6,7 +6,7 @@ from pathlib import Path
 
 from text_chunk import RawChunk, ParsedChunk, LABEL_FOOTNOTE, LABEL_FORMULA
 from word_validator import word_validator
-from utils.general_utils import is_sentence_end, build_paragraph, clean_text
+from utils.general_utils import is_sentence_end, build_paragraph, clean_text, is_math_heavy
 
 from text_cleaner import TextCleaner, CLASSIFICATION_FOOTNOTE, CLASSIFICATION_DROP, FormulaMode
 
@@ -145,8 +145,12 @@ class TextProcessor:
             if _DEBUG_BREAK_TEXT and _DEBUG_BREAK_TEXT in chunk.text:
                 pass
             chunk.text = word_validator.combine_hyphenated_words(chunk.text)
+            # Reclassify math-heavy section headers as formulas before cleaning,
+            # so footnote stripping is not applied to formula notation.
+            if chunk.is_section_header and is_math_heavy(chunk.text):
+                chunk.label = LABEL_FORMULA
             chunk.text = clean_text(chunk.text,
-                                    remove_footnotes=self._strip_footnote_markers and not chunk.is_footnote)
+                                    remove_footnotes=self._strip_footnote_markers and not chunk.is_footnote and not chunk.is_formula)
             if chunk.is_body_text and _FOOTNOTE_MARKER_RE.match(chunk.text):
                 chunk.label = LABEL_FOOTNOTE
 
