@@ -285,7 +285,7 @@ class TestStripFootnoteNumbers:
         ('Hello world.  1',  'Hello world.'),
         # Closing quote/bracket AFTER the sentence punct -- no space before digit
         ("came back.'2",          "came back.'"),           # straight single quote
-        ("came back.‘2",    "came back.‘"),      # left single curly (U+2018)
+        ("came back.’2",    "came back.’"),      # right single curly (U+2019)
         ("came back.\"2",    "came back.\""),          # straight double quote
         ("came back.”2",    "came back.”"),       # right double curly (U+201D)
         ('argument.)2',           'argument.)'),
@@ -296,7 +296,7 @@ class TestStripFootnoteNumbers:
         ('argument.)  2',         'argument.)'),
         # Floating closer (OCR artifact): space + closer + digit -- closer is dropped
         ("came back. '2",         "came back. '"),
-        ("came back. ‘2",   "came back. ‘"),             # left single curly (U+2018)
+        ("came back. ’2",   "came back. ’"),             # right single curly (U+2019)
         ("came back. \"2",    "came back. \""),             # straight double quote
         ("came back. ”2",   "came back. ”"),              # right double curly (U+201D)
         # Closing bracket/paren BEFORE the sentence punct (currently failing)
@@ -333,6 +333,9 @@ class TestStripFootnoteNumbers:
         ("R1.2 (prior) = result.",      "R1.2 (prior) = result."),
         # Space before number is out of scope for this fix
         ("penicillin. 12 It describes", "penicillin. 12 It describes"),
+        # Opening curly quote before a number must not strip the number (false positive guard)
+        ("merely an appropriate technique. ‘10", "merely an appropriate technique. ‘10"),
+        ("merely an appropriate technique. The '10 percent.'", "merely an appropriate technique. The '10 percent.'")
     ])
     def test_no_false_positives(self, text: str, expected: str) -> None:
         assert strip_footnote_numbers(text) == expected
