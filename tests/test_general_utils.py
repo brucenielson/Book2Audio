@@ -54,12 +54,41 @@ class TestIsSentenceEnd:
         'Hello world. "',      # straight double quote
         "Hello world. ’",  # right single curly
         "Hello world. ”",  # right double curly
-        # Floating closer + footnote number should still preserve sentence ending
-        "latent content of dreams. '",
-        # Space before period + floating closer + footnote number
-        "statistics . '",
+        "latent content of dreams. '", # Floating closer + footnote number should still preserve sentence ending
+        "statistics . '", # Space before period + floating closer + footnote number
+        "then be abandoned and replaced.'",
+        "then be abandoned and replaced.\"",
+        "then be abandoned and replaced.’",
+        "then be abandoned and replaced.”",
+
+        "then be abandoned and replaced.')",
+        "then be abandoned and replaced.\")",
+        "then be abandoned and replaced.’)",
+        "then be abandoned and replaced.”)",
+        "then be abandoned and replaced.)'",
+        "then be abandoned and replaced.)\"",
+        "then be abandoned and replaced.)’",
+        "then be abandoned and replaced.)”",
+
+        "then be abandoned and replaced.']",
+        "then be abandoned and replaced.\"]",
+        "then be abandoned and replaced.’]",
+        "then be abandoned and replaced.”]",
+        "then be abandoned and replaced.]'",
+        "then be abandoned and replaced.]\"",
+        "then be abandoned and replaced.]’",
+        "then be abandoned and replaced.]”",
+
+        "then be abandoned and replaced.'}",
+        "then be abandoned and replaced.\"}",
+        "then be abandoned and replaced.’}",
+        "then be abandoned and replaced.”}",
+        "then be abandoned and replaced.}'",
+        "then be abandoned and replaced.}\"",
+        "then be abandoned and replaced.}’",
+        "then be abandoned and replaced.}”",
     ])
-    def test_floating_closer_is_true(self, text: str) -> None:
+    def test_sentence_endings(self, text: str) -> None:
         assert is_sentence_end(text) is True
 
 
@@ -282,6 +311,7 @@ class TestStripFootnoteNumbers:
         ("latent content of dreams. '11", "latent content of dreams. '"),
         # Space before period + floating closer + footnote number
         ("statistics . '5", "statistics . '"),
+        ("then be abandoned and replaced.'15", "then be abandoned and replaced.'"),
     ])
     def test_trailing_footnote_number(self, text: str, expected: str) -> None:
         assert strip_footnote_numbers(text) == expected

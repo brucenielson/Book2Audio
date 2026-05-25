@@ -374,10 +374,8 @@ def is_sentence_end(text: str) -> bool:
     if last in _SENTENCE_END:
         return True
     # Closing bracket/quote immediately after sentence-ending punctuation.
-    return (
-        last in _CLOSING
-        and text[:-1].rstrip().endswith(tuple(_SENTENCE_END))
-    )
+    return last in _CLOSING and text[:-1].rstrip().endswith(tuple(_SENTENCE_END))
+
 
 def strip_footnote_numbers(p_str: str) -> str:
     """Remove footnote markers from paragraph text.
