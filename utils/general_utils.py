@@ -423,6 +423,13 @@ def strip_footnote_numbers(p_str: str) -> str:
     # e.g. "valid.  '9 Thus" -> "valid.  ' Thus". Python re lookbehinds are fixed-width
     # so two-or-more spaces cannot be expressed as a lookbehind — a capturing group is used.
     p_str = re.sub(rf"([.!?]\s{{2,}}[{_q}])\d+(?=\s|$)", r'\1', p_str)
+    # Handle any quote character directly after a word character followed by a footnote
+    # number, e.g. "'the dice-playing god'2 is" -> "'the dice-playing god' is".
+    # All six quote variants are included (straight, left curly, right curly, single and
+    # double). Apostrophe false positives are not a concern: "can't2" matches "t'2" and
+    # returns "t'", correctly giving "can't".
+    _all_q = _q + chr(0x2018) + chr(0x201C)
+    p_str = re.sub(rf"(\w[{_all_q}])\d+(?=\s|$)", r'\1', p_str)
     return p_str
 
 
