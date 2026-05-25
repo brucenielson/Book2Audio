@@ -231,30 +231,39 @@ class TestFixApostrophes:
 # --- strip_footnote_numbers ---
 
 class TestStripFootnoteNumbers:
-    @pytest.mark.parametrize("text, expected", [
-        # Basic trailing number after sentence-ending punctuation
-        ("Hello world.1",   "Hello world."),
-        ("Hello world.123", "Hello world."),
-        ("Hello world.",    "Hello world."),
-        ("Hello world",     "Hello world"),
-        # Trailing number after closing quote or paren following the punctuation
-        ("came back and hit you.'2",  "came back and hit you.'"),
-        ("came back and hit you.' 2", "came back and hit you.'"),
-        ('came back and hit you."2',  'came back and hit you."'),
-        ("argument.)2",               "argument.)"),
-        ("argument.) 2",              "argument.)"),
-        # Curly quotes (arrive before normalize_quotes runs)
-        ("hit you.’2",           "hit you.’"),
-        ("hit you.”2",           "hit you.”"),
-        # Space between period and quote (actual OCR pattern: ‘hit you. “2’)
-        ("came back and hit you. ‘2", "came back and hit you."),
-        ("came back and hit you. ‘2", "came back and hit you."),
-        ("came back and hit you. “2", "came back and hit you."),
-        ("came back and hit you. \”2", "came back and hit you."),
-        # Closing bracket/paren BEFORE the sentence-ending punctuation
-        ("(remember the totalitarian societies). ‘8", "(remember the totalitarian societies)."),
-        ("societies). ‘8",  "societies)."),
-        ("societies).’8",   "societies)."),
+    @pytest.mark.parametrize('text, expected', [
+        # Basic: digit attached directly to sentence-ending punctuation
+        ('Hello world.1',    'Hello world.'),
+        ('Hello world.123',  'Hello world.'),
+        ('Hello world!1',    'Hello world!'),
+        ('Hello world?1',    'Hello world?'),
+        # Digit separated from punctuation by whitespace
+        ('Hello world. 1',   'Hello world.'),
+        ('Hello world.  1',  'Hello world.'),
+        # Closing quote/bracket AFTER the sentence punct -- no space before digit
+        ("came back.'2",          "came back.'"),           # straight single quote
+        ("came back.‘2",    "came back.‘"),      # left single curly (U+2018)
+        ("came back.\"2",    "came back.\""),          # straight double quote
+        ("came back.”2",    "came back.”"),       # right double curly (U+201D)
+        ('argument.)2',           'argument.)'),
+        ('argument.]2',           'argument.]'),
+        # Closing quote/bracket AFTER the sentence punct -- space(s) before digit
+        ("came back.' 2",         "came back.'"),
+        ('argument.) 2',          'argument.)'),
+        ('argument.)  2',         'argument.)'),
+        # Floating closer (OCR artifact): space + closer + digit -- closer is dropped
+        ("came back. '2",         "came back."),
+        ("came back. ‘2",   "came back."),             # left single curly (U+2018)
+        ("came back. \"2",    "came back."),             # straight double quote
+        ("came back. ”2",   "came back."),              # right double curly (U+201D)
+        # Closing bracket/paren BEFORE the sentence punct (currently failing)
+        ("societies).'8",                   "societies)."),
+        ("societies). 8",                   "societies)."),
+        ("societies). '8",                  "societies)."),
+        ("(totalitarian societies). '8",    "(totalitarian societies)."),
+        # No digit: no change
+        ('Hello world.',     'Hello world.'),
+        ('Hello world',      'Hello world'),
     ])
     def test_trailing_footnote_number(self, text: str, expected: str) -> None:
         assert strip_footnote_numbers(text) == expected
