@@ -411,10 +411,11 @@ def strip_footnote_numbers(p_str: str) -> str:
     # punctuation, mid-paragraph or at end of string.
     # e.g. "section).1 And" -> "section). And", "penicillin.4 It" -> "penicillin. It"
     # The (?<!\d) guard on '.' prevents stripping from decimal numbers like 3.14.
-    # Quotes (' and ") only count as footnote separators when directly preceded by
-    # sentence-ending punctuation, preventing false positives on opening quotes like
-    # "The '10 percent'" where the quote introduces a quoted phrase.
-    p_str = re.sub(r"(?:(?<!\d)(?<![.][A-Z])\.|[!?)\]]|(?<=[.!?])['\"])\d+(?=\s|$)",
+    # Quotes only count as footnote separators when directly preceded by sentence-ending
+    # punctuation, preventing false positives on opening quotes like "The '10 percent'".
+    # Both straight (' ") and right curly (' ") closing quotes are included.
+    _q = chr(0x27) + '"' + chr(0x2019) + chr(0x201D)
+    p_str = re.sub(rf"(?:(?<!\d)(?<![.][A-Z])\.|[!?)\]]|(?<=[.!?])[{_q}])\d+(?=\s|$)",
                    lambda m: m.group(0)[0], p_str)
     return p_str
 
