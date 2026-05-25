@@ -289,7 +289,8 @@ class TestFormulaModeThreading:
     """Tests that formula_mode is set on TextCleaner from the CLI."""
 
     @pytest.mark.parametrize("formula_mode, expected", [
-        (None,               'clean'),            # omitted → default
+        (None,               'none'),            # omitted → default
+        ('none',            'none'),            # string
         ('clean',            'clean'),            # string
         (FormulaMode.AUDIO,  FormulaMode.AUDIO),  # enum
         ('audio',            'audio'),            # string — same mode as FormulaMode.AUDIO above
