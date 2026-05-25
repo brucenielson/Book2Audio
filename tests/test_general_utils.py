@@ -350,6 +350,30 @@ class TestStripFootnoteNumbers:
          "logic offers for our choice.' The key words"),
         ("he writes: “some text.\"3 The next sentence",
          "he writes: “some text.\" The next sentence"),
+
+        # Regression: space + U+2019 + footnote digit mid-paragraph (Russell)
+        (f"would make them valid. {chr(0x2019)}9 Thus Russell was prepared",
+         f"would make them valid. {chr(0x2019)} Thus Russell was prepared"),
+        # Regression: space + U+2019 + footnote digit mid-paragraph (Freud objection)
+        (f"there is no great difficulty in meeting this objection. {chr(0x2019)}3 The method of meeting",
+         f"there is no great difficulty in meeting this objection. {chr(0x2019)} The method of meeting"),
+        # Regression: space + U+2019 + footnote digit mid-paragraph (Freud anxiety-dream)
+        (f"hints towards an explanation of the anxiety-dream. {chr(0x2019)}8 But the hints are unsatisfactory",
+         f"hints towards an explanation of the anxiety-dream. {chr(0x2019)} But the hints are unsatisfactory"),
+        # Regression: space + U+2019 + footnote digit mid-paragraph (positivist)
+        (f"himself a positivist. {chr(0x2019)}5 I can only say that I have always severely criticised",
+         f"himself a positivist. {chr(0x2019)} I can only say that I have always severely criticised"),
+        # Regression: footnote directly after closing U+2019 that ends an inline quoted phrase,
+        # where the quote is NOT preceded by sentence-ending punctuation
+        (f"objection to {chr(0x2018)}the dice-playing god{chr(0x2019)}2 is undoubtedly",
+         f"objection to {chr(0x2018)}the dice-playing god{chr(0x2019)} is undoubtedly"),
+
+        (f"if true, would make them valid. '9 Thus Russell was prepared to adopt what Kant",
+         "if true, would make them valid. ' Thus Russell was prepared to adopt what Kant"),
+
+        # Full paragraph regression: '9 mid-paragraph after long quoted passage
+        ("Following the passage already quoted,  Russell writes :  'If I  ever have  the  leisure  to  undertake  another  serious  investigation  of  a philosophical  problem, I shall  attempt  to  analyze  the  inferences from experience to the world of physics, assuming them capable of validity, and  seeking to  discover what  principles  of inference,  if true, would make them valid.  '9 Thus Russell was prepared to adopt what Kant called a 'transcendental' method: the method of taking scientific knowledge as a fact, and of asking for the principles which would  explain  how  this  fact  was  possible.  The  result  (given  in Russell's Human Knowledge, Its Scope and Its Limits, 1 948) could have been predicted-in fact, I had correctly diagnosed it by my remark  at  the  Aristotelian  Society.  It was  a  theory  of  induction which accepted an inductive principle-or some rules of inductive inference-as valid a  priori. The difference between Russell's aprior­ ism and Kant's mainly lies in Russell's formulation of his inductive principle as a set of rules of probable inference.",
+         "Following the passage already quoted,  Russell writes :  'If I  ever have  the  leisure  to  undertake  another  serious  investigation  of  a philosophical  problem, I shall  attempt  to  analyze  the  inferences from experience to the world of physics, assuming them capable of validity, and  seeking to  discover what  principles  of inference,  if true, would make them valid.  ' Thus Russell was prepared to adopt what Kant called a 'transcendental' method: the method of taking scientific knowledge as a fact, and of asking for the principles which would  explain  how  this  fact  was  possible.  The  result  (given  in Russell's Human Knowledge, Its Scope and Its Limits, 1 948) could have been predicted-in fact, I had correctly diagnosed it by my remark  at  the  Aristotelian  Society.  It was  a  theory  of  induction which accepted an inductive principle-or some rules of inductive inference-as valid a  priori. The difference between Russell's aprior­ ism and Kant's mainly lies in Russell's formulation of his inductive principle as a set of rules of probable inference."),
     ])
     def test_mid_paragraph_no_space_footnote(self, text: str, expected: str) -> None:
         assert strip_footnote_numbers(text) == expected
@@ -369,6 +393,10 @@ class TestStripFootnoteNumbers:
         ("(Nor can they be ‘operationally defined’. 3)", "(Nor can they be ‘operationally defined’.)"),
         # Number after abbreviation dot must not be stripped (L.Sc.D. is a book abbreviation)
         ("as I put it in my L.Sc.D.2 (Nor can they", "as I put it in my L.Sc.D.2 (Nor can they"),
+
+        # Mathematical quoted statement opening with a number — must not strip the number
+        (f"the statement {chr(0x2018)}23 is the smallest prime greater than 19",
+         f"the statement {chr(0x2018)}23 is the smallest prime greater than 19"),
     ])
     def test_no_false_positives(self, text: str, expected: str) -> None:
         assert strip_footnote_numbers(text) == expected
