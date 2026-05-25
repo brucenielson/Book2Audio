@@ -316,15 +316,16 @@ class TestStripFootnoteNumbers:
     def test_trailing_footnote_number(self, text: str, expected: str) -> None:
         assert strip_footnote_numbers(text) == expected
 
-    # TODO: Comment back in
-    # @pytest.mark.parametrize("text, expected", [
-    #     # Footnote number directly attached to sentence-ending punctuation, mid-paragraph
-    #     ("penicillin.4 It describes",   "penicillin. It describes"),
-    #     ("section 6).1 And being",      "section 6). And being"),
-    #     ("argument.12 The next",        "argument. The next"),
-    # ])
-    # def test_mid_paragraph_no_space_footnote(self, text: str, expected: str) -> None:
-    #     assert strip_footnote_numbers(text) == expected
+    @pytest.mark.parametrize("text, expected", [
+        # Footnote number directly attached to sentence-ending punctuation, mid-paragraph
+        ("penicillin.4 It describes",   "penicillin. It describes"),
+        ("section 6).1 And being",      "section 6). And being"),
+        ("argument.12 The next",        "argument. The next"),
+        ("A single observation incompatible with his theory [may demonstrate  ]14 that he has been employing the wrong theory all along. His conceptual scheme must then be abandoned and replaced.'15",
+         "A single observation incompatible with his theory [may demonstrate  ] that he has been employing the wrong theory all along. His conceptual scheme must then be abandoned and replaced.'")
+    ])
+    def test_mid_paragraph_no_space_footnote(self, text: str, expected: str) -> None:
+        assert strip_footnote_numbers(text) == expected
 
     @pytest.mark.parametrize("text, expected", [
         # Decimal numbers must not be stripped

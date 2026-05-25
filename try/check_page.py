@@ -16,7 +16,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from utils.docling_utils import load_as_document, get_pdf_page_labels
 
 PDF = Path("../documents/Realism and the Aim of Science -- Karl Popper -- 2017.pdf")
-TARGET_LABEL = "xxix"
+TARGET_LABEL = "xxxiii"
 
 doc = load_as_document(PDF)
 page_labels = get_pdf_page_labels(PDF)   # {0-based-index -> label-string}
