@@ -419,6 +419,10 @@ def strip_footnote_numbers(p_str: str) -> str:
     _q = chr(0x27) + '"' + chr(0x2019) + chr(0x201D)
     p_str = re.sub(rf"(?:(?<!\d)(?<![.][A-Z])\.|[!?)\]]|(?<=[.!?])[{_q}]|(?<=[.!?]\s)[{_q}])\d+(?=\s|$)",
                    lambda m: m.group(0)[0], p_str)
+    # Handle multi-space OCR artifacts between sentence punctuation and closing quote,
+    # e.g. "valid.  '9 Thus" -> "valid.  ' Thus". Python re lookbehinds are fixed-width
+    # so two-or-more spaces cannot be expressed as a lookbehind — a capturing group is used.
+    p_str = re.sub(rf"([.!?]\s{{2,}}[{_q}])\d+(?=\s|$)", r'\1', p_str)
     return p_str
 
 
