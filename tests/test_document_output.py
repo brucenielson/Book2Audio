@@ -121,5 +121,3 @@ class TestDoclingParserOutput:
 
         if failures:
             pytest.fail("\n\n".join(failures))
-
-
