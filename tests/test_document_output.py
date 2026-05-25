@@ -15,12 +15,20 @@ def _normalize(line: str) -> str:
     return re.sub(r'[^a-z0-9]', '', line.lower())
 
 
-def _only_valid_spelling_variants(expected: str, actual: str) -> bool:
+def _only_valid_spelling_variants(expected: str, actual: str, strict: bool = False) -> bool:
     """Return True if all word differences between expected and actual are
     close spelling variants (e.g. American/British spelling differences like
     'initialize'/'initialise'). Uses character-level similarity — words must
     share at least 80% of their characters to qualify. This prevents unrelated
-    dictionary words like 'text'/'footnote' from passing as variants."""
+    dictionary words like 'text'/'footnote' from passing as variants.
+
+    Args:
+        expected: The expected line of text.
+        actual: The actual line of text.
+        strict: If True, always returns False — no differences are tolerated.
+    """
+    if strict:
+        return False
     expected_words = expected.lower().split()
     actual_words = actual.lower().split()
 
@@ -33,8 +41,6 @@ def _only_valid_spelling_variants(expected: str, actual: str) -> bool:
             for exp_word, act_word in zip(expected_words[i1:i2], actual_words[j1:j2]):
                 exp_clean = re.sub(r'[^a-z]', '', exp_word)
                 act_clean = re.sub(r'[^a-z]', '', act_word)
-                if re.sub(r'[^0-9]', '', exp_word) != re.sub(r'[^0-9]', '', act_word):
-                    return False
                 if exp_clean == act_clean:
                     continue
                 similarity = difflib.SequenceMatcher(None, exp_clean, act_clean).ratio()
@@ -46,7 +52,16 @@ def _only_valid_spelling_variants(expected: str, actual: str) -> bool:
     return True
 
 
-def compare_files(output_path: Path, canonical_path: Path) -> None:
+def compare_files(output_path: Path, canonical_path: Path, strict: bool = False) -> None:
+    """Compare a generated output file against a canonical reference file.
+
+    Args:
+        output_path: Path to the generated output file.
+        canonical_path: Path to the canonical reference file.
+        strict: If True, lines must match exactly. If False (default), minor
+                differences such as punctuation variation and close spelling
+                variants (e.g. British/American) are tolerated.
+    """
     output_lines = output_path.read_text(encoding="utf-8").splitlines()
     canonical_lines = canonical_path.read_text(encoding="utf-8").splitlines()
 
@@ -59,6 +74,10 @@ def compare_files(output_path: Path, canonical_path: Path) -> None:
             differences.append(f"Line {i + 1}:\n  expected: <missing>\n  actual:   {output_lines[i]}")
             continue
         exp, act = canonical_lines[i], output_lines[i]
+        if strict:
+            if exp != act:
+                differences.append(f"Line {i + 1}:\n  expected: {exp}\n  actual:   {act}")
+            continue
         if _normalize(exp) == _normalize(act):
             continue
         if _only_valid_spelling_variants(exp, act):
@@ -117,7 +136,7 @@ class TestDoclingParserOutput:
             if not canonical_path.exists():
                 continue  # already caught by test_all_txt_files_have_canonical
             try:
-                compare_files(txt_file, canonical_path)
+                compare_files(txt_file, canonical_path, strict=True)
             except pytest.fail.Exception as e:
                 failures.append(f"{txt_file.name}:\n{e}")
 
