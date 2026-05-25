@@ -401,11 +401,23 @@ def strip_footnote_numbers(p_str: str) -> str:
     #      "argument.) 2"   -> "argument.)"
     #      "defined'. 3)"   -> "defined'.)"
     _cl = chr(0x27) + '"' + chr(0x2019) + chr(0x201D) + r')\]'
-    p_str = re.sub(rf'(\w[{_cl}]*\s*[.!?][{_cl}]*)\s*\d+\s*([{_cl}]*)\s*$',
+    _apos = chr(0x27) + chr(0x2019)
+    # Case A: number at bare end of string (no closer after digit). No lookbehind needed —
+    # a bare trailing number is unambiguously a footnote regardless of word length.
+    # e.g. "hypothesis h. 1" -> "hypothesis h."
+    p_str = re.sub(rf'(\w[{_cl}]*\s*[.!?][{_cl}]*)\s*\d+\s*$',
+                   r'\1', p_str)
+    # Case B: number followed by a closer (bracket/quote). Require the word before
+    # sentence-ending punctuation to be multi-char or follow an apostrophe, to avoid
+    # stripping page numbers in parenthetical citations like "(Harris 2006, p. 25)".
+    p_str = re.sub(rf'((?<=[\w{_apos}])\w[{_cl}]*\s*[.!?][{_cl}]*)\s*\d+\s*([{_cl}]+)\s*$',
                    r'\1\2', p_str)
     # Strip trailing footnote when a space separates sentence-ending punctuation
     # from a closing quote before the number, e.g. 'hit you. "2' -> 'hit you.'
-    p_str = re.sub(rf'(\w[{_cl}]*\s*[.!?]\s+[{_cl}]*)\s*\d+\s*([{_cl}]*)\s*$',
+    # Same two-case split as above.
+    p_str = re.sub(rf'(\w[{_cl}]*\s*[.!?]\s+[{_cl}]*)\s*\d+\s*$',
+                   r'\1', p_str)
+    p_str = re.sub(rf'((?<=[\w{_apos}])\w[{_cl}]*\s*[.!?]\s+[{_cl}]*)\s*\d+\s*([{_cl}]+)\s*$',
                    r'\1\2', p_str)
     # Remove footnote numbers directly attached (no space) to sentence-ending
     # punctuation, mid-paragraph or at end of string.

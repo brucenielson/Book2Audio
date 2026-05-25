@@ -428,9 +428,20 @@ class TestStripFootnoteNumbers:
         # Contraction apostrophe before sentence-ending punctuation — footnote must still strip
         (f"this idea be deriv{chr(0x2019)}d?{chr(0x2019)}9)",
          f"this idea be deriv{chr(0x2019)}d?{chr(0x2019)})"),
+
         # Same with straight apostrophe
         ("this idea be deriv'd?'9)",
          "this idea be deriv'd?')"),
+
+        ("this idea be derived?'9)",
+         "this idea be derived?')"),
+
+        (f"this idea be deriv{chr(0x2019)}d?'9)",
+         f"this idea be deriv{chr(0x2019)}d?')"),
+
+        # Single-letter logical variable at end of sentence — footnote must still strip
+        ("justifies our belief in the hypothesis h. 1",
+         "justifies our belief in the hypothesis h."),
     ])
     def test_mid_paragraph_no_space_footnote(self, text: str, expected: str) -> None:
         assert strip_footnote_numbers(text) == expected
@@ -458,6 +469,9 @@ class TestStripFootnoteNumbers:
         # Parenthetical citation — page number must not be stripped
         ("discourse proves impossible. (Harris 2006, p. 25)",
          "discourse proves impossible. (Harris 2006, p. 25)"),
+
+        ("The '10 percent.' must be enlightened and guided by some idea",
+         "The '10 percent.' must be enlightened and guided by some idea"),
     ])
     def test_no_false_positives(self, text: str, expected: str) -> None:
         assert strip_footnote_numbers(text) == expected
