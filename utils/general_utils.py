@@ -307,7 +307,7 @@ def fix_apostrophes(p_str: str) -> str:
 
 
 _SENTENCE_END: frozenset[str] = frozenset('.?!')
-_CLOSING: frozenset[str] = frozenset({")", "}", "]", '"', "'", '”', '’'})
+_CLOSING: frozenset[str] = frozenset(')}]\'"’”')
 
 
 def is_ends_with_punctuation(text: str) -> bool:
@@ -369,12 +369,15 @@ def is_sentence_end(text: str) -> bool:
     """
     if not text:
         return False
-    text = text.rstrip()
-    last = text[-1]
-    if last in _SENTENCE_END:
-        return True
-    # Closing bracket/quote immediately after sentence-ending punctuation.
-    return last in _CLOSING and text[:-1].rstrip().endswith(tuple(_SENTENCE_END))
+    # Walk backward past any trailing closing brackets/quotes.
+    i = len(text) - 1
+    while i >= 0 and text[i] in _CLOSING:
+        i -= 1
+    # Allow one optional space between sentence punct and the closing chars
+    # (handles OCR floating-closer artifacts, e.g. 'dreams. "').
+    if i < len(text) - 1 and i >= 0 and text[i] == ' ':
+        i -= 1
+    return i >= 0 and text[i] in _SENTENCE_END
 
 
 def strip_footnote_numbers(p_str: str) -> str:
