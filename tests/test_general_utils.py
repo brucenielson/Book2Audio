@@ -367,6 +367,31 @@ class TestStripFootnoteNumbers:
         # where the quote is NOT preceded by sentence-ending punctuation
         (f"objection to {chr(0x2018)}the dice-playing god{chr(0x2019)}2 is undoubtedly",
          f"objection to {chr(0x2018)}the dice-playing god{chr(0x2019)} is undoubtedly"),
+        # Closing right curly single (U+2019) after word, mid-paragraph
+        (f"objection to {chr(0x2018)}the dice-playing god{chr(0x2019)}2 is undoubtedly",
+         f"objection to {chr(0x2018)}the dice-playing god{chr(0x2019)} is undoubtedly"),
+        # Closing right curly double (U+201D) after word, mid-paragraph
+        (f"objection to {chr(0x201C)}the dice-playing god{chr(0x201D)}2 is undoubtedly",
+         f"objection to {chr(0x201C)}the dice-playing god{chr(0x201D)} is undoubtedly"),
+        # Multi-digit footnote with right curly single after word
+        (f"objection to {chr(0x2018)}the dice-playing god{chr(0x2019)}23 is undoubtedly",
+         f"objection to {chr(0x2018)}the dice-playing god{chr(0x2019)} is undoubtedly"),
+        # End of string variant
+        (f"objection to {chr(0x2018)}the dice-playing god{chr(0x2019)}2",
+         f"objection to {chr(0x2018)}the dice-playing god{chr(0x2019)}"),
+
+        (f"objection to 'the dice-playing god'23 is undoubtedly",
+         f"objection to 'the dice-playing god' is undoubtedly"),
+
+        (f"objection to \"the dice-playing god\"23 is undoubtedly",
+         f"objection to \"the dice-playing god\" is undoubtedly"),
+
+        # Left curly single (U+2018) after word
+        (f"the dice-playing god{chr(0x2018)}2 is undoubtedly",
+         f"the dice-playing god{chr(0x2018)} is undoubtedly"),
+        # Left curly double (U+201C) after word
+        (f"the dice-playing god{chr(0x201C)}2 is undoubtedly",
+         f"the dice-playing god{chr(0x201C)} is undoubtedly"),
 
         (f"if true, would make them valid. '9 Thus Russell was prepared to adopt what Kant",
          "if true, would make them valid. ' Thus Russell was prepared to adopt what Kant"),
