@@ -25,7 +25,8 @@ class FormulaMode(Enum):
 
     Without a TextCleaner, formulas are always emitted raw regardless of this setting.
     """
-    CLEAN = 'clean'  # fix OCR notation, keep as notation (default)
+    NONE  = 'none'   # treat as regular body text (default)
+    CLEAN = 'clean'  # fix OCR notation, keep as notation
     AUDIO = 'audio'  # two-pass: CLEAN then translate to spoken English
 
 ClassificationType: TypeAlias = Literal[CLASSIFICATION_BODY, CLASSIFICATION_FOOTNOTE, CLASSIFICATION_DROP]
@@ -411,7 +412,7 @@ class TextCleaner:
     def __init__(self, model: str = 'llama3.1:8b', max_retries: int = 3,
                  temperature: float | None = None,
                  max_length_change: float = 0.20,
-                 formula_mode: FormulaMode | str = FormulaMode.CLEAN,
+                 formula_mode: FormulaMode | str = FormulaMode.NONE,
                  verbose: bool = False) -> None:
         """Initialise TextCleaner.
 
@@ -435,7 +436,7 @@ class TextCleaner:
         self.formula_mode: FormulaMode = FormulaMode(formula_mode) if isinstance(formula_mode, str) else formula_mode
         self._verbose: bool = verbose
 
-    def clean(self, paragraph: str, page_context: str = "") -> tuple[str, ClassificationType]:
+    def clean(self, paragraph: str, page_context: str = "", formula: bool = False) -> tuple[str, ClassificationType]:
         """Clean and classify a paragraph of text.
 
         Args:

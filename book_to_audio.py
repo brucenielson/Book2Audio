@@ -101,10 +101,11 @@ def main(file_path: str | None = None,
                         help='Enable LLM-based paragraph cleaning via Ollama (default: off)')
     parser.add_argument('--llm-model', default=llm_model,
                         help='Ollama model to use for LLM cleaning (default: llama3.1:8b)')
-    parser.add_argument('--formula-mode', choices=['clean', 'audio'],
-                        default=formula_mode or 'clean',
-                        help='Formula processing mode: clean (fix OCR notation) or '
-                             'audio (translate to spoken English). Default: clean')
+    parser.add_argument('--formula-mode', choices=['none', 'clean', 'audio'],
+                        default=formula_mode or 'none',
+                        help='Formula processing mode: none (treat as body text), '
+                             'clean (fix OCR notation), or audio (translate to spoken English). '
+                             'Default: none')
     parser.add_argument('--verbose', action='store_true', default=verbose,
                         help='Print progress and LLM responses during conversion (default: off)')
 
