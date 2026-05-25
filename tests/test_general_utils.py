@@ -337,9 +337,7 @@ class TestStripFootnoteNumbers:
         ("merely an appropriate technique. ‘10", "merely an appropriate technique. ‘10"),
         ("merely an appropriate technique. The '10 percent.'", "merely an appropriate technique. The '10 percent.'"),
         ("merely an appropriate technique. The \"10 percent.\"", "merely an appropriate technique. The \"10 percent.\""),
-        ("merely an appropriate technique. The \"10 percent.\"", "merely an appropriate technique. The \"10 percent.\""),
         ("merely an appropriate technique. The ‘10 percent.’", "merely an appropriate technique. The ‘10 percent.’"),
-        ("merely an appropriate technique. The \"10 percent.\"", "merely an appropriate technique. The \"10 percent.\""),
         # Footnote number before a closing paren at end of string must be stripped
         ("(Nor can they be ‘operationally defined’. 3)", "(Nor can they be ‘operationally defined’.)"),
         # Number after abbreviation dot must not be stripped (L.Sc.D. is a book abbreviation)
