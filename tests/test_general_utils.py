@@ -48,6 +48,18 @@ class TestIsSentenceEnd:
     def test_is_false(self, text: str) -> None:
         assert is_sentence_end(text) is False
 
+    @pytest.mark.parametrize("text", [
+        # Floating closer: sentence punct + space + closing quote/bracket
+        "Hello world. '",      # straight single quote
+        'Hello world. "',      # straight double quote
+        "Hello world. ‘",  # left single curly
+        "Hello world. ’",  # right single curly
+        "Hello world. “",  # left double curly
+        "Hello world. ”",  # right double curly
+    ])
+    def test_floating_closer_is_true(self, text: str) -> None:
+        assert is_sentence_end(text) is True
+
 
 # --- is_roman_numeral ---
 
