@@ -752,3 +752,23 @@ class TestStripFootnoteMarkersParameter:
         result = make_processor(include_footnotes=True, strip_footnote_markers=True).process(chunks)
         footnote_results = [r for r in result if r.label == 'footnote']
         assert footnote_results[0].text == "See Jones (1987) for details. 4"
+
+    def test_formula_chunk_not_stripped_by_footnote_removal(self) -> None:
+        """Formula chunks must not have trailing digits stripped as footnote markers.
+        Digits at the end of a formula expression (e.g. 'P(A|B).3') are part of the
+        math notation, not footnote references."""
+        chunks = [make_chunk("P(A|B).3", label='formula')]
+        result = make_processor(strip_footnote_markers=True).process(chunks)
+        assert result[0].text == "P(A|B).3"
+
+
+class TestMathSectionHeaderReclassification:
+    def test_math_heavy_section_header_reclassified_as_formula(self) -> None:
+        """A section header whose text is a math formula should be emitted as a
+        formula, not a section header. Docling sometimes misclassifies formula
+        lines (e.g. equation '(2) a3/"J\'2 = constant,') as section headers,
+        and the processor should catch this."""
+        chunks = [make_chunk('(2) a3/"J\'2 = constant,', label='section_header')]
+        result = make_processor().process(chunks)
+        assert result[0].label == 'formula'
+        assert result[0].text == '(2) a3/"J\'2 = constant,'
