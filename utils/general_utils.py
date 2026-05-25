@@ -369,11 +369,12 @@ def is_sentence_end(text: str) -> bool:
     """
     if not text:
         return False
+    text = text.rstrip()
     last = text[-1]
     if last in _SENTENCE_END:
         return True
     # Closing bracket/quote immediately after sentence-ending punctuation.
-    return last in _CLOSING and len(text) >= 2 and text[-2] in _SENTENCE_END
+    return last in _CLOSING and text[:-1].rstrip()[-1] in _SENTENCE_END
 
 
 def strip_footnote_numbers(p_str: str) -> str:
