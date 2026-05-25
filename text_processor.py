@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import io
 import re
+import sys
 import time
 from pathlib import Path
 
@@ -254,6 +256,7 @@ class TextProcessor:
         Args:
             chunk: The section header RawChunk.
         """
+        self._report_page_progress(chunk)
         self._section_name = chunk.text
         if self._paragraph:
             self._flush_paragraph(chunk.meta)
@@ -355,7 +358,17 @@ class TextProcessor:
                 self._n_llm_calls += 1
                 page_context = self._page_contexts.get(meta.get('page_#', ''), '')
                 t1 = time.perf_counter()
-                p_str, classification = self._cleaner.clean(p_str, page_context=page_context)
+                _buf = io.StringIO()
+                _old_stdout = sys.stdout
+                sys.stdout = _buf
+                try:
+                    p_str, classification = self._cleaner.clean(p_str, page_context=page_context)
+                finally:
+                    sys.stdout = _old_stdout
+                _captured = _buf.getvalue()
+                if _captured:
+                    self._flush_pending_header()
+                    print(_captured, end='')
                 self._t_llm += time.perf_counter() - t1
                 if classification == CLASSIFICATION_DROP:
                     self._vprint(f"  [LLM DROP] {p_str[:100]!r}")
