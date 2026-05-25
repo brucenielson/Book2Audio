@@ -1170,52 +1170,113 @@ class TestCoerceClassification:
         assert _coerce_classification('') is None
 
 
-# --- TestCleanFormulaOcr ---
+# --- TestCleanWithFormulaPrompt ---
 
-class TestCleanFormulaOcr:
-    """Tests for TextCleaner.clean_formula_ocr — the OCR-reconstruction pass.
+class TestCleanWithFormulaPrompt:
+    """Tests for clean(formula=True) — formulas go through the same code path as body text.
 
-    This method sends a formula to the LLM asking it to reconstruct the
-    intended notation from an OCR-mangled string.  It returns plain text
-    (not JSON) and must use a different system prompt from clean_formula.
+    The new design routes formula chunks through clean() with a formula-specific
+    system prompt instead of a separate clean_formula_ocr() code path.  All
+    existing guards (word restoration, size check, retries, JSON parsing) apply.
     """
 
-    @pytest.mark.parametrize("formula, expected", [
-        ("x -+- y == z (garbled)",  "x + y = z"),
-        ("E = mc 2",                "E = mc²"),
-    ])
-    def test_returns_llm_response(self, formula: str, expected: str) -> None:
-        """clean_formula_ocr returns the LLM's reconstructed formula."""
+    def test_formula_true_uses_formula_system_prompt(self) -> None:
+        """clean(formula=True) sends FORMULA_CLEAN_SYSTEM_PROMPT as the system message."""
+        from text_cleaner import FORMULA_CLEAN_SYSTEM_PROMPT
         cleaner = make_cleaner()
-        mock_response = {'message': {'content': expected}}
-        with patch(patch_llm_chat, return_value=mock_response):
-            result = cleaner.clean_formula_ocr(formula)
-        assert result == expected
-
-    def test_returns_original_on_exception(self) -> None:
-        """clean_formula_ocr falls back to the raw formula if the LLM raises."""
-        cleaner = make_cleaner()
-        with patch(patch_llm_chat, side_effect=Exception("LLM unavailable")):
-            result = cleaner.clean_formula_ocr("x + y = z")
-        assert result == "x + y = z"
-
-    def test_uses_different_prompt_from_audio_pass(self) -> None:
-        """clean_formula_ocr must use a different system prompt than clean_formula."""
-        from text_cleaner import FORMULA_SYSTEM_PROMPT
-        cleaner = make_cleaner()
-        mock_response = {'message': {'content': "x + y = z"}}
-        with patch(patch_llm_chat, return_value=mock_response) as mock_chat:
-            cleaner.clean_formula_ocr("x + y = z")
+        with patch(patch_llm_chat, return_value=make_response("p(h,e|b)", "body")) as mock_chat:
+            cleaner.clean("p(h1, eb)", formula=True)
         system_msg = next(
-            m['content'] for m in mock_chat.call_args[1]['messages']
-            if m['role'] == 'system'
+            m['content'] for m in mock_chat.call_args[1]['messages'] if m['role'] == 'system'
         )
-        assert system_msg != FORMULA_SYSTEM_PROMPT
+        assert system_msg == FORMULA_CLEAN_SYSTEM_PROMPT
 
-    def test_empty_formula_returned_unchanged(self) -> None:
-        """clean_formula_ocr returns an empty string without calling the LLM."""
+    def test_formula_false_uses_body_system_prompt(self) -> None:
+        """clean() with no formula flag does not use the formula system prompt."""
+        from text_cleaner import FORMULA_CLEAN_SYSTEM_PROMPT
         cleaner = make_cleaner()
-        with patch(patch_llm_chat) as mock_chat:
-            result = cleaner.clean_formula_ocr("   ")
-        assert result.strip() == ""
-        mock_chat.assert_not_called()
+        with patch(patch_llm_chat, return_value=make_response("Normal text.", "body")) as mock_chat:
+            cleaner.clean("Normal text.")
+        system_msg = next(
+            m['content'] for m in mock_chat.call_args[1]['messages'] if m['role'] == 'system'
+        )
+        assert system_msg != FORMULA_CLEAN_SYSTEM_PROMPT
+
+    def test_returns_cleaned_text_and_classification(self) -> None:
+        """Formula path returns the same (cleaned, classification) tuple as body text."""
+        cleaner = make_cleaner()
+        with patch(patch_llm_chat, return_value=make_response("p(h,e|b) = p(h2,e|b)", "body")):
+            cleaned, classification = cleaner.clean("p(h1, eb) = p(h21 eb)", formula=True)
+        assert cleaned == "p(h,e|b) = p(h2,e|b)"
+        assert classification == "body"
+
+    def test_retries_on_malformed_json(self) -> None:
+        """Formula path retries on malformed JSON, same as body path."""
+        cleaner = make_cleaner(max_retries=3)
+        bad_response = {'message': {'content': 'not valid json'}}
+        good_response = make_response("p(h,e|b)", "body")
+        with patch(patch_llm_chat, side_effect=[bad_response, good_response]) as mock_chat:
+            _, classification = cleaner.clean("p(h,, eb)", formula=True)
+        assert classification == "body"
+        assert mock_chat.call_count == 2
+
+    def test_word_restoration_protects_valid_words_in_formula(self) -> None:
+        """_restore_valid_words still fires in formula mode.
+
+        Real risk: the LLM changes 'only' to 'solely' inside 'if and only if'.
+        _restore_valid_words must restore it.
+        """
+        cleaner = make_cleaner()
+        original = "p(h) > p(h2) if and only if p(e|h) > p(e|h2)."
+        llm_result = "p(h) > p(h2) if and solely if p(e|h) > p(e|h2)."
+        with patch(patch_llm_chat, return_value=make_response(llm_result, "body")):
+            cleaned, _ = cleaner.clean(original, formula=True)
+        assert "only if" in cleaned
+
+    def test_size_check_still_applies_in_formula_mode(self) -> None:
+        """Responses that balloon the formula length are retried."""
+        cleaner = make_cleaner(max_retries=3)
+        original = "p(h, e|b) < p(h2, e|b) if and only if p(h, b) < p(h2, b)."
+        expanded = original + " Note: subscript 2 denotes the second hypothesis."
+        good_response = make_response(original, "body")
+        bad_response = make_response(expanded, "body")
+        with patch(patch_llm_chat, side_effect=[bad_response, good_response]) as mock_chat:
+            cleaner.clean(original, formula=True)
+        assert mock_chat.call_count == 2  # expansion rejected, retried
+
+
+# --- TestFormulaModeNone ---
+
+class TestFormulaModeNone:
+    """Tests for FormulaMode.NONE — formula chunks treated as regular body text.
+
+    When FormulaMode.NONE is active, TextProcessor passes formula chunks to
+    clean() without formula=True, so they use the body prompt and produce
+    no [FORMULA] verbose markers.
+    """
+
+    def test_formula_mode_none_exists(self) -> None:
+        """FormulaMode.NONE is a valid enum value constructable from the string 'none'."""
+        from text_cleaner import FormulaMode
+        assert FormulaMode('none') == FormulaMode.NONE
+
+    def test_formula_mode_none_constructable_on_text_cleaner(self) -> None:
+        """TextCleaner accepts formula_mode='none' without raising."""
+        from text_cleaner import FormulaMode
+        cleaner = TextCleaner(model=TEST_LLM_MODEL, temperature=0, formula_mode='none')
+        assert cleaner.formula_mode == FormulaMode.NONE
+
+    def test_formula_mode_none_clean_uses_body_prompt(self) -> None:
+        """With FormulaMode.NONE, clean(formula=True) still uses the body prompt.
+
+        The formula=True hint is suppressed by the mode — the chunk is treated
+        as regular body text and the formula system prompt is never sent.
+        """
+        from text_cleaner import FORMULA_CLEAN_SYSTEM_PROMPT
+        cleaner = TextCleaner(model=TEST_LLM_MODEL, temperature=0, formula_mode='none')
+        with patch(patch_llm_chat, return_value=make_response("p(h,e|b)", "body")) as mock_chat:
+            cleaner.clean("p(h, eb)", formula=True)
+        system_msg = next(
+            m['content'] for m in mock_chat.call_args[1]['messages'] if m['role'] == 'system'
+        )
+        assert system_msg != FORMULA_CLEAN_SYSTEM_PROMPT
