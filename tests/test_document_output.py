@@ -33,6 +33,8 @@ def _only_valid_spelling_variants(expected: str, actual: str) -> bool:
             for exp_word, act_word in zip(expected_words[i1:i2], actual_words[j1:j2]):
                 exp_clean = re.sub(r'[^a-z]', '', exp_word)
                 act_clean = re.sub(r'[^a-z]', '', act_word)
+                if re.sub(r'[^0-9]', '', exp_word) != re.sub(r'[^0-9]', '', act_word):
+                    return False
                 if exp_clean == act_clean:
                     continue
                 similarity = difflib.SequenceMatcher(None, exp_clean, act_clean).ratio()
