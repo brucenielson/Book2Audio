@@ -54,6 +54,10 @@ class TestIsSentenceEnd:
         'Hello world. "',      # straight double quote
         "Hello world. ’",  # right single curly
         "Hello world. ”",  # right double curly
+        # Floating closer + footnote number should still preserve sentence ending
+        "latent content of dreams. '",
+        # Space before period + floating closer + footnote number
+        "statistics . '",
     ])
     def test_floating_closer_is_true(self, text: str) -> None:
         assert is_sentence_end(text) is True
@@ -274,6 +278,10 @@ class TestStripFootnoteNumbers:
         # No digit: no change
         ('Hello world.',     'Hello world.'),
         ('Hello world',      'Hello world'),
+        # Floating closer + footnote number should still preserve sentence ending
+        ("latent content of dreams. '11", "latent content of dreams. '"),
+        # Space before period + floating closer + footnote number
+        ("statistics . '5", "statistics . '"),
     ])
     def test_trailing_footnote_number(self, text: str, expected: str) -> None:
         assert strip_footnote_numbers(text) == expected
