@@ -335,7 +335,8 @@ class TestStripFootnoteNumbers:
         ("penicillin. 12 It describes", "penicillin. 12 It describes"),
         # Opening curly quote before a number must not strip the number (false positive guard)
         ("merely an appropriate technique. ‘10", "merely an appropriate technique. ‘10"),
-        ("merely an appropriate technique. The '10 percent.'", "merely an appropriate technique. The '10 percent.'")
+        ("merely an appropriate technique. The '10 percent.'", "merely an appropriate technique. The '10 percent.'"),
+        ("merely an appropriate technique. The \"10 percent.\"", "merely an appropriate technique. The \"10 percent.\"")
     ])
     def test_no_false_positives(self, text: str, expected: str) -> None:
         assert strip_footnote_numbers(text) == expected
