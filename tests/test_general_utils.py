@@ -336,7 +336,14 @@ class TestStripFootnoteNumbers:
         # Opening curly quote before a number must not strip the number (false positive guard)
         ("merely an appropriate technique. ‘10", "merely an appropriate technique. ‘10"),
         ("merely an appropriate technique. The '10 percent.'", "merely an appropriate technique. The '10 percent.'"),
-        ("merely an appropriate technique. The \"10 percent.\"", "merely an appropriate technique. The \"10 percent.\"")
+        ("merely an appropriate technique. The \"10 percent.\"", "merely an appropriate technique. The \"10 percent.\""),
+        ("merely an appropriate technique. The \"10 percent.\"", "merely an appropriate technique. The \"10 percent.\""),
+        ("merely an appropriate technique. The ‘10 percent.’", "merely an appropriate technique. The ‘10 percent.’"),
+        ("merely an appropriate technique. The \"10 percent.\"", "merely an appropriate technique. The \"10 percent.\""),
+        # Footnote number before a closing paren at end of string must be stripped
+        ("(Nor can they be ‘operationally defined’. 3)", "(Nor can they be ‘operationally defined’.)"),
+        # Number after abbreviation dot must not be stripped (L.Sc.D. is a book abbreviation)
+        ("as I put it in my L.Sc.D.2 (Nor can they", "as I put it in my L.Sc.D.2 (Nor can they"),
     ])
     def test_no_false_positives(self, text: str, expected: str) -> None:
         assert strip_footnote_numbers(text) == expected
