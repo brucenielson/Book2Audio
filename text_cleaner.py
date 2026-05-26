@@ -620,29 +620,3 @@ class TextCleaner:
 
         return self._call_formula_llm(FORMULA_SYSTEM_PROMPT, user_content) or formula
 
-    def clean_formula_ocr(self, formula: str, page_context: str = "") -> str:
-        """Clean formula notation extracted from a book or paper.
-
-        Fixes OCR errors if present (garbled symbols, missing superscripts, stray
-        characters) or minor formatting issues if the notation is already correct.
-        Keeps the output as notation — does not translate to spoken English.
-
-        Use this as the first pass before clean_formula() when FormulaMode.AUDIO
-        is active.
-
-        Args:
-            formula: The formula or math-heavy paragraph to clean.
-            page_context: The full text of the page for context. Defaults to empty string.
-
-        Returns:
-            The cleaned formula notation, or the original if the LLM fails.
-        """
-        if not formula.strip():
-            return formula
-
-        if page_context:
-            user_content = f"Page context:\n{page_context}\n\nClean this formula:\n{formula}"
-        else:
-            user_content = f"Clean this formula:\n{formula}"
-
-        return self._call_formula_llm(FORMULA_CLEAN_SYSTEM_PROMPT, user_content) or formula
