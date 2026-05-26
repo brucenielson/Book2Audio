@@ -37,7 +37,10 @@ def make_formula_cleaner(ocr_result: str = 'cleaned formula',
     cleaner.formula_mode = formula_mode
     cleaner.clean_formula_ocr.side_effect = lambda formula, page_context='': ocr_result
     cleaner.clean_formula.side_effect = lambda formula, page_context='': audio_result
+    # clean(formula=True) is now the OCR pass for CLEAN/AUDIO modes
+    cleaner.clean.side_effect = lambda text, page_context='', formula=False: (ocr_result, 'body')
     if body_result is not None:
+        # NONE mode: formula chunks fall through to body-text path without formula=True
         cleaner.clean.side_effect = lambda text, page_context='': (body_result, 'body')
     return cleaner
 
@@ -315,36 +318,39 @@ class TestFormulaMode:
         assert len(result) == 1
         assert result[0].text == 'x + y = z'
 
-    def test_clean_calls_ocr_method_and_emits_result(self) -> None:
-        """CLEAN mode calls clean_formula_ocr and emits its result."""
+    def test_clean_calls_clean_and_emits_result(self) -> None:
+        """CLEAN mode calls clean(formula=True) and emits its result."""
         cleaner = make_formula_cleaner(ocr_result='x + y = z', audio_result='x plus y',
                                        formula_mode=FormulaMode.CLEAN)
         processor = TextProcessor(cleaner=cleaner)
         result = processor.process([make_chunk('x -+- y == z (garbled)', label='formula')])
         assert len(result) == 1
         assert result[0].text == 'x + y = z'
-        cleaner.clean_formula_ocr.assert_called_once()
+        cleaner.clean.assert_called_once()
+        cleaner.clean_formula_ocr.assert_not_called()
         cleaner.clean_formula.assert_not_called()
 
     def test_audio_calls_both_passes_in_order(self) -> None:
-        """AUDIO mode calls clean_formula_ocr then clean_formula."""
+        """AUDIO mode calls clean(formula=True) then clean_formula."""
         cleaner = make_formula_cleaner(ocr_result='x + y = z', audio_result='x plus y equals z',
                                        formula_mode=FormulaMode.AUDIO)
         processor = TextProcessor(cleaner=cleaner)
         result = processor.process([make_chunk('x -+- y == z (garbled)', label='formula')])
         assert len(result) == 1
         assert result[0].text == 'x plus y equals z'
-        cleaner.clean_formula_ocr.assert_called_once()
+        cleaner.clean.assert_called_once()
         cleaner.clean_formula.assert_called_once()
+        cleaner.clean_formula_ocr.assert_not_called()
 
-    def test_audio_feeds_ocr_output_into_audio_pass(self) -> None:
-        """AUDIO mode must pass clean_formula_ocr's result into clean_formula, not the raw text."""
+    def test_audio_feeds_clean_output_into_audio_pass(self) -> None:
+        """AUDIO mode must pass clean(formula=True)'s result into clean_formula, not the raw text."""
         cleaner = make_formula_cleaner(ocr_result='x² + y² = z²',
                                        audio_result='x squared plus y squared equals z squared',
                                        formula_mode=FormulaMode.AUDIO)
         processor = TextProcessor(cleaner=cleaner)
         processor.process([make_chunk('x2 + y2 = z2 (OCR mess)', label='formula')])
         cleaner.clean_formula.assert_called_once_with('x² + y² = z²', page_context=ANY)
+        cleaner.clean_formula_ocr.assert_not_called()
 
 
 # --- TestFormulaAnnotation ---
@@ -431,13 +437,13 @@ class TestFormulaModeNoneRouting:
         out = capsys.readouterr().out
         assert '[FORMULA]' not in out
 
-    def test_clean_mode_still_calls_clean_formula_ocr(self) -> None:
-        """Contrast: CLEAN mode still routes to clean_formula_ocr (not body-text path)."""
+    def test_clean_mode_calls_clean_with_formula_true(self) -> None:
+        """Contrast: CLEAN mode calls clean(formula=True), not the body-text path."""
         cleaner = make_formula_cleaner(ocr_result='x + y = z', formula_mode=FormulaMode.CLEAN)
         processor = TextProcessor(cleaner=cleaner)
         processor.process([make_chunk('x -+- y == z', label='formula')])
-        cleaner.clean_formula_ocr.assert_called_once()
-        cleaner.clean.assert_not_called()
+        cleaner.clean.assert_called_once()
+        cleaner.clean_formula_ocr.assert_not_called()
 
 
 # --- TestAllWordsValid ---
