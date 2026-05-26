@@ -1244,6 +1244,58 @@ class TestCleanWithFormulaPrompt:
             cleaner.clean(original, formula=True)
         assert mock_chat.call_count == 2  # expansion rejected, retried
 
+    def test_formula_system_prompt_contains_json_format_with_classification(self) -> None:
+        """FORMULA_CLEAN_SYSTEM_PROMPT must request a JSON object that includes 'classification'.
+
+        Without 'classification' in the response format, clean() will always get a
+        KeyError when it tries to read parsed['classification'], exhausting all retries.
+        """
+        from text_cleaner import FORMULA_CLEAN_SYSTEM_PROMPT
+        assert '"classification"' in FORMULA_CLEAN_SYSTEM_PROMPT
+
+    def test_formula_system_prompt_instructs_keep_as_notation(self) -> None:
+        """FORMULA_CLEAN_SYSTEM_PROMPT must instruct the LLM not to translate to spoken English."""
+        from text_cleaner import FORMULA_CLEAN_SYSTEM_PROMPT
+        assert 'notation' in FORMULA_CLEAN_SYSTEM_PROMPT.lower()
+
+    def test_formula_classification_always_body_even_if_llm_returns_footnote(self) -> None:
+        """Formula chunks must always be classified as body, never footnote.
+
+        The existing letter-start guard only protects paragraphs starting with a letter.
+        A formula starting with a digit (e.g. '1/(1+x)') has no such protection and
+        would be wrongly classified as footnote without an explicit formula override.
+        """
+        cleaner = make_cleaner()
+        with patch(patch_llm_chat, return_value=make_response("1/(1+x)", "footnote")):
+            _, classification = cleaner.clean("1 /(1+x)", formula=True)
+        assert classification == "body"
+
+    def test_formula_classification_always_body_even_if_llm_returns_drop(self) -> None:
+        """Formula chunks must always be classified as body, never drop."""
+        cleaner = make_cleaner()
+        with patch(patch_llm_chat, return_value=make_response("p(h,e|b)", "drop")):
+            _, classification = cleaner.clean("p(h, eb)", formula=True)
+        assert classification == "body"
+
+    def test_formula_llm_commentary_triggers_retry(self) -> None:
+        """LLM commentary appended after the JSON object causes a parse error and retry.
+
+        This is the desired rejection mechanism: with JSON format, any extra text
+        after the closing brace is invalid JSON and forces the LLM to try again.
+        """
+        cleaner = make_cleaner(max_retries=3)
+        commentary_response = {
+            'message': {'content':
+                '{"cleaned": "p(h,e|b)", "classification": "body"}\n\n'
+                'Note: I corrected the subscript.'
+            }
+        }
+        good_response = make_response("p(h,e|b)", "body")
+        with patch(patch_llm_chat, side_effect=[commentary_response, good_response]) as mock_chat:
+            cleaned, classification = cleaner.clean("p(h1, eb)", formula=True)
+        assert classification == "body"
+        assert mock_chat.call_count == 2  # commentary rejected, retried
+
 
 # --- TestFormulaModeNone ---
 

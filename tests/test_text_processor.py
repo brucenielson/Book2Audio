@@ -26,12 +26,19 @@ def make_processor(min_paragraph_size: int = 0,
 
 def make_formula_cleaner(ocr_result: str = 'cleaned formula',
                           audio_result: str = 'spoken formula',
-                          formula_mode: FormulaMode = FormulaMode.CLEAN) -> MagicMock:
-    """Create a mock TextCleaner with formula cleaning methods and a formula_mode attribute."""
+                          formula_mode: FormulaMode = FormulaMode.CLEAN,
+                          body_result: str | None = None) -> MagicMock:
+    """Create a mock TextCleaner with formula cleaning methods and a formula_mode attribute.
+
+    body_result: if set, wires up clean() to return (body_result, 'body') for use
+    in FormulaMode.NONE tests where formula chunks fall through to the body-text path.
+    """
     cleaner = MagicMock()
     cleaner.formula_mode = formula_mode
     cleaner.clean_formula_ocr.side_effect = lambda formula, page_context='': ocr_result
     cleaner.clean_formula.side_effect = lambda formula, page_context='': audio_result
+    if body_result is not None:
+        cleaner.clean.side_effect = lambda text, page_context='': (body_result, 'body')
     return cleaner
 
 
@@ -371,6 +378,66 @@ class TestFormulaAnnotation:
         processor.process([make_chunk('x -+- y == z', label='formula')])
         out = capsys.readouterr().out
         assert '[FORMULA]' not in out
+
+
+# --- TestFormulaModeNoneRouting ---
+
+class TestFormulaModeNoneRouting:
+    """Tests that FormulaMode.NONE routes formula chunks through the body-text path.
+
+    CLEAN/AUDIO modes send formula chunks to _handle_formula (calling clean_formula_ocr).
+    NONE mode lets them fall through to _process_chunk (calling clean() like body text).
+    """
+
+    def test_none_mode_does_not_call_clean_formula_ocr(self) -> None:
+        """NONE mode never calls clean_formula_ocr on a formula chunk."""
+        cleaner = make_formula_cleaner(formula_mode=FormulaMode.NONE,
+                                       body_result='x + y = z')
+        processor = TextProcessor(cleaner=cleaner)
+        processor.process([make_chunk('x -+- y == z (garbled)', label='formula')])
+        cleaner.clean_formula_ocr.assert_not_called()
+
+    def test_none_mode_does_not_call_clean_formula(self) -> None:
+        """NONE mode never calls clean_formula on a formula chunk."""
+        cleaner = make_formula_cleaner(formula_mode=FormulaMode.NONE,
+                                       body_result='x + y = z')
+        processor = TextProcessor(cleaner=cleaner)
+        processor.process([make_chunk('x -+- y == z (garbled)', label='formula')])
+        cleaner.clean_formula.assert_not_called()
+
+    def test_none_mode_calls_clean_on_formula_chunk(self) -> None:
+        """NONE mode sends formula chunks through clean(), the same as body text."""
+        cleaner = make_formula_cleaner(formula_mode=FormulaMode.NONE,
+                                       body_result='x + y = z')
+        processor = TextProcessor(cleaner=cleaner)
+        processor.process([make_chunk('x -+- y == z (garbled)', label='formula')])
+        cleaner.clean.assert_called()
+
+    def test_none_mode_result_not_labeled_formula(self) -> None:
+        """NONE mode emits formula chunks with a body-text label, not 'formula'."""
+        cleaner = make_formula_cleaner(formula_mode=FormulaMode.NONE,
+                                       body_result='The probability is high.')
+        processor = TextProcessor(cleaner=cleaner)
+        result = processor.process([make_chunk('The probability is high.', label='formula')])
+        assert len(result) == 1
+        assert result[0].label != 'formula'
+
+    def test_none_mode_no_formula_annotation(self, capsys) -> None:
+        """NONE mode never prints [FORMULA] even with verbose=True."""
+        cleaner = make_formula_cleaner(formula_mode=FormulaMode.NONE,
+                                       body_result='The probability is high.')
+        processor = TextProcessor(cleaner=cleaner, verbose=True)
+        processor.process([make_chunk('The probability is high.', label='formula')])
+        out = capsys.readouterr().out
+        assert '[FORMULA]' not in out
+
+    def test_clean_mode_still_calls_clean_formula_ocr(self) -> None:
+        """Contrast: CLEAN mode still routes to clean_formula_ocr (not body-text path)."""
+        cleaner = make_formula_cleaner(ocr_result='x + y = z', formula_mode=FormulaMode.CLEAN)
+        processor = TextProcessor(cleaner=cleaner)
+        processor.process([make_chunk('x -+- y == z', label='formula')])
+        cleaner.clean_formula_ocr.assert_called_once()
+        cleaner.clean.assert_not_called()
 
 
 # --- TestAllWordsValid ---
