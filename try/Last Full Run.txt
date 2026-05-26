@@ -1,230 +1,548 @@
   [Page 3 / Page 44]
-  [LLM FOOTNOTE] "1 HANS CHRISTIAN OERSTED2 1 Hans Christian Ørsted: 'Observations on the History of Chemistry : A Lec"
+  → restored 'Oersted:' (LLM tried 'Øersted:')  context: "1 Hans Christian Oersted: 'Observations on the"
+  [LLM FOOTNOTE] "1 HANS CHRISTIAN ØERSTED2 1 AMES C L E RK MAXWELL 1 Hans Christian Oersted: 'Observations on the His"
   [Page 7 / Page 48]
   → restored 'criticizing' (LLM tried 'criticising')  context: 'fellow, by severely criticizing his views-in the'
   [Page 8 / Page 49]
   → restored 'specialization' (LLM tried 'specialisation')  context: 'I disbelieve in specialization and in experts.'
-  [Page 13 / Page 54]
-  → restored ['scienti', 'fic'] (LLM tried 'scientiﬁc')  context: 'mistaken belief that scienti fic knowledge was an'
-  → restored 'scientific' (LLM tried 'scientiﬁc')  context: 'results of our scientific endeavours with the'
-  → restored 'scientific' (LLM tried 'scientiﬁc')  context: 'be clear that scientific knowledge was not'
-  → restored 'scientific' (LLM tried 'scientiﬁc')  context: 'by recognizing that scientific knowledge consists of'
+  [Page 16 / Page 57]
+  → restored 'relations).' (LLM tried 'relations}.')  context: 'a language of relations). This fact, however,'
   [Page 17 / Page 58]
   → restored 'criticize' (LLM tried 'criticise')  context: 'be unable to criticize or to transcend.'
   → restored 'criticize' (LLM tried 'criticise')  context: 'examine, compare, and criticize coherent systems of'
   → restored 'criticize,' (LLM tried 'criticise,')  context: 'analyse, and to criticize, the approach or'
-  [Page 20 / Page 61]
-  → restored ['justi', 'f', 'y)'] (LLM tried 'justifiy)')  context: '(but not to justi f y) our preference for'
-  [Page 21 / Page 62]
-Max Retries:   → attempt 3 rejected: Cleaned text size differs by more than 20% (original printable=973, cleaned=239)
-  original: For according to Bartley all philosophies so f ar have been justi ficationist philosophies, in the sense that all assumed that it was the prima f acie task of the theory of knowledge to show that, and how, we can justi f y our theories or beliefs. Not only the rationalists and the empiricists and the Kantians shared this assumption but also the sceptics and the irrationalists. The sceptics, compelled to admit that we cannot justify our theories or beliefs, declare the bankruptcy of the search for knowledge; while the irrationalists (for example the fideists), owing to the same fundamental admission, declare the bankruptcy of the search for reasons - that is, for rationally valid arguments - and try to justify our knowledge, or rather, our beliefs, by appealing to authority, such as the authority of irrational sources. Both assume that the question of justification, or of the existence of positive reasons, is fundamental : both are classical justificationists.
-  cleaned:  For according to Bartley all philosophies so far have been justificatory philosophies, in the sense that all assumed that it was the prima facie task of the theory of knowledge to show that, and how, we can justify our theories or beliefs.
+  [Page 27 / Page 68]
+  → restored 'discussion' (LLM tried 'discussions')  context: 'Although in such discussion we cannot as'
   [Page 30 / Page 71]
-  [LLM FOOTNOTE] "101 owe the remark in parentheses to a comment of Alan E. Musgrave's on this passage."
+  [LLM FOOTNOTE] '101 owe the remark in parentheses to a comment of Alan E. Musgrave’s on this passage.'
   [Page 37 / Page 78]
-  → restored '-that' (LLM tried '—that')  context: "not be 'reasonable' -that is, conform to"
   → restored 'criticize' (LLM tried 'criticise')  context: 'going on to criticize this fashionable view'
   [Page 38 / Page 79]
   → restored 'behaviorist' (LLM tried 'behaviourist')  context: 'unsound pragmatist or behaviorist or language-analytic argument.'
-  [Page 59 / Page 100]
-  → restored 'truthlikeness' (LLM tried 'truth-likeness')  context: 'believing in the truthlikeness of the Copernican'
   [Page 64 / Page 105]
-  → restored 'by' (LLM tried 'with')  context: 'are not satisfied by these answers, and'
+  → restored 'summarized' (LLM tried 'summarised')  context: 'nothing but a summarized report, or an'
   [Page 68 / Page 109]
-  [LLM FOOTNOTE] '15 Cp. L. Sc. D., sections 13 to 15 and Appendix >:·x. 16 [Cp. L. Sc. D., section 79. Ed.]'
+  [LLM FOOTNOTE] '1 Cp. L. Sc. D., sections 13 to 15 and Appendix > x. 16 [Cp. L. Sc. D., section 79. Ed.]'
   [Page 69 / Page 110]
   → restored 'giver.' (LLM tried 'given')  context: 'or explains any giver. evidence. On the'
   [Page 72 / Page 113]
   → restored 'howsoever' (LLM tried 'however')  context: "are white' from howsoever many observations (or"
   [Page 87 / Page 128]
-  [LLM FOOTNOTE] 'Op. cit., p. 16. (The italics are not in the original.)'
+  [LLM FOOTNOTE] 'Cp. cit., p. 16. (The italics are not in the original.)'
   [Page 89 / Page 130]
-  → restored 'A.' (LLM tried 'Schilpp.')  context: 'ed. by P. A.'
-  [LLM DROP] 'See The Philosophy of Bertrand Russell, Library of Living Philosophers, ed. by P.A. A.'
+  [LLM DROP] '·See The Philosophy of Bertrand Russell, Library of Living Philosophers, ed. by P.A.'
+  [Page 93 / Page 134]
+  → restored 'results' (LLM tried 'result')  context: 'are largely the results of my having'
   [Page 105 / Page 146]
   → restored 'or' (LLM tried 'nor')  context: 'neither a perception or impression, nor a'
-  → restored 'different' (LLM tried 'reasoning')  context: 'invalidity of inductive different from a perception.'
-  → restored 'from' (LLM tried 'is')  context: 'of inductive different from a perception. Thus'
-  → restored 'a' (LLM tried 'not')  context: 'inductive different from a perception. Thus none'
-  → restored 'perception.' (LLM tried 'supported.')  context: 'different from a perception. Thus none of'
-  [Page 107 / Page 148]
-  [LLM DROP] 'The Status of Theories and of Theoretical Concepts.'
-  [Page 109 / Page 150]
-Max Retries:   → attempt 3 rejected: Cleaned text size differs by more than 20% (original printable=3508, cleaned=662)
-  original: Indeed, in Berkeley's sense of 'occult', all our scientific concepts are occult: they are used to describe unseen, and indeed invisible, structural properties of an unseen and invisible world. 4 But this does not mean that the theories formulated with the help of these concepts are 'occult' or 'metaphysical' or 'non-empirical' : they may well have testable consequences. I am not afraid of ' occult' scientific concepts precisely because I have a criterion of demarcation which allows me to detect non-scientific theories by means that are more effective than any alleged criterion of the empirical or non-empirical character of the concepts or words involved. s Turning now to criticize Berkeley's instrumentalist interpretation of scientific theories, I may perhaps say first that he did not go far enough in his criticism of theoretical concepts. Although he realized the non-existence of what he called 'abstract general ideas', he failed to realize that most predicates of ordinary language are also abstract in his sense. Berkeley himself, when using language, constantly uses abstract terms. Thus, where he speaks of 'infidelity' (in the sense of unbelief), as for example in that last thrust of The Analyst against ' the modern growth of infidelity', he clearly does not intend to designate by the word 'infidel' merely an increasing collection of his fellow men whom he dislikes (and who, say, behave in a certain observable manner), but he uses it as a name of a truly abstract property of these men. Universal terms in ordinary language are not merely general names, shared (as one might think in view of such words as 'table' or 'dog') by a concrete collection of concrete things, but they denote, like 'copper', 'crystal', 'apple', 'food', 'poison' or ' money', structural or relational or 'dispositional' properties of things which are 'abstract' precisely in Berkeley's sense. All universal concepts incorporate theories. And although some of these can be tested, they can never be exhaustively tested (and can never be verified). The statement 'Here is a glass of water' is open to an indefinite and inexhaustible number of tests-chemical tests, for example - because water, like anything else, is recognizable only by its law-like behaviour (cp. the end of section 25 of L.Sc.D.). Thus ' water' is dispositional, like every other universal concept. Even ' red' is dispositional, for 'This surface is red' asserts that this surface has a disposition to reflect red light. (The fact that there are no such things as non - dispositional universals invalidates, incidentally, the programme, proposed in Carnap's 'Testability and Meaning', of ' reducing' dispositions to non - dispositional observable proper- section-! thought; optimistically, that positivists had become aware of the fact that statements and not concepts are important and that they had given up the attempt to demarcate metaphysics from science on the basis of the character of the concepts or words used. But I was mistaken. The operational analysis of the meaning of concepts is still very influential. And even members of the former Vienna Circle still continue in the ways of 'the older positivists', as I called them in 1 934. For instance Carnap in his paper ('The Methodological Character of Theoretical Concepts', in Minnesota Studies in the Philosophy of Science, Vol. I, ed. Herbert Feigl and Michael Scriven, 195 1), bases his definition of significant sentences (p. 60) upon that of significant concepts (p. 51).
-  cleaned:  Indeed, in Berkeley's sense of 'occult', all our scientific concepts are occult: they are used to describe unseen, and indeed invisible, structural properties of an unseen and invisible world. 4 But this does not mean that the theories formulated with the help of these concepts are 'occult' or 'metaphysical' or 'non-empirical' : they may well have testable consequences. I am not afraid of ' occult' scientific concepts precisely because I have a criterion of demarcation which allows me to detect non-scientific theories by means that are more effective than any alleged criterion of the empirical or non-empirical character of the concepts or words involved.
-  [Page 111 / Page 152]
-  → restored 'criticize' (LLM tried 'criticise')  context: 'be necessary to criticize instrumentalism as such,'
-  [Page 113 / Page 154]
-  → restored 'computation' (LLM tried 'computational')  context: 'be nothing but computation rules. Consequently, there'
-  [Page 119 / Page 160]
-  → restored 'man'' (LLM tried 'man»')  context: "'Socrates is a man' the conclusion '"
-  → restored 'biped'.' (LLM tried 'biped».')  context: "Socrates is a biped'. Now let us"
-  → restored 'man'' (LLM tried 'man»')  context: "'Socrates is a man' to 'Socrates is"
-  → restored ["biped'", ';'] (LLM tried 'biped»;')  context: "'Socrates is a biped' ; and we may"
-  → restored ''All' (LLM tried '«All')  context: "the universal statement 'All men are bipeds'"
-  → restored 'bipeds'' (LLM tried 'bipeds»')  context: "'All men are bipeds' rests in the"
-  [Page 130 / Page 171]
-  → restored 'criticize' (LLM tried 'criticise')  context: 'to say, to criticize them, to refute'
+  [Page 112 / Page 153]
+  → restored 'criticized' (LLM tried 'criticised')  context: 'experience. Since I criticized this doctrine too'
   [Page 132 / Page 173]
   → restored 'one' (LLM tried 'other')  context: 'explicans, on the one hand, which is'
+  [Page 139 / Page 180]
+  → restored 'analyzed' (LLM tried 'analysed')  context: 'which can be analyzed logically. I shall'
   [Page 141 / Page 182]
   → restored 'ass' (LLM tried 'pass')  context: 'of the earth,... ass into space p'
-  [Page 147 / Page 188]
-  → restored 'criticize' (LLM tried 'criticise')  context: '(Nevertheless, I did criticize in some detail'
+  [Page 143 / Page 184]
+  → restored 'hold' (LLM tried 'holds')  context: 'approximately hold for two planets'
+  [FORMULA] original: '(1)'
+  [FORMULA] cleaned:  'm_0 m_1 / a^3 = (4π^2 / T^2) m_0'
+  [FORMULA] original: '(2) a3/"J\'2 = constant,'
+  [FORMULA] cleaned:  '(2) a^3 / T^2 = constant'
   [Page 151 / Page 192]
-  [LLM DROP] 'Z Loc. cit., 6. 36 1.'
-  [Page 156 / Page 197]
-  → restored 'wat' (LLM tried 'that')  context: 'by the fact wat we have transcended'
-  → restored ['so...', 'ial'] (LLM tried 'so–cial')  context: 'hands of modern so... ial science is, of'
+  [LLM DROP] 'Zloc. cit., 6. 361'
+  [Page 154 / Page 195]
+  → restored 'criticize' (LLM tried 'criticise')  context: 'can learn to criticize ourselves, and so'
   [Page 157 / Page 198]
   → restored 'criticizing' (LLM tried 'criticising')  context: 'each other by criticizing one language, or'
   [Page 159 / Page 200]
   → restored 'realize' (LLM tried 'realise')  context: 'soon as people realize that I really'
-  [Page 163 / Page 204]
-  → restored 'analyzed.' (LLM tried 'analysed.')  context: 'of the cases analyzed. He sometimes appealed'
-  [Page 164 / Page 205]
-  → restored 'analyze' (LLM tried 'analyse')  context: "section is to analyze Freud's way of"
-  [Page 167 / Page 208]
-  → restored ['wish-f', 'l', 'fil', 'u', 'm', 'e', 'n', 'ts.'] (LLM tried 'wish-fulfilments.')  context: 'the character of wish-f l fil u m e n ts. (This mistaken inference'
   [Page 168 / Page 209]
   → restored 'criticize' (LLM tried 'criticise')  context: 'the last to criticize such a change'
-  → restored 'criticize' (LLM tried 'criticise')  context: "I wish to criticize Freud's way of"
-  → restored 'analyzed).' (LLM tried 'analysed).')  context: 'need of being analyzed).'
-  [Page 173 / Page 214]
-  → restored 'criticizes' (LLM tried 'criticises')  context: 'and he never criticizes it: he has'
-  [Page 175 / Page 216]
-  → restored ["'", 'verificationist', "'"] (LLM tried '‘verificationist’')  context: "Moreover, it was ' verificationist ' in the important"
   [Page 177 / Page 218]
   → restored 'a' (LLM tried 'à')  context: 'antirational philosophical messianism a Ia Heidegger from'
+  [LLM DROP] "ACF Note 3 on p. 76 of W. Kneale's Probability and Induction. [Cf Unended Quest, section 17. Ed.]"
+  [Page 181 / Page 222]
+  → restored 'criticize' (LLM tried 'criticise')  context: "an attempt to criticize Heisenberg's Machian positivism"
   [Page 196 / Page 237]
   → restored 'characterized' (LLM tried 'characterised')  context: 'x which is characterized by its relation'
   [Page 197 / Page 238]
   → restored 'evert' (LLM tried 'even')  context: 'is the only evert number which is'
+  [Page 198 / Page 239]
+  [FORMULA] original: 'x + y, and (2 + x) -y,'
+  [FORMULA] cleaned:  'x + y, and (2 + x) - y'
+  [Page 199 / Page 240]
+  [FORMULA] original: 'x + y, and (2 + x) + y,'
+  [FORMULA] cleaned:  'x + y, and (2 + x) + y'
+Max Retries:   → attempt 3 rejected: Cleaned text size differs by more than 20% (original printable=39, cleaned=55)
+  original: (H) (x)(Ey)(P(x + y) & P((2 + x) + y)).
+  cleaned:  (H) \forall x \exists y (P(x + y) \land P((2 + x) + y))
+  [FORMULA] original: '(H) (x)(Ey)(P(x + y) & P((2 + x) + y)).'
+  [FORMULA] cleaned:  '(H) (x)(Ey)(P(x + y) & P((2 + x) + y)).'
+Max Retries:   → attempt 3 rejected: Invalid classification: 'definition'
+  original: Def 2 Etp(x) +-+ (Ey)(P(x + y) & P((2 + x) + y)).
+  cleaned:  Def 2: Etp(x) ⇔ (Ey)(P(x + y) & P((2 + x) + y))
+  [FORMULA] original: 'Def 2 Etp(x) +-+ (Ey)(P(x + y) & P((2 + x) + y)).'
+  [FORMULA] cleaned:  'Def 2 Etp(x) +-+ (Ey)(P(x + y) & P((2 + x) + y)).'
+Max Retries:   → attempt 3 rejected: Invalid classification: 'definition'
+  original: Twp(x) +-+ P(x) & P(2 + x)
+  cleaned:  Twp(x) := P(x) & P(2+x)
+  [FORMULA] original: 'Twp(x) +-+ P(x) & P(2 + x)'
+  [FORMULA] cleaned:  'Twp(x) +-+ P(x) & P(2 + x)'
+  [FORMULA] original: 'Etp(x) +-+ (E y T) wp x + (y).'
+  [FORMULA] cleaned:  'Etp(x) <=> (Ey)Twp(x + y)'
+Max Retries:   → attempt 3 rejected: Invalid classification: 'equation'
+  original: X < y < 2x.
+  cleaned:  x < y < 2x
+  [Page 200 / Page 241]
+  [FORMULA] original: 'X < y < 2x.'
+  [FORMULA] cleaned:  'X < y < 2x.'
+  [Page 204 / Page 245]
+Max Retries:   → attempt 3 rejected: Cleaned text size differs by more than 20% (original printable=374, cleaned=453)
+  original: Thus taking as our universe of discourse a sequence of tosses with a penny, we can replace 'x is prime' by 'the toss number x results in heads turning up'. We thus obtain from our two conjectures, (G) and (H), the following conjectures about our sequence of penny tosses : (GP) For every natural number x, there exists at least one natural number y such that the two numbers
+  cleaned:  Thus taking as our universe of discourse a sequence of tosses with a penny, we can replace 'x is prime' by 'the toss number x results in heads turning up'. We thus obtain from our two conjectures, (G) and (H), the following conjectures about our sequence of penny tosses: (GP) For every natural number x, there exists at least one natural number y such that the two numbers x + y and (2 + x) - y are both numbers of tosses resulting in heads turning up.
+Max Retries:   → attempt 3 rejected: Invalid classification: 'mathematical/ formulaic'
+  original: x + y and (2 + x) - y
+  cleaned:  (x + y) & ((2 + x) - y)
+  [FORMULA] original: 'x + y and (2 + x) - y'
+  [FORMULA] cleaned:  'x + y and (2 + x) - y'
+Max Retries:   → attempt 3 rejected: Invalid classification: 'notation'
+  original: x + y and (2 + x) + y
+  cleaned:  x + y and (2 + x) - y
+  [FORMULA] original: 'x + y and (2 + x) + y'
+  [FORMULA] cleaned:  'x + y and (2 + x) + y'
+Max Retries:   → attempt 3 rejected: Invalid classification: 'mathematical/formula'
+  original: (F) (x) (Ey) (P(Ixl + lyl) & P(2 + lxl + y)).
+  cleaned:  (∀x)(∃y)(P(|x|+|y|)&P(2+|x|+y))
+  [FORMULA] original: '(F) (x) (Ey) (P(Ixl + lyl) & P(2 + lxl + y)).'
+  [FORMULA] cleaned:  '(F) (x) (Ey) (P(Ixl + lyl) & P(2 + lxl + y)).'
+  [Page 218 / Page 259]
+  → restored '-Clearly,' (LLM tried '—Clearly,')  context: 'by the premises. -Clearly, this is so'
+  [FORMULA] original: 'p(a,b) = r,'
+  [FORMULA] cleaned:  'p(a|b) = r'
+  [FORMULA] original: 'p(h,e) = r:'
+  [FORMULA] cleaned:  'p(h|e) = r'
   [Page 219 / Page 260]
-  → restored ['(C', 'f'] (LLM tried '(Cf.')  context: 'induction at all. (C f sections 1, 80'
-  → restored ['=', 'p(b,b)', '1.'] (LLM tried 'p(b,b).')  context: '(1) p(a,a) = = p(b,b) 1.'
+  [FORMULA] original: 'B p(ab,c) = p(a,d)p(b,c) =e; p(a,c), provided p(a,a) = p(bc,d) and p(bc,c) = p(d,c).'
+  [FORMULA] cleaned:  'B p(ab,c) = p(a,b)p(b,c) = p(a,c), provided p(a,a) = p(b,d) and p(b,c) = p(d,c)'
+  [FORMULA] original: '(1) p(a,a) = ='
+  [FORMULA] cleaned:  '(1) p(a,a) = 1.'
+  [FORMULA] original: '(2) p(ab,c) =e; p(a,c)'
+  [FORMULA] cleaned:  '(2) p(ab,c) = p(a,c)'
+  [FORMULA] original: '(3) p(ab,c) = p(a,bc)p(b,c).'
+  [FORMULA] cleaned:  '(3) p(ab,c) = p(a,bc)p(b,c)'
+Max Retries:   → attempt 3 rejected: Cleaned text size differs by more than 20% (original printable=26, cleaned=43)
+  original: (4) p(a v b,c) + p(ab,c) =
+  cleaned:  p(a v b, c) + p(a*b, c) = p(a, c) + p(b, c)
+  [FORMULA] original: '(4) p(a v b,c) + p(ab,c) ='
+  [FORMULA] cleaned:  '(4) p(a v b,c) + p(ab,c) ='
+  [FORMULA] original: 'p(a,c) + p(b,c).'
+  [FORMULA] cleaned:  'p(a v b, c)'
+Max Retries:   → attempt 3 rejected: Cleaned text size differs by more than 20% (original printable=125, cleaned=5)
+  original: We obtain, furthermore, a number of theorems which are not obtainable in the usual calculus, for example the following: (5) 1
+  cleaned:  (5) 1
+Max Retries:   → attempt 3 rejected: Invalid classification: 'equation'
+  original: p(a, bb) =
+  cleaned:  p(a,b^2)
+  [FORMULA] original: 'p(a, bb) ='
+  [FORMULA] cleaned:  'p(a, bb) ='
   [Page 220 / Page 261]
   → restored 'criticize' (LLM tried 'criticise')  context: 'I intend to criticize the subjective interpretation'
   [Page 221 / Page 262]
+  → restored ["Einstein's-1", 'doubt'] (LLM tried 'Einstein's—doubt')  context: "as Newton's and Einstein's-1 doubt whether a numerical"
   → restored 'criticize' (LLM tried 'criticise')  context: 'in order to criticize and, especially, to'
   [Page 236 / Page 277]
   → restored 'realize' (LLM tried 'realise')  context: 'is important to realize that b must'
+  [Page 237 / Page 278]
+  → restored 'of' (LLM tried 'for')  context: 'as significant support of h.'
   [Page 238 / Page 279]
+  [FORMULA] original: 'p(a,b) = r,'
+  [FORMULA] cleaned:  'p(a|b) = r'
+  [FORMULA] original: 'p(ab,c) = r'
+  [FORMULA] cleaned:  'p(a b, c) = r'
+  [FORMULA] original: 'p(a,bc) = r'
+  [FORMULA] cleaned:  'p(ab,c) = r'
   → restored 'realize' (LLM tried 'realise')  context: 'at once to realize that the smaller'
+  [Page 239 / Page 280]
+  [FORMULA] original: '(b) p(e,b) <€ 1 h.'
+  [FORMULA] cleaned:  'p(e|b) ≤ 1/2'
+Max Retries:   → attempt 3 rejected: Invalid classification: 'formula'
+  original: (a) p(e,hb) = 1.
+  cleaned:  (a) p(e,hb) = 1.
+  [FORMULA] original: '(a) p(e,hb) = 1.'
+  [FORMULA] cleaned:  '(a) p(e,hb) = 1.'
+  [FORMULA] original: '(c) p(e,hb) - p(e,b) > 1 h.'
+  [FORMULA] cleaned:  '(c) p(e,hb) - p(e|b) > ≥ 0'
+  [FORMULA] original: 'p(a,bc) - p(a,c) > 0.'
+  [FORMULA] cleaned:  'p(a, bc) - p(a, c) > 0'
+  [FORMULA] original: 'p(e,hbe) = 1.'
+  [FORMULA] cleaned:  'p(e,hb,e) = 1'
+  [Page 240 / Page 281]
+  [FORMULA] original: '(g) p(e,hb) - p(eh,b) + p(e,b).'
+  [FORMULA] cleaned:  'p(e,hb) - p(eh,b) + p(e,b)'
+  → restored ['D', 'p(e,hb)'] (LLM tried 'D(p(e,hb)')  context: 'D p(e,hb) - p(e,b) C(h,e,b)'
+  [FORMULA] original: 'D p(e,hb) - p(e,b) C(h,e,b) = ----p(e,hb) - p(eh,b) + p(e,b).'
+  [FORMULA] cleaned:  'D p(e,hb) - p(e,b)) / (p(e,hb) - p(eh,b) + p(e,b))'
+Max Retries:   → attempt 3 rejected: Invalid classification: 'mathematical'
+  original: (aa) (bb) p(e,hb) 1 p(e,b) = 0.
+  cleaned:  (aa) (bb) p(h | e,b) > 1 / p(e|b) = 0
   [Page 241 / Page 282]
-  → restored ['p', 'h', '(,', 'b)'] (LLM tried 'p(h|b)')  context: '1 : (cc) p h (, b) = 0.'
+  [FORMULA] original: '(aa) (bb) p(e,hb) 1 p(e,b) = 0.'
+  [FORMULA] cleaned:  '(aa) (bb) p(e,hb) 1 p(e,b) = 0.'
+  [FORMULA] original: '(cc) p h (, b) = 0.'
+  [FORMULA] cleaned:  '\\p(h|b) > 0'
+Max Retries:   → attempt 3 rejected: Invalid classification: 'equation'
+  original: C(h,e,b) = -1.
+  cleaned:  C(h,e,b) = -1.
+  [Page 242 / Page 283]
+  [FORMULA] original: 'C(h,e,b) = -1.'
+  [FORMULA] cleaned:  'C(h,e,b) = -1.'
+Max Retries:   → attempt 3 rejected: Cleaned text size differs by more than 20% (original printable=29, cleaned=22)
+  original: C (h, e, b) � C (h', e', b'),
+  cleaned:  C(h,e,b) = C(h',e',b')
+  [FORMULA] original: "C (h, e, b) � C (h', e', b'),"
+  [FORMULA] cleaned:  "C (h, e, b) � C (h', e', b'),"
   [Page 246 / Page 287]
-  → restored ['f', 'f)'] (LLM tried 'ff.')  context: 'f, and 350 f f) Note that in'
   [LLM FOOTNOTE] "1 See Appendix ·:·ix of L.Sc.D., where my three papers on 'Degree of Confirmation' are reprinted. (B"
+  [FORMULA] original: 'Ct(a) = 1 -p(a),'
+  [FORMULA] cleaned:  'Ct(a) = 1 - p(a)'
+Max Retries:   → attempt 3 rejected: Cleaned text size differs by more than 20% (original printable=34, cleaned=27)
+  original: (i) - 1 :S C(a,b) :S Ct(a) :S + 1.
+  cleaned:  -1 ≤ C(a, b) ≤ C(t)(a) ≤ +1
+  [FORMULA] original: '(i) - 1 :S C(a,b) :S Ct(a) :S + 1.'
+  [FORMULA] cleaned:  '(i) - 1 :S C(a,b) :S Ct(a) :S + 1.'
+Max Retries:   → attempt 3 rejected: Cleaned text size differs by more than 20% (original printable=76, cleaned=46)
+  original: (ii) - 1 = C(a a, b) = C(a, a) :!5i C (a, b) :!5i C(a,a) = C (a) t :!5i + 1.
+  cleaned:  -1 = C(aa, b) ≤ C(a, b) ≤ C(a,a) = Ct(a) ≤ + 1
+  [FORMULA] original: '(ii) - 1 = C(a a, b) = C(a, a) :!5i C (a, b) :!5i C(a,a) = C (a) t :!5i + 1.'
+  [FORMULA] cleaned:  '(ii) - 1 = C(a a, b) = C(a, a) :!5i C (a, b) :!5i C(a,a) = C (a) t :!5i + 1.'
+  [Page 247 / Page 288]
+  [FORMULA] original: 'C(aa,bJ = o.'
+  [FORMULA] cleaned:  'C(a, b) ≥ 0'
   [Page 249 / Page 290]
+  → restored ['0', '=I='] (LLM tried '$\leq$')  context: 'versa, and that 0 =I= p(a) < p(b)'
   → restored 'be,' (LLM tried 'bc,')  context: 'to the conjunction be, and 0 =I='
-  → restored 'be,' (LLM tried 'bc,')  context: 'since a = be, we have C(a,bc)'
+  → restored ['0', '=I='] (LLM tried '$\leq$')  context: 'conjunction be, and 0 =I= p(c) =I= 1.'
+  → restored 'be,' (LLM tried 'bc,')  context: 'since a = be, we have'
+  [FORMULA] original: 'C(a,bc) > C(b,bc).'
+  [FORMULA] cleaned:  'C(a,a) > C(b,b) = C(b,bc)'
+  → restored 'be,' (LLM tried 'bc,')  context: 'example, the conjunction be, that is, a'
+  [FORMULA] original: 'C(a,d) > C(b,d).'
+  [FORMULA] cleaned:  'If b follows from a but not vice versa, and 0 ≠ p(a) < p(b) = 1, then there exists a statement d (in our case d may be, for example, the conjunction bc, that is, ab itself) such that C(a,d) > C(b,d),'
   [Page 250 / Page 291]
+  [FORMULA] original: 'p(a,d) ==: p(b,d).'
+  [FORMULA] cleaned:  'p(a, d) = p(b, d)'
   → restored '()-all' (LLM tried '()—all')  context: 'under (3) and ()-all derive from our'
+  [Page 251 / Page 292]
+  [FORMULA] original: 'C(a,x) < C(b,x).'
+  [FORMULA] cleaned:  'C(a,x) < C(b,x)'
+  [FORMULA] original: 'p(a,x) < p(b,x).'
+  [FORMULA] cleaned:  'p(x,a) < p(x,b)'
+  [FORMULA] original: 'p(b,a) - p(b) C(a,b) = p(b,a) - p(ab) + p(b).'
+  [FORMULA] cleaned:  'p(b,a) - p(b) ≡ C(a,b) = p(b,a) - p(ab) + p(b)'
+  [Page 252 / Page 293]
+  [FORMULA] original: 'p(b,ac) - p(b,c) C(a,b,c) = ------p(b,ac) - p(ab,c) + p(b,c).'
+  [FORMULA] cleaned:  'p(b,a|c) - p(b,c) / [C(a,b,c) = p(b,a,c) - p(ab,c) + p(b,c)]'
   [Page 253 / Page 294]
-  → restored ['p(x,z)', ';;.'] (LLM tried 'p(x,z);.')  context: 'Cu(y,z), tht:n not p(x,z) ;;. p (y, z)'
-  → restored 'and' (LLM tried 'p(x)')  context: 'If p(x,z),;;; p(x) and p(,z) y >'
-  → restored 'If' (LLM tried 'p(x,z)')  context: 'p(y,z) = (l} If p(x,z) p(x) and'
-  → restored 'If' (LLM tried 'p(x,z)')  context: '1) = (3} If p(x,z) p(x) and'
+  → restored 'alled' (LLM tried 'called')  context: 'based upon p(b,a}- alled the likelihood of'
+  → restored ["'", 'p(a,b)'] (LLM tried '\(p(a,b)')  context: "is equivalent to ' p(a,b) - p(a) >"
+  → restored ["'", 'p', '(a,'] (LLM tried '\(p(a,')  context: "say, equivalent to ' p (a, b) > p(a)'."
+Max Retries:   → attempt 3 rejected: Invalid classification: 'equation'
+  original: (1) If p(x,z),;;; p(x) and p(,z) y > p(y) then p(x,z) < p(y,z) =
+  cleaned:  (1) If p(x,z) ≤ p(x) and p(y,z) > p(y) then p(x,z) ≥ p(y,z)
+  [FORMULA] original: '(1) If p(x,z),;;; p(x) and p(,z) y > p(y) then p(x,z) < p(y,z) ='
+  [FORMULA] cleaned:  '(1) If p(x,z),;;; p(x) and p(,z) y > p(y) then p(x,z) < p(y,z) ='
+Max Retries:   → attempt 3 rejected: Invalid classification: 'mathematics/notation'
+  original: (l} If p(x,z) p(x) and p(y,z) > p(y) then p(x,z) < p(y,z) (by 1) =
+  cleaned:  (1) If p(x,z) ≥ p(x) and p(y,z) > p(y), then p(x,z) < p(y,z)
+  [FORMULA] original: '(l} If p(x,z) p(x) and p(y,z) > p(y) then p(x,z) < p(y,z) (by 1) ='
+  [FORMULA] cleaned:  '(l} If p(x,z) p(x) and p(y,z) > p(y) then p(x,z) < p(y,z) (by 1) ='
+  [FORMULA] original: '(3} If p(x,z) p(x) and p(y,z) > p(y) then p(x) < p(y,z) (by 2).'
+  [FORMULA] cleaned:  '(3} If p(x|z) ≤ p(x) and p(y|z) > p(y) then p(y|z) ≥ p(x)'
+  [Page 254 / Page 295]
+  [FORMULA] original: 'p(b,a1c) < p(b,a2c),'
+  [FORMULA] cleaned:  'P(b|a₁C) < P(b|a₂C)'
   [Page 261 / Page 302]
   → restored 'of' (LLM tried 'on')  context: "Bacon's naive views of induction - of"
+  [Page 266 / Page 307]
+  → restored 'function)' (LLM tried 'function}')  context: 'increase of a function) has been made'
+  [Page 267 / Page 308]
+  [FORMULA] original: '(b) X = 2 X 10 + 3'
+  [FORMULA] cleaned:  'X = 2 × 10 + 3'
+  [FORMULA] original: '(c) x = 24 + 22 + 21 + 2°'
+  [FORMULA] cleaned:  'x = 2^4 + 2^2 + 2^1 + 2^0'
+  [FORMULA] original: '(d) X = 33 - 22'
+  [FORMULA] cleaned:  'X = 3^2'
+Max Retries:   → attempt 3 rejected: Cleaned text size differs by more than 20% (original printable=27, cleaned=21)
+  original: (e) X = 2018 - (15 X 1 33).
+  cleaned:  X = 2018 - (15 × 133)
   [Page 271 / Page 312]
   → restored 'realized' (LLM tried 'realised')  context: 'this fact been realized at the time,'
   [Page 277 / Page 318]
   → restored 'emphasize' (LLM tried 'emphasise')  context: 'may help to emphasize a lesson taught'
-  [Page 281 / Page 322]
-  → restored 'criticized' (LLM tried 'criticised')  context: 'This theory was criticized in many places'
+  [Page 283 / Page 324]
+  → restored ['·:', '·'] (LLM tried '.:')  context: 'Appendices ·:·ii and ·: · v i), relative'
+  [FORMULA] original: 'p(a,b) = r,'
+  [FORMULA] cleaned:  'p(a|b) = r'
+Max Retries:   → attempt 3 rejected: Invalid classification: 'equation'
+  original: (A) p(a) =
+  cleaned:  p(a) = ∑b p(a, b)
+  [FORMULA] original: '(A) p(a) ='
+  [FORMULA] cleaned:  '(A) p(a) ='
+  [Page 284 / Page 325]
+  [FORMULA] original: 'p(a,b) = r'
+  [FORMULA] cleaned:  'p(a|b) = r'
+Max Retries:   → attempt 3 rejected: Invalid classification: 'equation'
+  original: p(a) = r
+  cleaned:  p(a) = r
+  [FORMULA] original: 'p(a) = r'
+  [FORMULA] cleaned:  'p(a) = r'
+  [FORMULA] original: 'p(a) = r'
+  [FORMULA] cleaned:  'p(a) = r'
+Max Retries:   → attempt 3 rejected: Invalid classification: 'notation'
+  original: (DA) p(a) = p(a,t).
+  cleaned:  (DA) p(a) = p(a,t)
+  [Page 285 / Page 326]
+  [FORMULA] original: '(DA) p(a) = p(a,t).'
+  [FORMULA] cleaned:  '(DA) p(a) = p(a,t).'
+  [FORMULA] original: 'p(a) = r (0 � r �1)'
+  [FORMULA] cleaned:  'p(a) = r (0 ≤ r ≤1)'
+Max Retries:   → attempt 3 rejected: Invalid classification: 'mathematical equation'
+  original: (DR) p(a,b) = p(ab)lp(b).
+  cleaned:  p(a, b) = p(ab) / p(b)
+  [FORMULA] original: '(DR) p(a,b) = p(ab)lp(b).'
+  [FORMULA] cleaned:  '(DR) p(a,b) = p(ab)lp(b).'
+  [FORMULA] original: 'p(a,b) = r.'
+  [FORMULA] cleaned:  'p(ab) = r'
+  [Page 290 / Page 331]
+  → restored 'which' (LLM tried 'that')  context: 'interested in experiments which involve after-effects (such'
   [Page 291 / Page 332]
-  → restored 'a' (LLM tried '$a$')  context: 'this case that a is independent of'
-  → restored 'a,' (LLM tried '$a$,')  context: 'is irrelevant to a, given b.'
+  [FORMULA] original: 'p(a,b) = r'
+  [FORMULA] cleaned:  'p(a,b) = r'
+  → restored 'realize' (LLM tried 'realise')  context: 'propensity r to realize the result a.)'
+  → restored ['p(a,bc)', '=', 'p(a,b).'] (LLM tried 'p(a,b∘c)=p(a,b)')  context: 'p(a,bc) = p(a,b).'
+  [FORMULA] original: 'p(a,bc) = p(a,b).'
+  [FORMULA] cleaned:  'p(a,bc) = p(a,b).'
   → restored 'emphasized' (LLM tried 'emphasised')  context: 'This fact is emphasized by the following'
   → restored ['p', 'a', 'b)', '(;', 'c'] (LLM tried 'p(a;b)')  context: '> 0 then p a b) (; c = p(a,b) if'
+  → restored ['p', 'a', 'b', '(,)'] (LLM tried 'p(a,b)')  context: 'p a b (,) = r'
   [Page 292 / Page 333]
-  → restored ['p(a', 'b),'] (LLM tried 'p(a,b)')  context: 'of statements, then p(a b), = r may'
+  [FORMULA] original: 'p a b (,) = r'
+  [FORMULA] cleaned:  'p a b (,) = r'
+  [FORMULA] original: 'p(a,b) = r'
+  [FORMULA] cleaned:  'p(a, b) = r'
   [Page 294 / Page 335]
-  → restored ['s', '-', 'we'] (LLM tried 's,—we')  context: '(,)--say, the value s - we are making a'
-  [Page 296 / Page 337]
-  [LLM DROP] "7. The Objectivist and Subjectivist Interpretations of 'b' in 'p(a, b)'"
-  [Page 302 / Page 343]
-  → restored 'dies?' (LLM tried 'dice?')  context: 'cases like loaded dies? And how should'
+  [FORMULA] original: 'p(a,b) = r'
+  [FORMULA] cleaned:  'p(a, b) = r'
+  → restored ['b', '(,)--say,'] (LLM tried 'b,—say,')  context: 'of p a b (,)--say, the value s'
+  [FORMULA] original: 'p(a,b) = 1'
+  [FORMULA] cleaned:  'p(a, b) = 1'
+Max Retries:   → attempt 3 rejected: Invalid classification: 'equation'
+  original: p(a,b) = p(a,b) = th,
+  cleaned:  p(Red|b) = p(Blue|b) = 1/2
   [Page 303 / Page 344]
-  → restored 'th,' (LLM tried '1/2,')  context: '= p(a,b) = th, where a is'
-  → restored 'a' (LLM tried 'b')  context: 'a is Red, a is Blue, and'
-  [Page 305 / Page 346]
-  → restored 'which' (LLM tried 'that')  context: 'And the difference which we found to'
-  [Page 306 / Page 347]
-  → restored 'homogeneous')' (LLM tried 'homogeneous'}')  context: "{'this die is homogeneous') by a new"
-  → restored 'extent').' (LLM tried 'extent'}.')  context: "and such an extent'). That is to"
+  [FORMULA] original: 'p(a,b) = p(a,b) = th,'
+  [FORMULA] cleaned:  'p(a,b) = p(a,b) = th,'
+  → restored 'a' (LLM tried 'b')  context: 'of a and a is not independent.'
+  [Page 308 / Page 349]
+  [FORMULA] original: 'p(a,b) = r'
+  [FORMULA] cleaned:  'p(a,b) = r'
+  [FORMULA] original: 'p(a,b) = r'
+  [FORMULA] cleaned:  'p(a,b)=r'
+  → restored ["'p(,b)", 'a'] (LLM tried ''p(a,b)')  context: "these conditions. Thus 'p(,b) a = r '"
+  [FORMULA] original: 'p(a,b) = r'
+  [FORMULA] cleaned:  'p(a,b) = r'
+Max Retries:   → attempt 3 rejected: Invalid classification: 'equation'
+  original: p(a,b) = r
+  cleaned:  p(\u2200a, \u2234b) = r
+  [FORMULA] original: 'p(a,b) = r'
+  [FORMULA] cleaned:  'p(a,b) = r'
+  [Page 309 / Page 350]
+  [FORMULA] original: 'p(a) = r ;'
+  [FORMULA] cleaned:  'p(a) = r'
   [Page 310 / Page 351]
   → restored 'a' (LLM tried 'an')  context: 'the probability of a absolute. Indeed, we'
+  → restored 'absolution' (LLM tried 'absoluteness')  context: 'respective rules of absolution before they can'
   → restored 'a' (LLM tried 'an')  context: 'the probability of a is (at present)'
-  [Page 311 / Page 352]
-  → restored 'absolution,' (LLM tried 'absorption,')  context: 'probabilistic rule of absolution, then we find'
+  → restored 'absolution' (LLM tried 'absoluteness')  context: 'the rule of absolution is no longer'
   [Page 312 / Page 353]
-  → restored ['p(,b', 'a)'] (LLM tried 'p(,b|a)')  context: 'in asking for p(,b a) he is asking'
+  → restored 'absolution.' (LLM tried 'absolutism.')  context: 'probabilistic rule of absolution. There is clearly'
+Max Retries:   → attempt 3 rejected: Invalid classification: 'notation'
+  original: p(a,b) = r = min.
+  cleaned:  p(a,b) = r = \frac{m}{n}
   [Page 314 / Page 355]
-  → restored 'stabilizes' (LLM tried 'stabilises')  context: 'our increased learning stabilizes our rational beliefs.'
-  [Page 320 / Page 361]
-  → restored 'combination' (LLM tried 'combinations')  context: 'various properties, and combination of properties.'
+  [FORMULA] original: 'p(a,b) = r = min.'
+  [FORMULA] cleaned:  'p(a,b) = r = min.'
+  [Page 317 / Page 358]
+  [FORMULA] original: 'p(a,b) = r'
+  [FORMULA] cleaned:  'p(a, b) = r'
+  [FORMULA] original: 'p(a,b) = r'
+  [FORMULA] cleaned:  'p(a,b) = r'
   [Page 322 / Page 363]
-Max Retries:   → attempt 3 rejected: Cleaned text size differs by more than 20% (original printable=2220, cleaned=1709)
+Max Retries:   → attempt 3 rejected: Cleaned text size differs by more than 20% (original printable=2220, cleaned=1704)
   original: ' I n h i s Logical Foundations of Probability, 1 949, and its sequel, The Continuum of Inductive Methods, 1 952, Carnap is concerned with constructing 'inductive methods' which correspond closely to what I have here described as the most primitive stage (i) in the evolution of an induction machine; and the various inductive methods contained in his Continuum can be shown to be so many attempts to solve the problem I have just described as trivial; the problem, that is, of how to avoid the counter-intuitive initial results of the simple inductive rule in its most primitive form. See for example, Logical Foundations, p. 227, where Carnap discusses what he calls the 'Straight Rule \ which is our simple rule, interpreted as giving exact results rather than approximate results. (This is why Carnap raises two objections--one in connection with the initial results of the rule, and the other in connection with the fact that we should hardly at every moment of time ascribe an extreme probability such as zero to every event which up to that moment has not been observed; yet this second objection disappears if we replace 'zero' by 'not far from zero'.) Carnap's 'continuum of inductive methods' simply consists of various methods of obtaining not too implausible results even below the number which, in the text, I have called 'n ', and of choosing that number n. Since he believes that the theory of induction must be a logical theory, he attempts in his Logical Foundations (pp. 563f!.) to give a kind of logical justification for choosing a particular solution of this problem. This attempt, it seems, is given up in his Continuum, where the variety of the possible solutions is stressed. (Thus Car nap's (ii) In a second and slightly less primitive stage, the induction machine may, in a similar way, formulate the statistics of consecutive pairs, triplets, etc., of events. It may discover, in this way, that the probability of a copper-steel pair to be followed by a copper event, or by a steel-copper pair, or by any triplet except a steel - steelcopper triplet, is zero. (Which means that the machine has discovered the 'law' that steel events tend to occur, if at all, in a succession of exactly three.)
-  cleaned:  I n h i s Logical Foundations of Probability, 1949, and its sequel, The Continuum of Inductive Methods, 1952, Carnap is concerned with constructing 'inductive methods' which correspond closely to what I have here described as the most primitive stage (i) in the evolution of an induction machine; and the various inductive methods contained in his Continuum can be shown to be so many attempts to solve the problem I have just described as trivial; the problem, that is, of how to avoid the counter-intuitive initial results of the simple inductive rule in its most primitive form. See for example, Logical Foundations, p. 227, where Carnap discusses what he calls the 'Straight Rule' which is our simple rule, interpreted as giving exact results rather than approximate results. (This is why Carnap raises two objections--one in connection with the initial results of the rule, and the other in connection with the fact that we should hardly at every moment of time ascribe an extreme probability such as zero to every event which up to that moment has not been observed; yet this second objection disappears if we replace 'zero' by 'not far from zero'.) Carnap's 'continuum of inductive methods' simply consists of various methods of obtaining not too implausible results even below the number which, in the text, I have called 'n ', and of choosing that number n. Since he believes that the theory of induction must be a logical theory, he attempts in his Logical Foundations (pp. 563f!) to give a kind of logical justification for choosing a particular solution of this problem. This attempt, it seems, is given up in his Continuum, where the variety of the possible solutions is stressed. (Thus Car nap's
+  cleaned:  I n his Logical Foundations of Probability, 1949, and its sequel, The Continuum of Inductive Methods, 1952, Carnap is concerned with constructing 'inductive methods' which correspond closely to what I have here described as the most primitive stage (i) in the evolution of an induction machine; and the various inductive methods contained in his Continuum can be shown to be so many attempts to solve the problem I have just described as trivial; the problem, that is, of how to avoid the counter-intuitive initial results of the simple inductive rule in its most primitive form. See for example, Logical Foundations, p. 227, where Carnap discusses what he calls the 'Straight Rule' which is our simple rule, interpreted as giving exact results rather than approximate results. (This is why Carnap raises two objections—one in connection with the initial results of the rule, and the other in connection with the fact that we should hardly at every moment of time ascribe an extreme probability such as zero to every event which up to that moment has not been observed; yet this second objection disappears if we replace 'zero' by 'not far from zero'.) Carnap's 'continuum of inductive methods' simply consists of various methods of obtaining not too implausible results even below the number which, in the text, I have called 'n', and of choosing that number n. Since he believes that the theory of induction must be a logical theory, he attempts in his Logical Foundations (pp. 563f.) to give a kind of logical justification for choosing a particular solution of this problem. This attempt, it seems, is given up in his Continuum, where the variety of the possible solutions is stressed. (Thus Carnap's
+  → restored 'number' (LLM tried 'numbered')  context: "and difficult questions number A and Kemeny's"
+  [Page 325 / Page 366]
+  [FORMULA] original: '(1) p(a,a) = 1.'
+  [FORMULA] cleaned:  '(1) p(a, a) = 1'
+Max Retries:   → attempt 3 rejected: Invalid classification: 'formula'
+  original: (2) p(a,ab) = 1 = p(a,ba) = p(a,bac).
+  cleaned:  (2) p(a,ab) = 1 = p(a,ba) = p(a,bac)
+  [FORMULA] original: '(2) p(a,ab) = 1 = p(a,ba) = p(a,bac).'
+  [FORMULA] cleaned:  '(2) p(a,ab) = 1 = p(a,ba) = p(a,bac).'
+  [FORMULA] original: '(3) p(ab) = p(a)p(b) if and only if p(a,b) = p(a).'
+  [FORMULA] cleaned:  '(3) p(ab) = p(a)p(b) if and only if p(a,b) = p(a)'
+  [FORMULA] original: '(4) If p(ab) =/; p(a)p(b) then either (i) p(a,b) > p(a), or (ii) p(a,b) < p(a) and p(a,b) > p(a).'
+  [FORMULA] cleaned:  '(4) If p(ab) ≠ p(a)p(b) then either (i) p(a,b) ≥ p(a), or (ii) p(a,b) ≤ p(a) and p(a,b) > p(a)'
   [Page 326 / Page 367]
   → restored ['p(x', 'b)'] (LLM tried 'p(x|b)')  context: 'i:. 0.) Let p(x b) = p(x)p(b), so'
+  [FORMULA] original: 'p(a,b) = p(x,b) = p(x) > p(a).'
+  [FORMULA] cleaned:  'p(a, b) = p(x, b) = p(x) > p(a)'
   [Page 328 / Page 369]
-  → restored 'ne' (LLM tried 'no')  context: "follows : '... ne instance of a"
+  → restored 'increase' (LLM tried 'increases')  context: 'which are clever increase the probability that'
+  [Page 329 / Page 370]
+  [FORMULA] original: 'p(a,b) = 1 12,'
+  [FORMULA] cleaned:  'p(a, b) = 1/12'
+  [Page 332 / Page 373]
+  → restored ['1', 'effreys'] (LLM tried 'Eddington')  context: 'inductivists such as 1 effreys or Carnap have'
+  → restored ['1', 'effreys'] (LLM tried 'Eddington')  context: 'emphasize this point. 1 effreys puts the question'
+  [Page 333 / Page 374]
+  → restored ['Einstein...', "'", '1'] (LLM tried 'Einstein....')  context: "a statement by Einstein... ' 1 A little later,"
+  → restored ['min', '=', 'r'] (LLM tried 'n^r')  context: 'p(a,b) = min = r'
+  [Page 335 / Page 376]
+  [FORMULA] original: 'p(a,b) = min = r'
+  [FORMULA] cleaned:  'p(a,b) = min = r'
+  [FORMULA] original: 'p(a,b) = r'
+  [FORMULA] cleaned:  'p(a, b) = min/n'
+  [Page 336 / Page 377]
+  [FORMULA] original: 'p, (a,b) = r'
+  [FORMULA] cleaned:  'p_(a, b) = r'
+Max Retries:   → attempt 3 rejected: Invalid classification: 'notation'
+  original: p, (a,b) = r
+  cleaned:  p(a, b) = r
+  [FORMULA] original: 'p, (a,b) = r'
+  [FORMULA] cleaned:  'p, (a,b) = r'
+Max Retries:   → attempt 3 rejected: Invalid classification: 'math'
+  original: (1) p,(a,b) = p.(a,b);
+  cleaned:  (1) p_(a,b) = p_(a,b)
+  [FORMULA] original: '(1) p,(a,b) = p.(a,b);'
+  [FORMULA] cleaned:  '(1) p,(a,b) = p.(a,b);'
+  [FORMULA] original: '(2) p, = p,.'
+  [FORMULA] cleaned:  '(2) p_(a,b) = p_(a,b)'
+  [Page 337 / Page 378]
+  [FORMULA] original: 'p;(a,b) = r'
+  [FORMULA] cleaned:  'p(a,b) = r'
+  [FORMULA] original: '(3) p,(a,b) = r if and only if pla,b) = r.'
+  [FORMULA] cleaned:  '(3) p,(a,b) = r if and only if P(a|b) = r.'
+Max Retries:   → attempt 3 rejected: Invalid classification: 'equation'
+  original: (4) p,(a,b) = r
+  cleaned:  (p(a,b)=r)
+  [FORMULA] original: '(4) p,(a,b) = r'
+  [FORMULA] cleaned:  '(4) p,(a,b) = r'
   [Page 338 / Page 379]
-  [LLM DROP] "71 find this tacit suggestion contained in R. Carnap's paper 'Probability as a Guide in Life', journ"
-  [Page 340 / Page 381]
-  → restored 'a' (LLM tried 'α')  context: 'either a or a from the evidence'
+  [LLM DROP] '71 find this tacit suggestion contained in R. Carnaps paper Probability as a Guide in Life, journal '
+  → restored ['p,', '(a,', 'b)', '=', 'r'] (LLM tried 'p(a,b)=min=r')  context: 'p, (a, b) = r'
+  [Page 339 / Page 380]
+  [FORMULA] original: 'p, (a, b) = r'
+  [FORMULA] cleaned:  'p, (a, b) = r'
   [Page 342 / Page 383]
-  → restored ['p', 'h,e', '(t)'] (LLM tried 'p_{h,e}^{(t)}')  context: 'h,e (2) > p h,e (t) if e2 contains'
+Max Retries:   → attempt 3 rejected: Cleaned text size differs by more than 20% (original printable=491, cleaned=680)
+  original: (B) The indubitable fact that, according to the probability calculus, the probability of a statement increases (unless it was zero to start with) with the accumulating evidence in its favour, especially with the accumulation of successful predictions. In terms of the probability calculus: Let h be a hypothesis whose initial probability (or prior probability) p(h) may be as small as we like, as long as it is different from zero. Let e be some evidence in its favour. Then we have not only
+  cleaned:  (B) The indubitable fact that, according to the probability calculus, the probability of a statement increases (unless it was zero to start with) with the accumulating evidence in its favour, especially with the accumulation of successful predictions. In terms of the probability calculus: Let h be a hypothesis whose initial probability (or prior probability) p(h) may be as small as we like, as long as it is different from zero. Let e be some evidence in its favour. Then we have not only
+p(h,e) > p(h)
+but also
+p(h,e2) > p(h,e1) if e2 contains favourable evidence not yet contained in e1 · Thus the probability of h continues to increase with accumulating favourable evidence.
+  [FORMULA] original: 'p(h,e) > p(h)'
+  [FORMULA] cleaned:  'p(h|e) > p(h)'
+  [FORMULA] original: 'p h,e (2) > p h,e (t)'
+  [FORMULA] cleaned:  'p(h,e²) > p(h,e¹)'
+Max Retries:   → attempt 3 rejected: Invalid classification: 'equation'
+  original: (1) p(h;, e) > p h (,) ;
+  cleaned:  (1) p(h_{n}, e) > p(h_{n})
   [Page 343 / Page 384]
-  → restored ['p', 'h', '(,)'] (LLM tried 'p(h,)')  context: 'p(h;, e) > p h (,) ; that is'
+  [FORMULA] original: '(1) p(h;, e) > p h (,) ;'
+  [FORMULA] cleaned:  '(1) p(h;, e) > p h (,) ;'
+Max Retries:   → attempt 3 rejected: Invalid classification: 'theorem'
+  original: (2) p (h ;, e) < p (h ;, e) if, and only if, p(h;) < p(h,).
+  cleaned:  (2) p(h;,e) < p(h_;e) if and only if p(h,) < p(h_,)
+  [FORMULA] original: '(2) p (h ;, e) < p (h ;, e) if, and only if, p(h;) < p(h,).'
+  [FORMULA] cleaned:  '(2) p (h ;, e) < p (h ;, e) if, and only if, p(h;) < p(h,).'
   → restored 'generalization'' (LLM tried 'generalisation'')  context: "a typical 'inductive generalization' of e, while"
   → restored 'generalization' (LLM tried 'generalisation')  context: 'from being a generalization of e; or'
+Max Retries:   → attempt 3 rejected: Invalid classification: 'formula'
+  original: p(h1, eb) = p(h21 eb)
+  cleaned:  p(h1,e b) = p(h2,e b)
+  [Page 344 / Page 385]
+  [FORMULA] original: 'p(h1, eb) = p(h21 eb)'
+  [FORMULA] cleaned:  'p(h1, eb) = p(h21 eb)'
+  → restored ['p(h,', 'eb)'] (LLM tried 'p(h|eb)')  context: 'p(h, eb) < p(h2, eb)'
+  → restored ['p(h,,', 'b)'] (LLM tried 'p(h|b)')  context: 'and only if p(h,, b) < p(h2, b).'
+  [FORMULA] original: 'p(h, eb) < p(h2, eb) if and only if p(h,, b) < p(h2, b).'
+  [FORMULA] cleaned:  'p(h, eb) < p(h2|eb) if and only if p(h,, b) < p(h2|b)'
+Max Retries:   → attempt 3 rejected: Invalid classification: 'equation'
+  original: (1 ') p(h, be) > p(h,b)
+  cleaned:  p(h|be) > p(h|b)
+  [Page 346 / Page 387]
+  [FORMULA] original: "(1 ') p(h, be) > p(h,b)"
+  [FORMULA] cleaned:  "(1 ') p(h, be) > p(h,b)"
+  [FORMULA] original: "(2 ') p(h., be) < p(hz, be) i f and only i f p(h., b) < p(h2, b)."
+  [FORMULA] cleaned:  "(2') p(h⋅, e) < p(h², e) if and only if p(h⋅, b) < p(h², b)"
   [Page 349 / Page 390]
-  → restored 'it.' (LLM tried 'in')  context: 'will be discussed it. :he present section,'
-  → restored ':he' (LLM tried 'the')  context: 'be discussed it. :he present section, while'
+  → restored ':he' (LLM tried 'The')  context: 'be discussed it. :he present section, while'
   [Page 350 / Page 391]
-  → restored 'infinite)' (LLM tried 'infinite}')  context: 'extremely long {perhaps infinite) sequence of events.'
   → restored 'he' (LLM tried 'be')  context: 'third throw may he regarded as a'
+Max Retries:   → attempt 3 rejected: Invalid classification: 'mathematical notation'
+  original: (i) p (a, b) = 1/4
+  cleaned:  p(a,b)=∑4
   [Page 354 / Page 395]
-  → restored 'be' (LLM tried 'bc')  context: 'this kind. For be is not, in'
-  → restored 'be' (LLM tried 'bc')  context: 'three elements. In be the six may'
-  → restored 'be' (LLM tried 'bc')  context: 'in the sequence be because we know'
+  [FORMULA] original: '(i) p (a, b) = 1/4'
+  [FORMULA] cleaned:  '(i) p (a, b) = 1/4'
+Max Retries:   → attempt 3 rejected: Invalid classification: 'formula'
+  original: (ii) p (a, b c) = 1/6 ;
+  cleaned:  p(a, bc) = 1/6
+  [FORMULA] original: '(ii) p (a, b c) = 1/6 ;'
+  [FORMULA] cleaned:  '(ii) p (a, b c) = 1/6 ;'
   [Page 355 / Page 396]
-  → restored 'be' (LLM tried 'will')  context: 'these particular throws be occur somewhere in'
-  → restored 'characterized' (LLM tried 'characterised')  context: 'sequences which are characterized by a set'
-  → restored 'realization' (LLM tried 'realisation')  context: 'conditions whose repeated realization produces the elements'
   → restored 'the' (LLM tried 'a')  context: 'of throws with the loaded die will'
-  → restored 'be,' (LLM tried 'bc,')  context: 'The other part, be, consists of throws'
-  [Page 357 / Page 398]
-  → restored 'realize' (LLM tried 'realise')  context: 'or propensities to realize the possibilities in'
-  [Page 360 / Page 401]
-  → restored 'I' (LLM tried 'III')  context: 'Volume I I I of the Postscript,'
+  [Page 362 / Page 403]
+  → restored 'its' (LLM tried 'their')  context: "Wald's result7 received its finishing touches, as"
+  [Page 364 / Page 405]
+  → restored 'terns' (LLM tried 'terms')  context: 'terns must always exist,'
+  [Page 365 / Page 406]
+  [FORMULA] original: 'Length 2: Number of sequences: 4 00 to 01 1 1'
+  [FORMULA] cleaned:  'Length 2: Number of sequences: 4 (00 to 11)'
   [Page 367 / Page 408]
-  → restored 'which' (LLM tried 'that')  context: 'the greatest interest which cannot be brought'
   → restored ["n'", 'In'] (LLM tried 'n'/n')  context: "a, so that n' In is the relative"
-  [Page 369 / Page 410]
-  → restored ['1', 'h'] (LLM tried 'l/h')  context: 'which deviations from 1 h exceed E ='
+  [Page 368 / Page 409]
+  → restored ['I', "n'", 'n', 'I', 'p(l,a)', 'l'] (LLM tried '|n'n|p(l,a)|')  context: "n > m, I n' n I p(l,a) l < e."
   [Page 370 / Page 411]
-  → restored ['1J', '-', 'also).'] (LLM tried 'δ.')  context: 'be less than 1J - also). In the end,'
+  → restored ['1J', '-', 'also).'] (LLM tried 'ε.')  context: 'be less than 1J - also). In the end,'
+  [Page 375 / Page 416]
+  [LLM FOOTNOTE] '(b) The neo-classical theory does not assume preferential status for equi-probability; more especial'
+Max Retries:   → attempt 3 rejected: Invalid classification: 'example'
+  original: The answer is, of course, (f · f) + (t · t) = t·
+  cleaned:  (f · f) + (t · t) = ƒ
   [Page 376 / Page 417]
-  → restored ['J', 'anina'] (LLM tried 'Jana')  context: "a third point, J anina Hosiasson's criticism3 may"
-  [Page 379 / Page 420]
-  [LLM DROP] 'Admittedly, this lack of counter-examples is connected with the fact that the new derivations and ze'
-  [Page 385 / Page 426]
-  → restored 'I' (LLM tried '1')  context: '2 m - I different possible sequences.'
+  [FORMULA] original: 'The answer is, of course, (f · f) + (t · t) = t·'
+  [FORMULA] cleaned:  'The answer is, of course, (f · f) + (t · t) = t·'
+  [Page 377 / Page 418]
+  → restored ['�', '�', '�'] (LLM tried '.')  context: '2 3 Urn � � � Urn ;/ u�'
+  [Page 386 / Page 427]
+  → restored 'generalized' (LLM tried 'generalised')  context: 'theory, probabilities are generalized measures of possibilities'
   [Page 388 / Page 429]
   → restored 'analysed' (LLM tried 'analyzed')  context: 'next throw-may be analysed along the following'
   [Page 389 / Page 430]
   → restored 'homogenous,' (LLM tried 'homogeneous,')  context: 'die is approximately homogenous, the probabilities should'
-  → restored 'which' (LLM tried 'that')  context: 'with a load which can be adjusted,'
+  [Page 394 / Page 435]
+  [FORMULA] original: 'p(2) = 1/6 p(2, even) = 113.'
+  [FORMULA] cleaned:  'p(2) = 1/6 p(2 | even) = 1/3'
+  [Page 395 / Page 436]
+  → restored ['(C', 'f'] (LLM tried '(Cf.')  context: 'basis of observations. (C f the end of'
+  [Page 398 / Page 439]
+  → restored 'realized' (LLM tried 'realised')  context: 'that I first realized the need for'
 
-[TIMING] validation=4.25s (204 skipped) | llm=6688.49s (1424 calls) | total_timed=6692.75s
+[TIMING] validation=1.82s (226 skipped) | llm=6544.08s (1448 calls) | total_timed=6545.91s
 Dry run: Did not generate audio.
 
 Saved to ..\output\Realism and the Aim of Science -- Karl Popper -- 2017_processed_paragraphs.txt

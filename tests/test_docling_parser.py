@@ -318,6 +318,33 @@ class TestIsFootnote:
         parser = make_parser([])
         assert parser._is_footnote(make_text_item(text), make_ctx(found_note_this_page=False)) is False
 
+    def test_h3_formula_after_note_returns_true(self) -> None:
+        """A FORMULA item after a footnote on the page is swept up by H3 propagation."""
+        item = make_doc_item(TextItem, DocItemLabel.FORMULA.value, "p(x,z) = p(x)")
+        parser = make_parser([])
+        assert parser._is_footnote(item, make_ctx(found_note_this_page=True)) is True
+
+    def test_h3_formula_without_prior_note_returns_false(self) -> None:
+        """H3 formula propagation must not fire when no footnote has been seen yet."""
+        item = make_doc_item(TextItem, DocItemLabel.FORMULA.value, "p(x,z) = p(x)")
+        parser = make_parser([])
+        assert parser._is_footnote(item, make_ctx(found_note_this_page=False)) is False
+
+    def test_h3_list_item_after_note_returns_true(self) -> None:
+        """A LIST_ITEM after a footnote on the page is swept up by H3 propagation —
+        list items in the footnote section (e.g. numbered conditions) are footnote content."""
+        item = make_doc_item(TextItem, DocItemLabel.LIST_ITEM.value,
+                             "(1) If p(x,z) >= p(x) and p(y,z) > p(y) then p(x,z) < p(y,z)")
+        parser = make_parser([])
+        assert parser._is_footnote(item, make_ctx(found_note_this_page=True)) is True
+
+    def test_h3_list_item_without_prior_note_returns_false(self) -> None:
+        """H3 list_item propagation must not fire when no footnote has been seen yet."""
+        item = make_doc_item(TextItem, DocItemLabel.LIST_ITEM.value,
+                             "(1) If p(x,z) >= p(x) and p(y,z) > p(y) then p(x,z) < p(y,z)")
+        parser = make_parser([])
+        assert parser._is_footnote(item, make_ctx(found_note_this_page=False)) is False
+
     # --- Endnote path: in_notes_section flag ---
 
     def test_endnote_path_digit_alpha_returns_true(self) -> None:
@@ -463,6 +490,31 @@ class TestIsFootnote:
         # bbox.height=10.0 is NOT < 10.0*0.85=8.5 → body check fails; also too short for chars-per-line
         ctx = make_ctx(text_seen_this_page=True, single_line_height=10.0,
                        median_chars_per_line=80.0, body_line_height=10.0)
+        assert parser._is_footnote(item, ctx) is False
+
+    def test_ocr_mangled_first_char_small_text_lower_half_returns_true(self) -> None:
+        """OCR can substitute a digit with a symbol (e.g. '&' for '6'), making a
+        first.isdigit() guard reject a genuine footnote.
+        Small text + body text seen + lower half of page must be sufficient."""
+        text = "&a['n( Added 1982) It is possible to make (G) and (H) even more nearly similar"
+        item = make_sized_text_item(text, charspan_length=len(text), bbox_height=8.0)
+        item.prov[0].bbox.t = 30.0  # lower half of 100-height page
+        parser = make_parser([])
+        ctx = make_ctx(text_seen_this_page=True, single_line_height=10.0,
+                       median_chars_per_line=50.0, body_line_height=10.0,
+                       median_page_height=100.0)
+        assert parser._is_footnote(item, ctx) is True
+
+    def test_ocr_mangled_first_char_upper_half_returns_false(self) -> None:
+        """Non-digit-start small text in the upper half of the page without other
+        signals must not be classified as a footnote — footnotes live at the bottom."""
+        text = "&a['n( Added 1982) It is possible to make (G) and (H) even more nearly similar"
+        item = make_sized_text_item(text, charspan_length=len(text), bbox_height=8.0)
+        item.prov[0].bbox.t = 70.0  # upper half of 100-height page
+        parser = make_parser([])
+        ctx = make_ctx(text_seen_this_page=True, prev_text_candidate=False,
+                       single_line_height=10.0, median_chars_per_line=50.0,
+                       body_line_height=10.0, median_page_height=100.0)
         assert parser._is_footnote(item, ctx) is False
 
 

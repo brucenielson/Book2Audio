@@ -383,10 +383,11 @@ class DoclingParser(BaseParser):
         """
         if is_footnote(text_item):
             return True
-        # H3 extension: formula items are swept up by footnote propagation just like
-        # TEXT items — a formula that appears after the first footnote on a page is
-        # part of the footnote section, not body content.
-        if text_item.label == DocItemLabel.FORMULA and ctx.found_note_this_page:
+        # H3 extension: formula and list_item items are swept up by footnote propagation
+        # just like TEXT items — any such item that appears after the first footnote on
+        # a page is part of the footnote section, not body content.
+        if (text_item.label in (DocItemLabel.FORMULA, DocItemLabel.LIST_ITEM)
+                and ctx.found_note_this_page):
             return True
         if not (text_item.label in (DocItemLabel.TEXT, DocItemLabel.SECTION_HEADER)
                 and text_item.text):
@@ -435,23 +436,27 @@ class DoclingParser(BaseParser):
                                   ctx.median_chars_per_line,
                                   body_line_height=ctx.body_line_height)):
             return False
-        # Gate: first character must be a digit.
-        first: str = text_item.text[0]
-        if not first.isdigit():
-            return False
         # Numbered list items are not footnotes — "1. Introduction", "2. Method", etc.
         if re.match(r'^\d+\.\s', text_item.text):
+            return False
+        first: str = text_item.text[0]
+        # Lower half of page: small text below the midpoint whose first character is
+        # not a letter is a footnote.  Footnote markers are digits, symbols, or OCR
+        # artifacts (e.g. '&' for '6'); regular body paragraphs always start with
+        # a letter and are excluded by the isalpha() check.
+        if (not first.isalpha()
+                and ctx.median_page_height > 0
+                and text_item.prov
+                and text_item.prov[0].bbox is not None
+                and text_item.prov[0].bbox.t < ctx.median_page_height * 0.5):
+            return True
+        # Gate: first character must be a digit.
+        if not first.isdigit():
             return False
         # H1 (small-text path): small text following a mid-sentence body paragraph.
         # alpha check excludes pure index entries like "183-84".
         has_alpha: bool = any(c.isalpha() for c in text_item.text)
         if has_alpha and ctx.prev_text_candidate:
-            return True
-        # Lower half of page: any digit-start item in small text at the bottom is a footnote.
-        if (ctx.median_page_height > 0
-                and text_item.prov
-                and text_item.prov[0].bbox is not None
-                and text_item.prov[0].bbox.t < ctx.median_page_height * 0.5):
             return True
         return False
 
