@@ -107,7 +107,13 @@ the intended formula as closely as possible.
 
 In either case:
 - Keep the output as notation — do NOT translate it to spoken English.
-- Return only the cleaned formula. No JSON, no labels, no explanation."""
+- Respond ONLY with a JSON object, no preamble or markdown backticks
+
+Response format:
+{
+    "cleaned": "the cleaned formula",
+    "classification": "body"
+}"""
 
 
 _MIN_SIZE_CHECK_CHARS: Final = 20  # skip the size guard for very short strings
@@ -467,11 +473,12 @@ class TextCleaner:
                 options: dict[str, float] = {}
                 if self._temperature is not None:
                     options['temperature'] = self._temperature
+                use_formula_prompt = formula and self.formula_mode != FormulaMode.NONE
                 response = ollama.chat(
                     model=self._model,
                     options=options or None,
                     messages=[
-                        {'role': 'system', 'content': SYSTEM_PROMPT},
+                        {'role': 'system', 'content': FORMULA_CLEAN_SYSTEM_PROMPT if use_formula_prompt else SYSTEM_PROMPT},
                         {'role': 'user', 'content': user_content}
                     ]
                 )
@@ -519,6 +526,10 @@ class TextCleaner:
                 if classification == 'footnote' and paragraph.lstrip()[:1].isalpha():
                     # Real footnotes always begin with a reference number or symbol, never
                     # a letter. Override to protect body text that the LLM mislabelled.
+                    classification = 'body'
+
+                if formula:
+                    # Formula chunks are always body text — never footnote or drop.
                     classification = 'body'
 
                 if classification != 'drop':
