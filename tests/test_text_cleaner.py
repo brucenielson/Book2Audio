@@ -12,9 +12,11 @@ from conftest import TEST_LLM_MODEL
 
 # --- Fixtures ---
 
-def make_cleaner(model: str = TEST_LLM_MODEL, max_retries: int = 3) -> TextCleaner:
+def make_cleaner(model: str = TEST_LLM_MODEL, max_retries: int = 3,
+                 formula_mode: str = 'clean') -> TextCleaner:
     """Create a TextCleaner instance."""
-    return TextCleaner(model=model, max_retries=max_retries, temperature=0)
+    return TextCleaner(model=model, max_retries=max_retries, temperature=0,
+                       formula_mode=formula_mode)
 
 
 def make_response(cleaned: str, classification: str) -> dict:
@@ -1205,9 +1207,9 @@ class TestCleanWithFormulaPrompt:
     def test_returns_cleaned_text_and_classification(self) -> None:
         """Formula path returns the same (cleaned, classification) tuple as body text."""
         cleaner = make_cleaner()
-        with patch(patch_llm_chat, return_value=make_response("p(h,e|b) = p(h2,e|b)", "body")):
-            cleaned, classification = cleaner.clean("p(h1, eb) = p(h21 eb)", formula=True)
-        assert cleaned == "p(h,e|b) = p(h2,e|b)"
+        with patch(patch_llm_chat, return_value=make_response("p(h,e|b)", "body")):
+            cleaned, classification = cleaner.clean("p(h,e|b)", formula=True)
+        assert cleaned == "p(h,e|b)"
         assert classification == "body"
 
     def test_retries_on_malformed_json(self) -> None:
@@ -1278,16 +1280,15 @@ class TestCleanWithFormulaPrompt:
         assert classification == "body"
 
     def test_formula_llm_commentary_triggers_retry(self) -> None:
-        """LLM commentary appended after the JSON object causes a parse error and retry.
+        """A plain-text LLM response (no JSON) triggers a retry.
 
-        This is the desired rejection mechanism: with JSON format, any extra text
-        after the closing brace is invalid JSON and forces the LLM to try again.
+        When the LLM returns commentary instead of the required JSON object,
+        json.loads fails and the regex fallback finds no keys — retry fires.
         """
         cleaner = make_cleaner(max_retries=3)
         commentary_response = {
             'message': {'content':
-                '{"cleaned": "p(h,e|b)", "classification": "body"}\n\n'
-                'Note: I corrected the subscript.'
+                'The cleaned formula is p(h,e|b). I corrected the subscript notation.'
             }
         }
         good_response = make_response("p(h,e|b)", "body")

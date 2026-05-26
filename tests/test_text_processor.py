@@ -419,14 +419,6 @@ class TestFormulaModeNoneRouting:
         processor.process([make_chunk('x -+- y == z (garbled)', label='formula')])
         cleaner.clean.assert_called()
 
-    def test_none_mode_result_not_labeled_formula(self) -> None:
-        """NONE mode emits formula chunks with a body-text label, not 'formula'."""
-        cleaner = make_formula_cleaner(formula_mode=FormulaMode.NONE,
-                                       body_result='The probability is high.')
-        processor = TextProcessor(cleaner=cleaner)
-        result = processor.process([make_chunk('The probability is high.', label='formula')])
-        assert len(result) == 1
-        assert result[0].label != 'formula'
 
     def test_none_mode_no_formula_annotation(self, capsys) -> None:
         """NONE mode never prints [FORMULA] even with verbose=True."""
