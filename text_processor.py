@@ -289,10 +289,10 @@ class TextProcessor:
         if self._cleaner:
             page_context: str = self._page_contexts.get(chunk.meta.get('page_#', ''), '')
             if self._cleaner.formula_mode == FormulaMode.AUDIO:
-                cleaned = self._cleaner.clean_formula_ocr(chunk.text, page_context=page_context)
+                cleaned, _ = self._cleaner.clean(chunk.text, page_context=page_context, formula=True)
                 text = self._cleaner.clean_formula(cleaned, page_context=page_context)
             else:  # CLEAN
-                cleaned = self._cleaner.clean_formula_ocr(chunk.text, page_context=page_context)
+                cleaned, _ = self._cleaner.clean(chunk.text, page_context=page_context, formula=True)
                 text = cleaned
             if self._verbose:
                 self._vprint(f"  [FORMULA] original: {chunk.text!r}")
