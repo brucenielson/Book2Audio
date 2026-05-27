@@ -4,7 +4,7 @@ Runs book_to_audio with the LLM cleaner enabled (dry run, no audio),
 then copies the processed paragraphs file into output/ ready to commit
 in GitHub Desktop.
 
-Usage: run via "Run Current File" from the try/ directory.
+Usage: run via "Run Current File" from the debug/ directory.
 """
 
 import sys

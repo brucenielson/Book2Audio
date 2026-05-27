@@ -1,7 +1,7 @@
 """Diagnostic script: dump Docling text items from a page with is_small_text detail.
 
 Run from the Book2Audio root:
-    python try/check_page.py
+    python debug/check_page.py
 
 Prints every text item on the target page with bbox info and is_small_text
 path analysis so we can see why an item is or isn't being flagged as small text.

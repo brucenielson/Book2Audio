@@ -4,7 +4,7 @@ single_line_height: median bbox.height of PAGE_HEADER and PAGE_FOOTER items.
 body_line_height:   75th-percentile bbox.height of single-line body TEXT items.
 
 Run from the Book2Audio root:
-    python try/check_line_height.py
+    python debug/check_line_height.py
 """
 
 import sys
