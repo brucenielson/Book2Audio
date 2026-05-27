@@ -363,16 +363,9 @@ class DoclingParser(BaseParser):
     def _is_footnote(self, text_item: TextItem, ctx: _FootnoteContext) -> bool:
         """Return True if text_item should be classified as a footnote.
 
-        Checks Docling's own FOOTNOTE label first, then applies three
-        unlabelled-footnote heuristics for TEXT items that start with a digit:
-
-        1. Sentence-end heuristic: the preceding TEXT item was substantial and
-           ended mid-sentence, making a digit-start continuation a near-certain
-           footnote reference.
-        2. Small-text heuristic: the item is noticeably smaller than the document's
-           body text (more chars per estimated line than the median).
-        3. Propagation heuristic: a footnote has already been seen on this page,
-           so subsequent digit+alpha items are treated as continuations.
+        After passing two guards, six heuristics are tried in order (H1–H6).
+        A small-text gate separates the positional heuristics (H1–H4, no font-size
+        requirement) from the font-sensitive ones (H5–H6).
 
         Args:
             text_item: The item to classify.
@@ -381,47 +374,51 @@ class DoclingParser(BaseParser):
         Returns:
             True if the item is or should be classified as a footnote.
         """
+        # Pass-through: Docling already labeled this item as a footnote.
         if is_footnote(text_item):
             return True
-        # H3 extension: formula and list_item items are swept up by footnote propagation
-        # just like TEXT items — any such item that appears after the first footnote on
-        # a page is part of the footnote section, not body content.
-        if (text_item.label in (DocItemLabel.FORMULA, DocItemLabel.LIST_ITEM)
-                and ctx.found_note_this_page):
-            return True
-        if not (text_item.label in (DocItemLabel.TEXT, DocItemLabel.SECTION_HEADER)
-                and text_item.text):
+
+        # Guard: skip items with no content or labels we never classify as footnotes.
+        if not text_item.text:
             return False
-        # H3: propagation — once a footnote has been seen on this page, all subsequent
-        # TEXT items are footnote continuations regardless of first character.
-        # SECTION_HEADERs are excluded: they represent chapter/section titles and
-        # are not swept up by propagation.
-        if text_item.label == DocItemLabel.TEXT and ctx.found_note_this_page:
+        if text_item.label not in (DocItemLabel.TEXT, DocItemLabel.SECTION_HEADER,
+                                    DocItemLabel.FORMULA, DocItemLabel.LIST_ITEM):
+            return False
+
+        # H1 — Propagation: once a footnote has been seen on this page, all subsequent
+        # TEXT, FORMULA, and LIST_ITEM items are part of the footnote section.
+        # SECTION_HEADERs are excluded — chapter/section titles are not swept up.
+        if (ctx.found_note_this_page
+                and text_item.label in (DocItemLabel.TEXT,
+                                        DocItemLabel.FORMULA,
+                                        DocItemLabel.LIST_ITEM)):
             return True
-        # Endnote path: in a dedicated notes/endnotes section (back of book), any
-        # digit-start TEXT item with alpha content is an endnote. No font-size or
-        # page-position requirements — endnote pages may use the same font as body text.
+
+        # The remaining heuristics only apply to TEXT and SECTION_HEADER items.
+        if text_item.label not in (DocItemLabel.TEXT, DocItemLabel.SECTION_HEADER):
+            return False
+
+        # H2 — Endnote section: in a dedicated Notes/Endnotes section at the back of
+        # the book, any digit-start TEXT item with alpha content is an endnote.
+        # No font-size or page-position check — endnote pages use the same font as body.
         if (ctx.in_notes_section
                 and text_item.label == DocItemLabel.TEXT
                 and text_item.text[0].isdigit()
                 and any(c.isalpha() for c in text_item.text)):
             return True
-        # H4: 1–2 digits immediately against an uppercase letter or opening punctuation
-        # (e.g. "3See", "14Cf", "3[See", "8(See", "13'That").  The tight juxtaposition
-        # of a digit marker and a word/punctuation is almost never body text.
-        # Requires body text to have been seen first on the page.
-        # Uppercase avoids ordinals like "1st". Applies to TEXT and SECTION_HEADER —
-        # Docling sometimes mislabels footnotes as section headers (e.g. "5To make...").
-        # Real section headers have separators after the digit ("1. Intro", "2.3 Methods")
-        # and don't match this pattern.
+
+        # H3 — Juxtaposed marker: 1–2 digits immediately against an uppercase letter or
+        # opening punctuation with no space (e.g. "3See", "14Cf", "8(See", "13'That").
+        # This pattern almost never appears in body text. Uppercase avoids ordinals like
+        # "1st". Applies to mislabeled SECTION_HEADERs too — real section headers always
+        # have a separator after the number ("1. Intro", "2.3 Methods") and won't match.
         if (ctx.text_seen_this_page
-                and text_item.label in (DocItemLabel.TEXT, DocItemLabel.SECTION_HEADER)
                 and re.match(r'^\d{1,2}[A-Z\[(\'\"]', text_item.text)):
             return True
-        # H1: digit-start item with alpha content that immediately follows a mid-sentence
-        # body paragraph and sits in the lower half of the page.  No font-size requirement —
-        # footnotes in narrow columns may be typeset at the same size as body text but will
-        # always appear below the main text block.
+
+        # H4 — Positional: digit-start TEXT item with alpha content, preceded by a
+        # mid-sentence body paragraph, sitting in the lower half of the page.
+        # No font-size requirement — footnotes in narrow columns may match body font size.
         if (text_item.label == DocItemLabel.TEXT
                 and text_item.text[0].isdigit()
                 and any(c.isalpha() for c in text_item.text)
@@ -431,35 +428,42 @@ class DoclingParser(BaseParser):
                 and text_item.prov[0].bbox is not None
                 and text_item.prov[0].bbox.t < ctx.median_page_height * 0.5):
             return True
-        # Gate: footnotes are always smaller than body text, and cannot appear before
-        # body text has been seen on the page.
+
+        # Small-text gate: H5 and H6 require the item to be visually smaller than
+        # body text, and body text must have been seen already on this page.
         if not (ctx.text_seen_this_page
                 and is_small_text(text_item, ctx.single_line_height,
                                   ctx.median_chars_per_line,
                                   body_line_height=ctx.body_line_height)):
             return False
+
         # Numbered list items are not footnotes — "1. Introduction", "2. Method", etc.
         if re.match(r'^\d+\.\s', text_item.text):
             return False
+
         first: str = text_item.text[0]
-        # Lower half of page: small text below the midpoint whose first character is
-        # not a letter is a footnote.  Footnote markers are digits, symbols, or OCR
-        # artifacts (e.g. '&' for '6'); regular body paragraphs always start with
-        # a letter and are excluded by the isalpha() check.
+
+        # H5 — Symbol marker: small text whose first character is not a letter, in the
+        # lower half of the page. Covers OCR artifacts (e.g. '&' mangled from '6'),
+        # bullet-style markers (·, *, †), and similar non-alpha footnote symbols.
         if (not first.isalpha()
                 and ctx.median_page_height > 0
                 and text_item.prov
                 and text_item.prov[0].bbox is not None
                 and text_item.prov[0].bbox.t < ctx.median_page_height * 0.5):
             return True
-        # Gate: first character must be a digit.
+
+        # Gate: H6 only applies to digit-start items.
         if not first.isdigit():
             return False
-        # H1 (small-text path): small text following a mid-sentence body paragraph.
-        # alpha check excludes pure index entries like "183-84".
+
+        # H6 — Small digit marker with context: small digit-start item with alpha
+        # content, preceded by a mid-sentence body paragraph.
+        # Alpha check excludes pure index entries like "183-84".
         has_alpha: bool = any(c.isalpha() for c in text_item.text)
         if has_alpha and ctx.prev_text_candidate:
             return True
+
         return False
 
     @staticmethod
