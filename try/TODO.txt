@@ -1,0 +1,379 @@
+Errors I found:
+
+There are several completely analogous ways of being intellectually imprisoned. We may be imprisoned not merely in a language, but also in various systems of assumptions or theories or points of view {they have been called 'total ideologies'}.4 Within a language; assumptions of which we may be unaware and which for this reason we may be unable to criticize or to transcend.
+
+Note the footnote that didn't get stripped out.
+
+
+"they can be used to defend (but not to justi f y) our preference for it: "
+
+This used to be:
+
+"they can be used to defend (but not to justify) our preference for it:"
+
+
+Another footnote not getting stripped:
+
+As an example of the inductive style, I may mention here the classic paper in which Alexander Fleming reported the discovery of penicillin. 12 It describes his observation
+
+
+"such passages shows, I 9 meant by this no more than"  That one got stripped out previously.
+
+
+That 9 isn't there in the PDF:
+
+has been able to prove its fitness to survive by
+standing up to tests' . 9 But as the context of such passages shows, I
+meant by this no more than a report
+
+
+This one includes a footnote that should have been removed:
+
+Thus if we were to give methodological reasons for condemning 18 See note 6 to Chapter 11 of my Open Society. (In this note-an attack upon the idea of producing experts - the term 'expert' is used where I speak here of 'scholar'.)
+
+The 18 See note... should have been removed and the rest of the sentence joined to "all theories like the on"
+
+
+" (Compare there section 6).1 And being neither"
+
+
+Footnotes that should have been removed:
+
+"Schlpp, p. 13. 50p. cit., especially pp. 198 and 201. 60p. cit., p. 219. 70p. cit., p. 207; cp. also section vi (p. 252, bottom). [Compare this discussion with that in The Self and Its Brain, 1977, section 53, pp. 196-199. Ed.]"
+
+
+"ZLoc. cit., 6. 3"
+
+"ACF Note 3 on p. 76 of W. Kneale's Probability and Induction. [Cf Unended Quest, Section 17. Ed.]"
+
+
+SO I had a thought. Here are some results from the run:
+
+
+```
+[Page 395 / Page 436]
+→ restored ['(C', 'f'] (LLM tried '(Cf.')  context: 'basis of observations. (C f the end of'
+```
+
+
+SO I had a thought. Here are some results from the run:
+[Page 395 / Page 436]
+→ restored ['(C', 'f'] (LLM tried '(Cf.')  context: 'basis of observations. (C f the end of'
+Notice that we reject the LLM. BUt really, it's an improvement.
+
+
+Here is another one:
+
+[Page 387 / Page 428]
+→ restored ['f', 'f'] (LLM tried 'ff.')  context: '10, pp. 6 f f Kemble speaks of'
+
+
+Why does our logic reject the LLM?
+
+The restore logic treats "not a dictionary word" as evidence that the LLM hallucinated. It strips punctuation from the LLM's token and checks it against a word list. Cf and ff don't appear in any standard dictionary, so the check fails and the original is restored — even though in this case the original is the broken form.
+
+The assumption baked in is: if the LLM produced something that isn't a real word, it probably made it up. That holds well for prose but breaks down for abbreviations, which are legitimate but inherently non-dictionary items.
+
+But isn't the hint here that the non-LLM is also not a word?
+
+Exactly. (C f — neither C nor f are valid words either (single letters aside from a and I). So the logic should be: if the original tokens are also not valid words, don't blindly restore them. The LLM's version should win, or at least not be rejected on that basis alone.
+
+
+[Page 367 / Page 408]
+→ restored ["n'", 'In'] (LLM tried 'n'/n')  context: "a, so that n' In is the relative"
+THe LLM was spot on here.
+
+
+[Page 350 / Page 391]
+→ restored 'infinite)' (LLM tried 'infinite}')  context: 'extremely long {perhaps infinite) sequence of events.'
+→ restored 'he' (LLM tried 'be')  context: 'third throw may he regarded as a'
+These are tougher ones
+
+[Page 349 / Page 390]
+→ restored 'it.' (LLM tried 'in')  context: 'will be discussed it. :he present section,'
+→ restored ':he' (LLM tried 'the')  context: 'be discussed it. :he present section, while'
+
+
+I'm starting to wonder if we shouldn't trust the LLM more
+
+It's a reasonable conclusion from the evidence. The restore logic was designed to catch LLM hallucinations, but in case after case it's rejecting correct fixes. The size check (20% threshold) already catches the most dangerous hallucinations — wholesale rewrites, deletions, expansions. The word-level restore logic is catching edge cases that the LLM is actually handling well.
+
+The risk of trusting the LLM more is the occasional bad swap (cat → dog type substitution on valid text). The risk of the current approach is what you're seeing — systematically blocking correct fixes for abbreviations, OCR bracket mismatches, and valid-word substitutions.
+
+Given that the LLM is working on OCR-damaged text where the "original" is already broken, the balance probably should tip toward trusting the LLM.
+
+
+
+    # Remove footnote numbers directly attached (no space) to sentence-ending
+    # punctuation, mid-paragraph or at end of string.
+    # e.g. "section).1 And" -> "section). And", "penicillin.4 It" -> "penicillin. It"
+    # The (?<!\d) guard on '.' prevents stripping from decimal numbers like 3.14.
+    p_str = re.sub(r"(?:(?<!\d)\.|[!?'\")\]])\d+(?=\s|$)",
+                   lambda m: m.group(0)[0], p_str)
+
+
+
+    # Remove footnote numbers directly attached (no space) to sentence-ending
+    # punctuation, mid-paragraph or at end of string.
+    # e.g. "section).1 And" -> "section). And", "penicillin.4 It" -> "penicillin. It"
+    # The (?<!\d) guard on '.' prevents stripping from decimal numbers like 3.14.
+    p_str = re.sub(r"(?:(?<!\d)\.|[!?'\")\]])\d+(?=\s|$)",
+                   lambda m: m.group(0)[0], p_str)
+
+
+
+
+
+p. 368
+
+
+there will ever again occur a deviation of the relative
+frequency from p(1 ,a) exceeding 1 / 1 , 000. )1
+1The simplified corollary of Cantelli's theorem here used in the text
+( 1 )
+i s valid under the condition that E .;; 0 . 03 7 (if we take (3), below, as our best
+estimate of m). This entails m = 1 9 , 742. Formula ( 1 ) can be obtained from (2), and
+
+
+
+The footnote disappears:
+1The simplified corollary of Cantelli's theorem here used in the text
+
+
+Then the formula appears:
+
+( 1 )
+i s valid under the condition that E .;; 0 . 03 7 (if we take (3), below, as our best
+
+We shouldn't be checking math formula for footnotes
+
+
+
+
+
+
+
+Didn't fix:
+
+green, that the sun and stars would exist if no one was aware of them.... 6 ' But, being a believer in induction, Russell found that his epistemology did not actually deliver the goods he wanted.
+
+
+
+
+We should be removing spacing before quotes:
+How little Russell wanted to be an idealist may be seen from the beautiful passage in which he describes his feelings after his conversion to realism : 'we... hought that t everything is real that common sense, uninfluenced by philosophy or theology, supposes real. With a sense of escaping from prison, we allowed ourselves to think that grass is green, that the sun and stars would exist if no one was aware of them.... 6 ' But, being a believer in induction, Russell found that his epistemology did not actually deliver the goods he wanted. 'Theory of knowledge', he tells us, 'has a certain essential subjectivity; it asks, "How do know what I know?J' and starts inevitably from personal I experience. Its data are egocentric, and so are the earlier stages of its argumentation. I have not, so far, got beyond the early stages, and have therefore seemed more subjective in outlook than in fact I am.' The passage is interesting because of the frankness with which it reveals that the realist aim had not been attained yet, and also because of the clarity with which it locates the fundamental mistake: if we admit that our knowledge is guesswork, then Russell's fundamental question: 'How do I know what I know?' turns out to be badly put, for this question, in terms of knowledge, is very much like aski n g : ' Ha e you stopped beating your wife yet?' It assumes v that I do know, and consequently that induction is valid. The apparently analogous question in terms of guessing, such as 'How (or why) do I guess what I guess?' is not really analogous at all : this question is psychological: it has no epistemological impact. Thus the proper answer to Russell's question is: 'I do not know; and as to guesses, never mind how or why I guess what I guess. I am not trying to prove that my guesses are correct, but I am most anxious to have them criticized, in order to replace them if possible by better guesses. And if you feel as doubtful about my guesses as I do, I hope you will help me by criticizing them ruthlessly.'
+
+
+
+
+
+
+The 4 is a footnote that doesn't get removed because it looks like its in a sentence:
+Freud's main aim in this book is that of ·proving that, in their essential nature, dreams represent fulfilments of wishes'. 2 Freud is, of course, aware that there is a most obvious objection to this theory - the existence of nightmares and of anxiety dreams; yet he rejects this objection.'It does in fact look', Freud writes in a passage in which he formulates what is to be our main problem here, 'as though anxiety-dreams make it impossible to assert the general proposition (based on the examples quoted in my last chapter) that dreams are wish-fulfilments; indeed they seem to stamp any such proposition as an absurdity. Nevertheless there is no great di fficulty in meeting this objection. '3 The method of meeting this objection, he explains, 4 consists in showing that, what in its appearance (in its ' mani fest content') seems to be an anxiety dream, is in reality (in its 'latent content') a wish-fulfilment. This leads Freud to a very slight ' modification' of his main thesis concerning 'the essential nature of dreams', which he formulates as follows: 'a dream is a (disguised) fulfilment of a (suppressed or repressed) wish.'
+
+
+
+The 'for19' doesn't strip the footnote:
+A dangerous dogmatism always goes hand in hand with verificationism. I myself do not think that the question, 'What is the essential nature of dreams?', is a good question to ask; but if it is raised, then answers other than Freud's wish-fulfilment theory seem to be at least as appropriate. For example, all of Freud's material as well as his analyses would fit very well the following reply: 'All dreams are the result of conflicts-either pf conflicting wishes, or of conflicts between wishes and obstacles threatening to frustrate them, and creating worries or problems.'18 Now since, in a dream, wishes can hardly be expressed in any other way than by a representation of what is wished for19 - that is, of their fulfilmenta representation of this fulfilment is to be found in most dreams. Yet although some dreams may culminate in a fulfilment, conflict and frustration are always as strongly represented (even in the simplest dreams of childhood and in hunger dreams); and they become dominant in an anxiety dream, which need not be a symptom of an anxiety neurosis.
+
+
+
+5 got removed. But 4 did not:
+I could not have been more explicit in my rejection of the whole problem of sense or meaningfulness versus nonsense or meaninglessness than I have been from the beginning, as any reader of my L.Sc.D. can see. I denounced it as a pseudo-problem, as a mistaken attempt to formulate the problem of demarcation, and as a mistaken solution of this problem. And I have consistently and repeatedly reaffirmed my position. 4 Yet in spite of all this, I am often labelled 'the positivist who proposed to modify the verifiability criterion of meaning, and to replace it by the falsifiability criterion of meaning'. By 1949 a rider had been added to this label : 'But I understand that he would not now call himself a positivist. '5 I can only say that I have always severely criticised positivism, and that I have never changed my mind about these matters; and I ask the reader to ascertain this fact by looking up Appendix >:·i (1 933) and sections 4, 1 0, 79 and 85 of my L.Sc.D. (1 934).
+
+
+
+
+Removing 23 as a footnote but really part of the sentence:
+1 9'. But there were other problems which led to the task of defining this phrase. One of them, as Russell tells us, was his dissatisfaction with Meinong's views concerning the mode of existence of nonexistent entities. 14 Another problem-in a way a more important one-was to show how statements containing an expression of the form 'the such and such' could be logically deduced from statements which did not contain an expression of this form; for example, how the statement '23 is the smallest prime greater than 19' could be deduced from, ' 23 is a prime, and there is no prime between 19 and 23, and 1 9 < 23'.
+
+
+
+Removed the 3 in 3 + 5 = 8 as if a footnote:
+On the other hand, it was asserted, perfectly correctly, that the phrase 'It is true that...'-for example, 'It is true that 3 + 5 = 8'-was always logically redundant, and that '3 + 5 = 8' asserted just as much; and it was pointed out (a little less correctly) that '... s true' in a phrase like ' i "3 + 5 = 8" is true' was also redundant. (I say.'less correctly' because this phrase is short for 'The statement 11{3· + 5 = 8" is true' ; and here 'is true' is obviously not redundant.) In addition to the suggested redundancy of the concept of truth, it was pointed out that the concept of truth led to such paradoxes as the paradox of the liar. And finally, it was pointed out that the idea of a correspondence with the facts, or with reality, was at the same time intuitively inescapable and hopelessly obscure. For what do we mean when we talk of the facts, or of reality? And what do we mean when we talk of a correspondence between a statement, or a proposition, and a fact? Wittgenstein had suggested, in the Tractatus, that this correspondence was a similarity of structure--that it was like the correspondence between a melody and the vibrations in the phonographic needle. But this mistaken suggestion only contributed to the obscurity.
+
+
+The 1 after (m + 1) gets removed as a footnote. It should have  been a /. But I don't see why this counts as a footnote:
+Now if n grows very large, then any particular new observation will have very little influence upon r; for if n is very large, (m + 1)1 (n + 1) or ml(n + 1) will be almost the same as min.
+
+
+
+The 3 gets removed, but the 4 doesn't:
+The weakness of the subjective theory of probability is shared by every subjectivist (sensualist, phenomenalist, solipsist, etc.) epistemology. By a subjectivist epistemology I mean the attempt to answer the question 'How do you know?'3 in the sense of4 'What is the basis of your assertion? What observations led you to [it]...?' Subjectivist and inductivist questions like these beg the usual subj ectivist and inductivist answers. My own answer would be, 'I do not know: my assertion was merely a guess. Never mind the observations which may have led me to it. Instead, you may help me, by criticizing my assertion, and by using your ingenuity in designing some experimental tests which may refute my assertion if it is mistaken, as it well may be.'
+
+
+
+
+
+
+
+
+
+
+A thought for you to chew on while I'm doing the run.
+
+It seems like we should trust the LLM more. 
+
+Most of it's mistakes are criticize to criticise. Which, is not good, but I can live with it. We might want to tweak the prompt to try to fix that. 
+
+But putting that aside at the moment, that's not really a problem for audio I'd think. They are both pronounced the same, aren't they?
+
+We've seen a number of cases where the LLM is actually correct. 
+
+I'm starting to wonder if we should loosen the leash a bit. Maybe if the LLM comes up with something that is valid words, we should just accept it. And maybe if the original is not valid, we just always accept it. (I think maybe we already do that one.) 
+
+Don't do anything yet, just give me your thoughts. I want to copy that down and hand it off to a new chat when we're done here. Offer criticisms as well and do an honest evaluation.
+
+Good thing to think through. Here's my honest take:
+
+The case for loosening
+
+The current valid→valid restore policy was built to prevent the LLM from paraphrasing. But it's a blunt instrument. When the LLM changes "judiciary" to "judicial," it might be paraphrasing, or it might have noticed a subtle OCR cue we missed. We can't tell — and we're always ruling against the LLM regardless.
+
+For audio specifically, the argument is even stronger. Spelling variants like criticise/criticize are acoustically identical. Even genuine synonyms — "however"/"but," "large"/"big" — would be undetectable to a listener. The cost of a false restore (putting back a wrong word) may actually be higher than the cost of accepting a valid substitution.
+
+You're also right that invalid→valid is already trusted. So the asymmetry is: the LLM gets benefit of the doubt on OCR fixes, but not on anything else.
+
+The case against
+
+The strongest objection is that "valid word" is too weak a bar. If we accept all valid→valid swaps, we're trusting the LLM not to paraphrase — and the LLM absolutely does paraphrase. "The argument began" → "The argument started" passes the valid→valid test. So does "We must accept" → "We should accept." In a Popper text, those distinctions matter, even if a listener can't hear them in isolation.
+
+The second objection: we already have a prompt rule for British/American spelling. If the LLM is still doing it, loosening word restoration doesn't fix the root cause — it just papers over it. The right fix there is the prompt, not the restore policy.
+
+Honest evaluation
+
+The spelling variant problem (criticise→criticize) is a prompt problem, not a restoration problem, and it genuinely doesn't matter for audio. But the proposed fix — accept all valid→valid swaps — is too broad for a philosophy text where word choice is deliberate.
+
+A more targeted approach worth considering: accept valid→valid swaps only in paragraphs that also contain at least one invalid token. That would signal "this paragraph had real OCR problems, trust the LLM's judgment across the board" while still protecting clean paragraphs where the LLM is just rewriting prose it found acceptable.
+
+But honestly, I'd want to see the baseline run before touching word restoration at all. If the output is already good, the restore policy may be doing more good than the spelling annoyances suggest.
+
+Oh, another idea. We could build a specific guard just for something like criticize to criticise. Like maybe look for a one letter chance from z to s and in that particular case just silently revert it.
+
+That's a more surgical approach than loosening the whole policy, which is appealing. But I have some concerns.
+
+What it would actually catch
+
+The z→s swap covers a real family of British/American variants: criticise/criticize, recognise/recognize, organise/organize, analyse/analyze, etc. These are all cases where the LLM "corrects" the author's British spelling and we want to revert it.
+
+The problem: we already revert it
+
+The current valid→valid restore already catches this. "Criticise" is a valid word. When the LLM changes it to "criticize" (also valid), _restore_valid_words sees a valid→valid 1:1 swap and restores "criticise." So we're already silently reverting it — it just shows up in verbose output as a logged restore. If it's appearing in the final output, something else is going wrong (maybe the LLM is producing it in a context where it doesn't look like a 1:1 swap to the diff).
+
+If we did add the guard anyway
+
+The z→s check is fragile in the other direction. "Size"→"sise" would match the pattern but "sise" isn't a word. "Prize"→"prise" is a legitimate word but a meaning change. "Seize" has no s-variant. You'd need to be checking both directions (z→s AND s→z) and validating both sides, which starts to look like just maintaining a spelling-variant dictionary.
+
+What might actually be worth doing
+
+If the verbose log is showing restores happening and you still see "criticize" in the output, the real question is: why is the restore failing in those cases? That's worth diagnosing from the baseline run before adding new machinery.
+
+I have in mind that IF and only IF we decide to loosen the leash, then we could still do a revert on z->s. And we can still do the check if it's a valid word, so I dno't think Size->sise would be a problem. 
+
+But we haven't decided yet if we're going to do this or not.
+
+Ah, got it — the z→s guard as a safety net within a looser policy, not a standalone change. That makes more sense. If we accept all valid→valid swaps, we'd still want to claw back the spelling variant cases specifically, and the guard would be: if the only difference between original and LLM token is z→s (or s→z), and both are valid words, revert to the original.
+
+That's actually a clean design. Worth keeping in mind for when the baseline run comes back.
+
+Also, in that case we can choose to not retry and to not write out the revert (cleaning up the log since it doesn't tell us anything really useful.)
+
+
+
+
+What if we trusted the LLM if it changed exactly one word? If the fear is hallucination, that would be multiple words, right?
+
+That's an interesting heuristic. One word changed is more likely to be an OCR fix or a legitimate cleanup than a wholesale paraphrase. And it's measurable — easy to implement.
+
+But I have some reservations worth thinking through.
+
+Where it works well
+
+Single-word fixes are the exact profile of the "criticise→criticize" case, the "judiciary→judicial" case, most OCR corrections. The LLM looked at one token and made a judgment. That's probably trustworthy.
+
+Where it breaks down
+
+The LLM can cause real harm with a single word change in a philosophy text. "We must accept" → "We should accept" is one word. "Not falsifiable" → "unfalsifiable" could be one word depending on tokenization. "Cannot" → "can" (if the LLM drops "not" as noise) is one word removed. These are meaning changes, not OCR fixes, and they'd all pass the one-word test.
+
+The deeper issue
+
+The one-word threshold doesn't actually distinguish between "LLM fixed OCR" and "LLM paraphrased." It just makes paraphrasing harder statistically. The real signal is still whether the original word was valid — an invalid original strongly suggests OCR damage, a valid original suggests the LLM took liberties.
+
+Honest take
+
+It's a reasonable heuristic but it's solving the same problem as the valid→valid policy with similar edge cases. The strongest argument for it is simplicity — it's easy to reason about and easy to audit. But I'd want to see the baseline run first to know how big the problem actually is before adding new policy on top of existing policy.
+
+
+
+
+
+
+Another footnote not getting stripped:
+
+There are several completely analogous ways of being intellectually imprisoned. We may be imprisoned not merely in a language, but also in various systems of assumptions or theories or points of view {they have been called 'total ideologies'4} within a language; assumptions of which we may be unaware and which for this reason we may be unable to criticize or to transcend. Though all this is to be admitted, it should not be exaggerated. It is often said, for example, that a discussion cannot be fruitful unless the participants agree on fundamentals, or share some common background or 'conceptual framework'. 5 I deny the truth of any such assertion. Though a discussion may be very satisfactory for the participants if they agree on all important points, it will be more fruitful under less pleasant conditions.
+
+
+(Might be same as above)
+
+
+
+The critical approach which I have described here leads almost immediately to a straightforward solution of Hume's problem of induction (1739). 11. Let us remember what Hume tried to show (in my opinion successfully, as far as logic goes).
+
+
+
+(2) The so-called \"problem of rational belief\"
+
+
+
+Actual regression:
+
+I have called the first of these two degrees 'degree of verisimilitude' and the second 'degree of corroboration'. 5 They are 'comparative' in the sense that two theories can be compared with respect to verisimilitude or corroboration, without however leading in general (that is, with the possible exception of probabilistic theories) to numerical evaluations.
+
+
+The answer is that the second and the third theories assert a connection, a dependence, which would have to be explained: for to accept an unexplained and inexplicable change at a certain date would amount to accepting a miracle. 16 (See sub-section 11 above.) This alone makes them inferior to the first. Besides, our present scientific theories of the colouring of birds are of a character which makes us suspect that any explanation of the change in question which would not be ad hoc would conflict with some well-corroborated theories (of genetics). For these reasons alone, I do not see any difficulty whatever in explaining my preference in a case like this.
+
+(the 5 and 16 wasn't there before)
+
+
+
+Footnotes not properly propogating:
+
+
+Immediate consequence of (1) and B are the very important law of monotony (2) p(ab,c) = p(a,c); and the general multiplication law, (3) p(ab,c) = p(a,bc)p(b,c).
+
+
+A more remote consequence of the system is the general addition law, (4) p(a ∨ b,c) + p(ab,c) = p(a,c) + p(b,c).
+
+We obtain, furthermore, a number of theorems which are not obtainable in the usual calculus, for example the following: (5) 1 p(a, bb) = (6) ab = b if, and only if, p(a,ba) ≠ 0.
+
+Within the logical interpretation, the equality, 'a = b' may be read 'is logically equivalent to' (or 'is interdeducible with'); and 'ab = b' may then be read 'a follows from b' which may of course also be written 'a ; a. b' or 'b =; a'.
+
+
+
+
+Regression on footnote:
+
+Should 'degree of corroboration' also become a probability in the course of the next twenty years or so, 4 I would suggest to my pupils (if any) to change over, for another decade or so, to some simple label like 'grade of a hypothesis', in place of 'degree of corroboration', and 'graded by tests' in place of 'corroborated'.
+
+
+Thus the occurrence of a white swan is, uncritically, believed to 'support' or 'confirm' the hypothesis h1 that all swans are white. But what of the hypothesis h2 that 90% of all swans are white? Clearly h2 is inconsistent with the hypothesis h1 that all are white; yet if the latter hypothesis is regarded as being 'supported' by the occurrence of a white swan, the former should also be so regarded. 1 It may perhaps be replied that, for the support of the statistical theory h2, a sample of at least 10 swans is needed-nine white and one nonwhite. But if this were so, should we not also say that for the support of h., at least the same number of swans is needed, all of them white, of course? (But if so, then one instance could never support any theory.)
+
+
+
+
+
+We shall formulate in this section some further conditions or demands or requirements which the degree of corroboration, C(h,e,b), should satisfy. (See also the list of desiderata in L.Sc.D., pp. 400.) These conditions, and especially the problem whether they are consistent, led me originally to the definition of C(a,b), and later to C(a,b,c) or, as I wrote in section 3 above, to C(h,e,b).
+
+Should be section 31
+
+(1) But this analogy also raises the second problem - whether the requirements explained here are consistent. For (iv) may be taken as indicating that corroboration, even if not a probability, must be very similar to a probability. But our demand (2), and even more clearly (4), which is the same as (iii), are incompatible with an interpretation of corroboration as a probability. For (4) and (iii) give zero degree of corroboration to all tautologies - which have, of course, the highest degree of probability, that is, 1.
+
+Should be 13
+
+Both had a space between.
+
+
+This should be two paragraphs. The : has a space in front of it.
+
+Thus taking as our universe of discourse a sequence of tosses with a penny, we can replace 'x is prime' by 'the toss number x results in heads turning up'. We thus obtain from our two conjectures, (G) and (H), the following conjectures about our sequence of penny tosses : (GP) For every natural number x, there exists at least one natural number y such that the two numbers
+
