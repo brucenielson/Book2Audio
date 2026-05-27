@@ -91,6 +91,23 @@ class TestIsSentenceEnd:
     def test_sentence_endings(self, text: str) -> None:
         assert is_sentence_end(text) is True
 
+    @pytest.mark.parametrize("text", [
+        # Trailing space after the final closing mark (OCR artifact).
+        "Hello world. ",
+        "Hello world.) ",
+        "then be abandoned and replaced.' ",
+        # Space between two closing marks (OCR inserts space inside nested closers).
+        "replaced. ' )",   # space between quote and paren
+        "replaced. \" )",  # same with double quote
+        "replaced. ' ]",   # space between quote and bracket
+        "replaced.' )",    # no space before quote, but space between quote and paren
+    ])
+    def test_ocr_space_in_closers(self, text: str) -> None:
+        """OCR sometimes inserts spaces between or after closing marks.
+        is_sentence_end must still return True when the underlying sentence
+        punctuation is present."""
+        assert is_sentence_end(text) is True
+
 
 # --- is_roman_numeral ---
 

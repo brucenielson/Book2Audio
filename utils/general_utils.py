@@ -369,13 +369,11 @@ def is_sentence_end(text: str) -> bool:
     """
     if not text:
         return False
-    # Walk backward past any trailing closing brackets/quotes.
+    # Walk backward past any trailing closing brackets/quotes and spaces,
+    # interleaved. OCR often inserts spaces between nested closers or after
+    # the final closer (e.g. 'dreams. " )' or 'replaced. ').
     i = len(text) - 1
-    while i >= 0 and text[i] in _CLOSING:
-        i -= 1
-    # Allow one optional space between sentence punct and the closing chars
-    # (handles OCR floating-closer artifacts, e.g. 'dreams. "').
-    if i < len(text) - 1 and i >= 0 and text[i] == ' ':
+    while i >= 0 and (text[i] in _CLOSING or text[i] == ' '):
         i -= 1
     return i >= 0 and text[i] in _SENTENCE_END
 
