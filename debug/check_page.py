@@ -23,7 +23,7 @@ from utils.docling_utils import (
 )
 
 PDF = Path("../documents/Realism and the Aim of Science -- Karl Popper -- 2017.pdf")
-TARGET_LABEL = "80"
+TARGET_LABEL = "35"
 
 doc = load_as_document(PDF)
 page_labels = get_pdf_page_labels(PDF)

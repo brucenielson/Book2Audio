@@ -410,10 +410,12 @@ class DoclingParser(BaseParser):
         # (e.g. "3See", "14Cf", "3[See", "8(See", "13'That").  The tight juxtaposition
         # of a digit marker and a word/punctuation is almost never body text.
         # Requires body text to have been seen first on the page.
-        # Uppercase avoids ordinals like "1st". TEXT label only — SECTION_HEADERs are
-        # chapter/section titles and must not be swept up here.
+        # Uppercase avoids ordinals like "1st". Applies to TEXT and SECTION_HEADER —
+        # Docling sometimes mislabels footnotes as section headers (e.g. "5To make...").
+        # Real section headers have separators after the digit ("1. Intro", "2.3 Methods")
+        # and don't match this pattern.
         if (ctx.text_seen_this_page
-                and text_item.label == DocItemLabel.TEXT
+                and text_item.label in (DocItemLabel.TEXT, DocItemLabel.SECTION_HEADER)
                 and re.match(r'^\d{1,2}[A-Z\[(\'\"]', text_item.text)):
             return True
         # H1: digit-start item with alpha content that immediately follows a mid-sentence
@@ -679,7 +681,10 @@ class DoclingParser(BaseParser):
                 ))
                 self._update_text_state(text_item, ctx)
 
-            if not went_to_notes and text_item.label == DocItemLabel.TEXT:
+            if not went_to_notes and text_item.label in (
+                DocItemLabel.TEXT, DocItemLabel.LIST_ITEM,
+                DocItemLabel.FORMULA, DocItemLabel.SECTION_HEADER,
+            ):
                 ctx.text_seen_this_page = True
 
         return chunks

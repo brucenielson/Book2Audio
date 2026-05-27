@@ -444,6 +444,15 @@ class TestIsFootnote:
                        median_chars_per_line=50.0, body_line_height=10.0)
         assert parser._is_footnote(item, ctx) is False
 
+    def test_h4_fires_on_mislabeled_section_header(self) -> None:
+        """Docling sometimes mislabels a footnote as a SECTION_HEADER.
+        H4 must fire for digit+uppercase items regardless of whether Docling
+        labeled them TEXT or SECTION_HEADER."""
+        item = make_section_header("5To make all this quite clear we write")
+        parser = make_parser([])
+        ctx = make_ctx(text_seen_this_page=True)
+        assert parser._is_footnote(item, ctx) is True
+
     # --- H2 body_line_height path: detects short digit-start footnotes ---
 
     def test_h2_body_line_height_fires_for_short_item(self) -> None:
@@ -1040,6 +1049,46 @@ class TestRun:
             "Body text was swept as a footnote. The centered section header "
             "triggered false multi-column detection and blocked the sort."
         )
+
+    def test_section_header_sets_text_seen_enables_h4(self) -> None:
+        """A section header followed by a digit+uppercase footnote must trigger H4.
+        Section headers now count as text seen on this page."""
+        section = make_section_header_at("III. The Arrow of Time",
+                                         bbox_t=600.0, bbox_height=10.0)
+        footnote = make_sized_text_item("5To make all this quite clear we write",
+                                        charspan_length=38, bbox_height=10.0)
+        footnote.prov[0].bbox.t = 80.0
+        texts = [section, footnote]
+        parser = make_parser(texts, min_footnote_chars=100, include_notes=False)
+        docs, _ = parser.run()
+        assert all("make all this quite clear" not in d for d in docs)
+
+    def test_list_item_sets_text_seen_enables_h4(self) -> None:
+        """A list item followed by a digit+uppercase footnote must trigger H4.
+        List items now count as text seen on this page."""
+        list_item = make_doc_item(TextItem, DocItemLabel.LIST_ITEM.value,
+                                  "(a) First condition of the argument")
+        list_item.prov[0].bbox.t = 600.0
+        footnote = make_sized_text_item("3See my earlier work on this topic.",
+                                        charspan_length=35, bbox_height=10.0)
+        footnote.prov[0].bbox.t = 80.0
+        texts = [list_item, footnote]
+        parser = make_parser(texts, min_footnote_chars=100, include_notes=False)
+        docs, _ = parser.run()
+        assert all("earlier work" not in d for d in docs)
+
+    def test_formula_sets_text_seen_enables_h4(self) -> None:
+        """A formula followed by a digit+uppercase footnote must trigger H4.
+        Formula items now count as text seen on this page."""
+        formula = make_doc_item(TextItem, DocItemLabel.FORMULA.value, "p(x|z) >= p(x)")
+        formula.prov[0].bbox.t = 600.0
+        footnote = make_sized_text_item("7See the derivation in chapter two.",
+                                        charspan_length=35, bbox_height=10.0)
+        footnote.prov[0].bbox.t = 80.0
+        texts = [formula, footnote]
+        parser = make_parser(texts, min_footnote_chars=100, include_notes=False)
+        docs, _ = parser.run()
+        assert all("derivation in chapter two" not in d for d in docs)
 
     def test_notes_section_header_triggers_endnote_path(self) -> None:
         """A 'Notes' SECTION_HEADER causes subsequent digit+alpha TEXT items to be
