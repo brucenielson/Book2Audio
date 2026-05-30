@@ -367,8 +367,8 @@ class DoclingParser(BaseParser):
         """Return True if text_item should be classified as a footnote.
 
         After passing two guards, six heuristics are tried in order (H1–H6).
-        A small-text gate separates the positional heuristics (H1–H4, no font-size
-        requirement) from the font-sensitive ones (H5–H6).
+        A small-text gate separates the positional heuristics (H1–H5, no font-size
+        requirement) from the font-sensitive ones (H6–H7).
 
         Args:
             text_item: The item to classify.
@@ -397,11 +397,26 @@ class DoclingParser(BaseParser):
                                         DocItemLabel.LIST_ITEM)):
             return True
 
+        # H2 — Digit-start LIST_ITEM: Docling often labels bottom-of-page footnotes as
+        # LIST_ITEM when they use a numbered style (e.g. "1. See Smith v. Jones...").
+        # Requires small text and lower-half position to avoid sweeping up body lists.
+        if (text_item.label == DocItemLabel.LIST_ITEM
+                and text_item.text[0].isdigit()
+                and ctx.text_seen_this_page
+                and is_small_text(text_item, ctx.single_line_height,
+                                  ctx.median_chars_per_line,
+                                  body_line_height=ctx.body_line_height)
+                and ctx.median_page_height > 0
+                and text_item.prov
+                and text_item.prov[0].bbox is not None
+                and text_item.prov[0].bbox.t < ctx.median_page_height * 0.5):
+            return True
+
         # The remaining heuristics only apply to TEXT and SECTION_HEADER items.
         if text_item.label not in (DocItemLabel.TEXT, DocItemLabel.SECTION_HEADER):
             return False
 
-        # H2 — Endnote section: in a dedicated Notes/Endnotes section at the back of
+        # H3 — Endnote section: in a dedicated Notes/Endnotes section at the back of
         # the book, any digit-start TEXT item with alpha content is an endnote.
         # No font-size or page-position check — endnote pages use the same font as body.
         if (ctx.in_notes_section
@@ -410,7 +425,7 @@ class DoclingParser(BaseParser):
                 and any(c.isalpha() for c in text_item.text)):
             return True
 
-        # H3 — Juxtaposed marker: 1–2 digits immediately against an uppercase letter or
+        # H4 — Juxtaposed marker: 1–2 digits immediately against an uppercase letter or
         # opening punctuation with no space (e.g. "3See", "14Cf", "8(See", "13'That").
         # This pattern almost never appears in body text. Uppercase avoids ordinals like
         # "1st". Applies to mislabeled SECTION_HEADERs too — real section headers always
@@ -419,7 +434,7 @@ class DoclingParser(BaseParser):
                 and re.match(r'^\d{1,2}[A-Z\[(\'\"]', text_item.text)):
             return True
 
-        # H4 — Positional: digit-start TEXT item with alpha content, preceded by a
+        # H5 — Positional: digit-start TEXT item with alpha content, preceded by a
         # mid-sentence body paragraph, sitting in the lower half of the page.
         # No font-size requirement — footnotes in narrow columns may match body font size.
         if (text_item.label == DocItemLabel.TEXT
@@ -432,7 +447,7 @@ class DoclingParser(BaseParser):
                 and text_item.prov[0].bbox.t < ctx.median_page_height * 0.5):
             return True
 
-        # Small-text gate: H5 and H6 require the item to be visually smaller than
+        # Small-text gate: H6 and H7 require the item to be visually smaller than
         # body text, and body text must have been seen already on this page.
         if not (ctx.text_seen_this_page
                 and is_small_text(text_item, ctx.single_line_height,
@@ -446,7 +461,7 @@ class DoclingParser(BaseParser):
 
         first: str = text_item.text[0]
 
-        # H5 — Symbol marker: small text whose first character is not a letter, in the
+        # H6 — Symbol marker: small text whose first character is not a letter, in the
         # lower half of the page. Covers OCR artifacts (e.g. '&' mangled from '6'),
         # bullet-style markers (·, *, †), and similar non-alpha footnote symbols.
         if (not first.isalpha()
@@ -456,11 +471,11 @@ class DoclingParser(BaseParser):
                 and text_item.prov[0].bbox.t < ctx.median_page_height * 0.5):
             return True
 
-        # Gate: H6 only applies to digit-start items.
+        # Gate: H7 only applies to digit-start items.
         if not first.isdigit():
             return False
 
-        # H6 — Small digit marker with context: small digit-start item with alpha
+        # H7 — Small digit marker with context: small digit-start item with alpha
         # content, preceded by a mid-sentence body paragraph.
         # Alpha check excludes pure index entries like "183-84".
         has_alpha: bool = any(c.isalpha() for c in text_item.text)
