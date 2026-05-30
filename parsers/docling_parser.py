@@ -266,7 +266,7 @@ class DoclingParser(BaseParser):
         return True
 
     def run(self, generate_text_file: bool = False,
-            annotate_reclassifications: bool = False) -> tuple[list[str], list[dict[str, str]]]:
+            annotate_reclassifications: bool = True) -> tuple[list[str], list[dict[str, str]]]:
         """Parse the document and return paragraphs and metadata.
 
         Args:
@@ -274,7 +274,7 @@ class DoclingParser(BaseParser):
                                  alongside the source document.
             annotate_reclassifications: If True, items whose label was changed by our
                                         classification show 'original → new' in
-                                        _processed_texts.txt. Defaults to False so
+                                        _processed_texts.txt. Defaults to True so
                                         existing canonical files are unaffected; flip to
                                         True once canonicals are regenerated.
 
