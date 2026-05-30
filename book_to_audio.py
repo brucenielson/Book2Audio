@@ -50,7 +50,8 @@ def main(file_path: str | None = None,
          llm_cleaner: bool = False,
          llm_model: str = 'llama3.1:8b',
          formula_mode: str | None = None,
-         verbose: bool = False) -> None:
+         verbose: bool = False,
+         show_pages: bool = False) -> None:
     """Entry point for the book-to-audio conversion tool.
 
     Parses command line arguments (falling back to the provided parameter
@@ -108,6 +109,8 @@ def main(file_path: str | None = None,
                              'Default: none')
     parser.add_argument('--verbose', action='store_true', default=verbose,
                         help='Print progress and LLM responses during conversion (default: off)')
+    parser.add_argument('--show-pages', action='store_true', default=show_pages,
+                        help='Print a line for every page as it is processed (default: off)')
 
     # Engine selection
     parser.add_argument('--engine', choices=['kokoro', 'qwen'], default=engine or 'kokoro',
@@ -137,7 +140,8 @@ def main(file_path: str | None = None,
     engine = _create_engine(args)
     audio_gen: AudioGenerator = AudioGenerator(engine)
     converter: BookToAudio = BookToAudio(audio_gen, dry_run=args.dry_run,
-                                         llm_cleaner=cleaner, verbose=args.verbose)
+                                         llm_cleaner=cleaner, verbose=args.verbose,
+                                         show_pages=args.show_pages)
 
     supported_file_types: list[str] = ['.pdf', '.epub', '.txt']
     if args.text is not None:

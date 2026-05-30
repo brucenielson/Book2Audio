@@ -63,6 +63,7 @@ class DoclingParser(BaseParser):
                  llm_cleaner: str | TextCleaner | None = None,
                  min_footnote_chars: int = 100,
                  verbose: bool = False,
+                 show_pages: bool = False,
                  page_labels: dict[int, str] | None = None,
                  skip_front_matter: bool = False,
                  skip_index: bool = False) -> None:
@@ -126,6 +127,7 @@ class DoclingParser(BaseParser):
         self._cleaner: str | TextCleaner | None = llm_cleaner
         self._short_text_threshold: int = min_footnote_chars
         self._verbose: bool = verbose
+        self._show_pages: bool = show_pages
         self._skip_front_matter: bool = skip_front_matter
         self._skip_index: bool = skip_index
 
@@ -316,7 +318,8 @@ class DoclingParser(BaseParser):
             min_paragraph_size=self._min_paragraph_size,
             include_footnotes=self._include_notes,
             cleaner=self._cleaner,
-            verbose=self._verbose
+            verbose=self._verbose,
+            show_pages=self._show_pages,
         )
 
         parsed_chunks: list[ParsedChunk] = processor.process(

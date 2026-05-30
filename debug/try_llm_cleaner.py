@@ -54,6 +54,7 @@ main(
     llm_cleaner=True,
     llm_model='llama3.1:8b',
     verbose=True,
+    show_pages=True,
     skip_index=True,
     skip_front_matter=True,
     formula_mode='clean',

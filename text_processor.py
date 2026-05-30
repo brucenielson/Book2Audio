@@ -58,6 +58,7 @@ class TextProcessor:
                  include_footnotes: bool = False,
                  cleaner: str | TextCleaner | None = None,
                  verbose: bool = False,
+                 show_pages: bool = False,
                  strip_footnote_markers: bool = True) -> None:
         """Initialise TextProcessor.
 
@@ -77,6 +78,7 @@ class TextProcessor:
         self._include_footnotes: bool = include_footnotes
         self._strip_footnote_markers: bool = strip_footnote_markers
         self._verbose: bool = verbose
+        self._show_pages: bool = show_pages
         if isinstance(cleaner, str):
             self._cleaner: TextCleaner | None = TextCleaner(model=cleaner)
         else:
@@ -418,7 +420,7 @@ class TextProcessor:
         Args:
             chunk: The current chunk whose page number is checked.
         """
-        if not self._verbose:
+        if not self._verbose and not self._show_pages:
             return
         physical_str = chunk.meta.get('physical_page_#', '') or chunk.meta.get('page_#', '')
         if not physical_str:
@@ -431,6 +433,8 @@ class TextProcessor:
             label = chunk.meta.get('page_#', physical_str)
             self._pending_header = f"  [Page {label} / Page {page}]" if label and label != physical_str else f"  [Page {page}]"
             self._last_reported_page = page
+            if self._show_pages:
+                self._flush_pending_header()
 
     def _process_chunk(self, chunk: RawChunk, next_chunk: RawChunk | None) -> None:
         """Process a single body text chunk.

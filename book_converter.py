@@ -22,6 +22,7 @@ class BookToAudio:
 
     def __init__(self, audio_generator: AudioGenerator, dry_run: bool = False,
                  verbose: bool = False,
+                 show_pages: bool = False,
                  llm_cleaner: TextCleaner | None = None) -> None:
         """Initialise BookToAudio.
 
@@ -35,6 +36,7 @@ class BookToAudio:
         self._audio_generator: AudioGenerator = audio_generator
         self._dry_run: bool = dry_run
         self._verbose: bool = verbose
+        self._show_pages: bool = show_pages
         self._llm_cleaner: TextCleaner | None = llm_cleaner
 
     def convert_to_audio(self, source: str | Path,
@@ -92,7 +94,8 @@ class BookToAudio:
                                                   skip_front_matter=skip_front_matter,
                                                   skip_index=skip_index,
                                                   llm_cleaner=self._llm_cleaner,
-                                                  verbose=self._verbose)
+                                                  verbose=self._verbose,
+                                                  show_pages=self._show_pages)
             paragraphs, _ = parser.run(generate_text_file=generate_text_file)
         elif suffix == '.epub':
             epub_parser: EpubParser = EpubParser(source, include_footnotes=False,
