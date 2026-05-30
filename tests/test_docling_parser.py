@@ -135,6 +135,15 @@ def make_sized_text_item(text: str, page_no: int = 1,
     return item
 
 
+def make_sized_list_item(text: str, charspan_length: int = 200,
+                          bbox_height: float = 10.0) -> MagicMock:
+    """Create a LIST_ITEM with configurable charspan and bbox height."""
+    item = make_doc_item(TextItem, DocItemLabel.LIST_ITEM.value, text)
+    item.prov[0].charspan = (0, charspan_length)
+    item.prov[0].bbox.height = bbox_height
+    return item
+
+
 # --- TestIsFootnote ---
 
 class TestIsFootnote:
@@ -174,10 +183,60 @@ class TestIsFootnote:
         assert parser._is_footnote(make_page_footer("1 Page Footer"), make_ctx()) is False
 
     def test_list_item_returns_false(self) -> None:
-        """LIST_ITEM label must fail the guard even with digit-start text."""
+        """LIST_ITEM with digit-start is not a footnote when text_seen_this_page is False."""
         item = make_doc_item(TextItem, DocItemLabel.LIST_ITEM.value, "1 list entry")
         parser = make_parser([])
         assert parser._is_footnote(item, make_ctx(prev_text_candidate=True)) is False
+
+    # --- Digit-start LIST_ITEM as first footnote on page ---
+    # Docling often labels bottom-of-page footnotes as LIST_ITEM when they use
+    # a "1." or "1 " style marker. Detect via small text + lower-half position.
+
+    def test_digit_list_item_small_lower_half_returns_true(self) -> None:
+        """Small digit-start LIST_ITEM in lower half of page with body text seen is a footnote."""
+        item = make_sized_list_item("1. See Smith v. Jones, 42 U.S. 100 (1900).")
+        item.prov[0].bbox.t = 30.0  # lower half of 100-height page
+        parser = make_parser([])
+        ctx = make_ctx(text_seen_this_page=True, single_line_height=5.0,
+                       median_chars_per_line=50.0, median_page_height=100.0)
+        assert parser._is_footnote(item, ctx) is True
+
+    def test_digit_list_item_not_small_returns_false(self) -> None:
+        """A body-sized LIST_ITEM starting with a digit is not a footnote."""
+        item = make_sized_list_item("1. See Smith v. Jones, 42 U.S. 100 (1900).")
+        item.prov[0].bbox.t = 30.0
+        parser = make_parser([])
+        ctx = make_ctx(text_seen_this_page=True, single_line_height=5.0,
+                       median_chars_per_line=200.0,  # high median → not small
+                       median_page_height=100.0)
+        assert parser._is_footnote(item, ctx) is False
+
+    def test_digit_list_item_upper_half_returns_false(self) -> None:
+        """A small digit-start LIST_ITEM in the upper half of the page is not a footnote."""
+        item = make_sized_list_item("1. See Smith v. Jones, 42 U.S. 100 (1900).")
+        item.prov[0].bbox.t = 70.0  # upper half of 100-height page
+        parser = make_parser([])
+        ctx = make_ctx(text_seen_this_page=True, single_line_height=5.0,
+                       median_chars_per_line=50.0, median_page_height=100.0)
+        assert parser._is_footnote(item, ctx) is False
+
+    def test_digit_list_item_no_text_seen_returns_false(self) -> None:
+        """Without body text seen on the page, a digit-start LIST_ITEM is not a footnote."""
+        item = make_sized_list_item("1. See Smith v. Jones, 42 U.S. 100 (1900).")
+        item.prov[0].bbox.t = 30.0
+        parser = make_parser([])
+        ctx = make_ctx(text_seen_this_page=False, single_line_height=5.0,
+                       median_chars_per_line=50.0, median_page_height=100.0)
+        assert parser._is_footnote(item, ctx) is False
+
+    def test_letter_start_list_item_returns_false(self) -> None:
+        """A small LIST_ITEM starting with a letter in the lower half is not a footnote."""
+        item = make_sized_list_item("See Smith v. Jones, 42 U.S. 100 (1900).")
+        item.prov[0].bbox.t = 30.0
+        parser = make_parser([])
+        ctx = make_ctx(text_seen_this_page=True, single_line_height=5.0,
+                       median_chars_per_line=50.0, median_page_height=100.0)
+        assert parser._is_footnote(item, ctx) is False
 
     def test_empty_text_returns_false(self) -> None:
         """Empty string is falsy — guard bails before any heuristic is checked."""
