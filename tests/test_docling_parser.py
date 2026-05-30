@@ -238,17 +238,6 @@ class TestIsFootnote:
                        median_chars_per_line=50.0, median_page_height=100.0)
         assert parser._is_footnote(item, ctx) is False
 
-    def test_digit_list_item_in_notes_section_returns_false(self) -> None:
-        """H2 must not fire in the endnotes section — those are endnotes, not
-        bottom-of-page footnotes, and are handled by the endnote path (H3)."""
-        item = make_sized_list_item("5 It may also occur as a combination of the two.")
-        item.prov[0].bbox.t = 30.0
-        parser = make_parser([])
-        ctx = make_ctx(text_seen_this_page=True, single_line_height=5.0,
-                       median_chars_per_line=50.0, median_page_height=100.0,
-                       in_notes_section=True)
-        assert parser._is_footnote(item, ctx) is False
-
     def test_empty_text_returns_false(self) -> None:
         """Empty string is falsy — guard bails before any heuristic is checked."""
         parser = make_parser([])

@@ -400,7 +400,9 @@ class DoclingParser(BaseParser):
         # H2 — Digit-start LIST_ITEM: Docling often labels bottom-of-page footnotes as
         # LIST_ITEM when they use a numbered style (e.g. "1. See Smith v. Jones...").
         # Requires small text and lower-half position to avoid sweeping up body lists.
+        # Not used in the notes section — endnote LIST_ITEMs are handled by H3 instead.
         if (text_item.label == DocItemLabel.LIST_ITEM
+                and not ctx.in_notes_section
                 and text_item.text[0].isdigit()
                 and ctx.text_seen_this_page
                 and is_small_text(text_item, ctx.single_line_height,
@@ -412,18 +414,24 @@ class DoclingParser(BaseParser):
                 and text_item.prov[0].bbox.t < ctx.median_page_height * 0.5):
             return True
 
-        # The remaining heuristics only apply to TEXT and SECTION_HEADER items.
-        if text_item.label not in (DocItemLabel.TEXT, DocItemLabel.SECTION_HEADER):
+        # The remaining heuristics only apply to TEXT and SECTION_HEADER items,
+        # except H3 which also covers LIST_ITEM endnotes.
+        if text_item.label not in (DocItemLabel.TEXT, DocItemLabel.SECTION_HEADER,
+                                    DocItemLabel.LIST_ITEM):
             return False
 
         # H3 — Endnote section: in a dedicated Notes/Endnotes section at the back of
-        # the book, any digit-start TEXT item with alpha content is an endnote.
+        # the book, any digit-start TEXT or LIST_ITEM with alpha content is an endnote.
         # No font-size or page-position check — endnote pages use the same font as body.
         if (ctx.in_notes_section
-                and text_item.label == DocItemLabel.TEXT
+                and text_item.label in (DocItemLabel.TEXT, DocItemLabel.LIST_ITEM)
                 and text_item.text[0].isdigit()
                 and any(c.isalpha() for c in text_item.text)):
             return True
+
+        # The remaining heuristics only apply to TEXT and SECTION_HEADER items.
+        if text_item.label not in (DocItemLabel.TEXT, DocItemLabel.SECTION_HEADER):
+            return False
 
         # H4 — Juxtaposed marker: 1–2 digits immediately against an uppercase letter or
         # opening punctuation with no space (e.g. "3See", "14Cf", "8(See", "13'That").
