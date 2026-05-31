@@ -363,19 +363,19 @@ class DoclingParser(BaseParser):
                     display_label = chunk.original_label if chunk.original_label else chunk.label
                     f.write(f"{page}: {display_label}: {chunk.text}\n")
 
-    def _is_footnote(self, text_item: TextItem, ctx: _FootnoteContext) -> bool:
-        """Return True if text_item should be classified as a footnote.
+    def _is_footnote_structural(self, text_item: TextItem, ctx: _FootnoteContext) -> bool:
+        """Classify a single item using structural heuristics H2–H8 only.
 
-        After passing two guards, six heuristics are tried in order (H1–H6).
-        A small-text gate separates the positional heuristics (H1–H5, no font-size
-        requirement) from the font-sensitive ones (H6–H7).
+        Does not include H1 (propagation, requires accumulated page state) or
+        H9/H10 (lookahead heuristics). Safe to call on any item, including
+        look-ahead items whose context state has not yet been fully updated.
 
         Args:
             text_item: The item to classify.
             ctx: Current classification context (page state and document metrics).
 
         Returns:
-            True if the item is or should be classified as a footnote.
+            True if the item looks like a footnote by structural signals alone.
         """
         # Pass-through: Docling already labeled this item as a footnote.
         if is_footnote(text_item):
@@ -387,15 +387,6 @@ class DoclingParser(BaseParser):
         if text_item.label not in (DocItemLabel.TEXT, DocItemLabel.SECTION_HEADER,
                                     DocItemLabel.FORMULA, DocItemLabel.LIST_ITEM):
             return False
-
-        # H1 — Propagation: once a footnote has been seen on this page, all subsequent
-        # TEXT, FORMULA, and LIST_ITEM items are part of the footnote section.
-        # SECTION_HEADERs are excluded — chapter/section titles are not swept up.
-        if (ctx.found_note_this_page
-                and text_item.label in (DocItemLabel.TEXT,
-                                        DocItemLabel.FORMULA,
-                                        DocItemLabel.LIST_ITEM)):
-            return True
 
         # H2 — Endnote section: in a dedicated Notes/Endnotes section at the back of
         # the book, any digit-start TEXT or LIST_ITEM with alpha content is an endnote.
@@ -482,27 +473,6 @@ class DoclingParser(BaseParser):
                 and text_item.prov[0].bbox.t < ctx.median_page_height * 0.5):
             return True
 
-        # H9 — Lowercase-start with dangling context: small lowercase-start text following
-        # a mid-sentence body paragraph in the lower half of the page. The dangling
-        # sentence implies a footnote marker appeared inline; this is the referenced note.
-        if (first.islower()
-                and ctx.dangling_sentence
-                and ctx.median_page_height > 0
-                and text_item.prov
-                and text_item.prov[0].bbox is not None
-                and text_item.prov[0].bbox.t < ctx.median_page_height * 0.5):
-            return True
-
-        # H10 — Lowercase-start in bottom quarter: small lowercase-start text in the
-        # bottom 25% of the page. Stricter position removes the need for a dangling
-        # sentence — items this far down are almost certainly footnote continuations.
-        if (first.islower()
-                and ctx.median_page_height > 0
-                and text_item.prov
-                and text_item.prov[0].bbox is not None
-                and text_item.prov[0].bbox.t < ctx.median_page_height * 0.25):
-            return True
-
         # Gate: H8 only applies to digit-start items.
         if not first.isdigit():
             return False
@@ -512,6 +482,64 @@ class DoclingParser(BaseParser):
         # Alpha check excludes pure index entries like "183-84".
         has_alpha: bool = any(c.isalpha() for c in text_item.text)
         if has_alpha and ctx.dangling_sentence:
+            return True
+
+        return False
+
+    def _is_footnote(self, text_item: TextItem, ctx: _FootnoteContext) -> bool:
+        """Return True if text_item should be classified as a footnote.
+
+        Applies H1 (propagation), then delegates to _is_footnote_structural for
+        H2–H8, then applies H9/H10 (lowercase-start heuristics).
+
+        Args:
+            text_item: The item to classify.
+            ctx: Current classification context (page state and document metrics).
+
+        Returns:
+            True if the item is or should be classified as a footnote.
+        """
+        # H1 — Propagation: once a footnote has been seen on this page, all subsequent
+        # TEXT, FORMULA, and LIST_ITEM items are part of the footnote section.
+        # SECTION_HEADERs are excluded — chapter/section titles are not swept up.
+        if (ctx.found_note_this_page
+                and text_item.text
+                and text_item.label in (DocItemLabel.TEXT,
+                                        DocItemLabel.FORMULA,
+                                        DocItemLabel.LIST_ITEM)):
+            return True
+
+        # H2–H8: structural heuristics, safe to call without lookahead.
+        if self._is_footnote_structural(text_item, ctx):
+            return True
+
+        # Is small text gate for rest of tests
+        if not (text_item.text
+                and text_item.label in (DocItemLabel.TEXT, DocItemLabel.SECTION_HEADER)
+                and is_small_text(text_item, ctx.single_line_height,
+                                  ctx.median_chars_per_line,
+                                  body_line_height=ctx.body_line_height)
+                and ctx.text_seen_this_page
+                and text_item.text[0].islower()):
+            return False
+
+        first: str = text_item.text[0]
+
+        # H9 — Lowercase-start with dangling context: lower half of page.
+        if (first.islower()
+                and ctx.dangling_sentence
+                and ctx.median_page_height > 0
+                and text_item.prov
+                and text_item.prov[0].bbox is not None
+                and text_item.prov[0].bbox.t < ctx.median_page_height * 0.5):
+            return True
+
+        # H10 — Lowercase-start in bottom quarter: no dangling required.
+        if (first.islower()
+                and ctx.median_page_height > 0
+                and text_item.prov
+                and text_item.prov[0].bbox is not None
+                and text_item.prov[0].bbox.t < ctx.median_page_height * 0.25):
             return True
 
         return False
