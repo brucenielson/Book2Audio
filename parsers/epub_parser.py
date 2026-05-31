@@ -178,11 +178,14 @@ def get_chapter_info(tags: list[Tag],
         elif chapter_title == "" and tag.name != 'p':
             if h1_tag_count == 1 and get_header_level(tag) == 1:
                 chapter_title = enhance_title(tag.text)
+                tags_to_delete.append(i)
             elif h1_tag_count == 0:
                 if h2_tag_count == 1 and get_header_level(tag) == 2:
                     chapter_title = enhance_title(tag.text)
+                    tags_to_delete.append(i)
                 elif h3_tag_count == 1 and get_header_level(tag) == 3:
                     chapter_title = enhance_title(tag.text)
+                    tags_to_delete.append(i)
         elif tag.name == 'p' and not is_chapter_number(tag):
             if chapter_title or i > 2:
                 break
