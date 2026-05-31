@@ -539,23 +539,13 @@ class DoclingParser(BaseParser):
                                       body_line_height=ctx.body_line_height)):
             return False
 
-        first: str = text_item.text[0]
-
-        # H9 — Lowercase-start with dangling context: lower half of page.
-        if (first.islower()
-                and ctx.dangling_sentence
-                and ctx.median_page_height > 0
+        # H9 — Lowercase-start: small text in the lower half of the page. The lookahead
+        # gate above ensures the next item is not regular body text, so if we reach here
+        # the item is almost certainly a footnote continuation from a prior page.
+        if (ctx.median_page_height > 0
                 and text_item.prov
                 and text_item.prov[0].bbox is not None
                 and text_item.prov[0].bbox.t < ctx.median_page_height * 0.5):
-            return True
-
-        # H10 — Lowercase-start in bottom quarter: no dangling required.
-        if (first.islower()
-                and ctx.median_page_height > 0
-                and text_item.prov
-                and text_item.prov[0].bbox is not None
-                and text_item.prov[0].bbox.t < ctx.median_page_height * 0.25):
             return True
 
         return False
