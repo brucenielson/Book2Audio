@@ -627,77 +627,41 @@ class TestIsFootnote:
                        body_line_height=10.0, median_page_height=100.0)
         assert parser._is_footnote(item, ctx) is False
 
-    # --- H9/H10: lowercase-start small text — footnote continuation ---
+    # --- H9: lowercase-start small text in lower half — footnote continuation ---
     # Body text always opens a new sentence with an uppercase letter, so a lowercase-
-    # start is a strong signal of a footnote continuation from a prior page.
-    # H9: lower half + dangling sentence. H10: bottom 25%, no dangling required.
+    # start in small text is a strong signal of a footnote continuation from a prior
+    # page. The lookahead gate (below) guards against block-quote false positives.
 
-    @pytest.mark.parametrize("text", [
-        "venerated Supreme Court opinion, McCulloch v. Maryland, 17 U.S. 316 (1819).",
-        "continued from the prior footnote, which argued that the ruling was sound.",
-        "see also the discussion above regarding the constitutional basis.",
+    @pytest.mark.parametrize("bbox_t,dangling", [
+        (30.0, True),   # lower half, dangling sentence
+        (30.0, False),  # lower half, no dangling — H9 fires regardless
+        (20.0, True),   # deep in lower half, dangling
+        (20.0, False),  # deep in lower half, no dangling
     ])
-    def test_h9_lowercase_start_lower_half_with_dangling_returns_true(self, text: str) -> None:
-        """H9: small lowercase-start in lower half with dangling sentence is a footnote."""
+    def test_h9_lowercase_start_lower_half_returns_true(self, bbox_t: float, dangling: bool) -> None:
+        """H9: small lowercase-start in lower half is a footnote regardless of dangling_sentence."""
+        text = "venerated Supreme Court opinion, McCulloch v. Maryland, 17 U.S. 316 (1819)."
         item = make_sized_text_item(text, charspan_length=len(text), bbox_height=8.0)
-        item.prov[0].bbox.t = 30.0  # lower half of 100-height page
+        item.prov[0].bbox.t = bbox_t
         parser = make_parser([])
-        ctx = make_ctx(text_seen_this_page=True, dangling_sentence=True,
+        ctx = make_ctx(text_seen_this_page=True, dangling_sentence=dangling,
                        single_line_height=10.0, median_chars_per_line=50.0,
                        body_line_height=10.0, median_page_height=100.0)
         assert parser._is_footnote(item, ctx) is True
 
-    def test_h9_lowercase_start_lower_half_no_dangling_returns_false(self) -> None:
-        """H9 requires dangling_sentence — without it, lower half alone is not enough."""
-        text = "venerated Supreme Court opinion, McCulloch v. Maryland, 17 U.S. 316 (1819)."
+    @pytest.mark.parametrize("text,bbox_t,dangling", [
+        # Upper half — position check fails
+        ("venerated Supreme Court opinion, McCulloch v. Maryland, 17 U.S. 316 (1819).", 70.0, True),
+        ("venerated Supreme Court opinion, McCulloch v. Maryland, 17 U.S. 316 (1819).", 70.0, False),
+        # Uppercase start — first-char check fails
+        ("Venerated Supreme Court opinion, McCulloch v. Maryland, 17 U.S. 316 (1819).", 20.0, True),
+    ])
+    def test_h9_does_not_fire(self, text: str, bbox_t: float, dangling: bool) -> None:
+        """H9 does not fire when position is upper half or first char is uppercase."""
         item = make_sized_text_item(text, charspan_length=len(text), bbox_height=8.0)
-        item.prov[0].bbox.t = 30.0
+        item.prov[0].bbox.t = bbox_t
         parser = make_parser([])
-        ctx = make_ctx(text_seen_this_page=True, dangling_sentence=False,
-                       single_line_height=10.0, median_chars_per_line=50.0,
-                       body_line_height=10.0, median_page_height=100.0)
-        assert parser._is_footnote(item, ctx) is False
-
-    def test_h10_lowercase_start_bottom_quarter_no_dangling_returns_true(self) -> None:
-        """H10: small lowercase-start in bottom 25% is a footnote even without dangling sentence."""
-        text = "venerated Supreme Court opinion, McCulloch v. Maryland, 17 U.S. 316 (1819)."
-        item = make_sized_text_item(text, charspan_length=len(text), bbox_height=8.0)
-        item.prov[0].bbox.t = 20.0  # bottom 25% of 100-height page
-        parser = make_parser([])
-        ctx = make_ctx(text_seen_this_page=True, dangling_sentence=False,
-                       single_line_height=10.0, median_chars_per_line=50.0,
-                       body_line_height=10.0, median_page_height=100.0)
-        assert parser._is_footnote(item, ctx) is True
-
-    def test_h10_lowercase_start_lower_half_not_bottom_quarter_returns_false(self) -> None:
-        """H10 requires bottom 25% — lower half without dangling is not enough."""
-        text = "venerated Supreme Court opinion, McCulloch v. Maryland, 17 U.S. 316 (1819)."
-        item = make_sized_text_item(text, charspan_length=len(text), bbox_height=8.0)
-        item.prov[0].bbox.t = 30.0  # lower half but not bottom quarter
-        parser = make_parser([])
-        ctx = make_ctx(text_seen_this_page=True, dangling_sentence=False,
-                       single_line_height=10.0, median_chars_per_line=50.0,
-                       body_line_height=10.0, median_page_height=100.0)
-        assert parser._is_footnote(item, ctx) is False
-
-    def test_lowercase_start_upper_half_no_dangling_returns_false(self) -> None:
-        """Lowercase-start in upper half with no dangling is not caught by either H9 or H10."""
-        text = "venerated Supreme Court opinion, McCulloch v. Maryland, 17 U.S. 316 (1819)."
-        item = make_sized_text_item(text, charspan_length=len(text), bbox_height=8.0)
-        item.prov[0].bbox.t = 70.0  # upper half
-        parser = make_parser([])
-        ctx = make_ctx(text_seen_this_page=True, dangling_sentence=False,
-                       single_line_height=10.0, median_chars_per_line=50.0,
-                       body_line_height=10.0, median_page_height=100.0)
-        assert parser._is_footnote(item, ctx) is False
-
-    def test_uppercase_start_not_caught_by_h9_or_h10(self) -> None:
-        """Uppercase-start small text is not caught by H9 or H10."""
-        text = "Venerated Supreme Court opinion, McCulloch v. Maryland, 17 U.S. 316 (1819)."
-        item = make_sized_text_item(text, charspan_length=len(text), bbox_height=8.0)
-        item.prov[0].bbox.t = 20.0  # bottom quarter
-        parser = make_parser([])
-        ctx = make_ctx(text_seen_this_page=True, dangling_sentence=True,
+        ctx = make_ctx(text_seen_this_page=True, dangling_sentence=dangling,
                        single_line_height=10.0, median_chars_per_line=50.0,
                        body_line_height=10.0, median_page_height=100.0)
         assert parser._is_footnote(item, ctx) is False
