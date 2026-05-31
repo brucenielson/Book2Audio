@@ -397,10 +397,28 @@ class DoclingParser(BaseParser):
                                         DocItemLabel.LIST_ITEM)):
             return True
 
-        # H2 — Digit-start LIST_ITEM: Docling often labels bottom-of-page footnotes as
+        # H2 — Endnote section: in a dedicated Notes/Endnotes section at the back of
+        # the book, any digit-start TEXT or LIST_ITEM with alpha content is an endnote.
+        # No font-size or page-position check — endnote pages use the same font as body.
+        if (ctx.in_notes_section
+                and text_item.label in (DocItemLabel.TEXT, DocItemLabel.LIST_ITEM)
+                and text_item.text[0].isdigit()
+                and any(c.isalpha() for c in text_item.text)):
+            return True
+
+        # H3 — Dangling-sentence LIST_ITEM: a digit-start LIST_ITEM that follows an
+        # incomplete body sentence is almost certainly a leaked footnote. Stronger signal
+        # than H4's font/position check, so evaluated first.
+        if (text_item.label == DocItemLabel.LIST_ITEM
+                and not ctx.in_notes_section
+                and text_item.text[0].isdigit()
+                and ctx.text_seen_this_page
+                and ctx.dangling_sentence):
+            return True
+
+        # H4 — Digit-start LIST_ITEM: Docling often labels bottom-of-page footnotes as
         # LIST_ITEM when they use a numbered style (e.g. "1. See Smith v. Jones...").
         # Requires small text and lower-half position to avoid sweeping up body lists.
-        # Not used in the notes section — endnote LIST_ITEMs are handled by H3 instead.
         if (text_item.label == DocItemLabel.LIST_ITEM
                 and not ctx.in_notes_section
                 and text_item.text[0].isdigit()
@@ -414,26 +432,11 @@ class DoclingParser(BaseParser):
                 and text_item.prov[0].bbox.t < ctx.median_page_height * 0.5):
             return True
 
-        # The remaining heuristics only apply to TEXT and SECTION_HEADER items,
-        # except H3 which also covers LIST_ITEM endnotes.
-        if text_item.label not in (DocItemLabel.TEXT, DocItemLabel.SECTION_HEADER,
-                                    DocItemLabel.LIST_ITEM):
-            return False
-
-        # H3 — Endnote section: in a dedicated Notes/Endnotes section at the back of
-        # the book, any digit-start TEXT or LIST_ITEM with alpha content is an endnote.
-        # No font-size or page-position check — endnote pages use the same font as body.
-        if (ctx.in_notes_section
-                and text_item.label in (DocItemLabel.TEXT, DocItemLabel.LIST_ITEM)
-                and text_item.text[0].isdigit()
-                and any(c.isalpha() for c in text_item.text)):
-            return True
-
         # The remaining heuristics only apply to TEXT and SECTION_HEADER items.
         if text_item.label not in (DocItemLabel.TEXT, DocItemLabel.SECTION_HEADER):
             return False
 
-        # H4 — Juxtaposed marker: 1–2 digits immediately against an uppercase letter or
+        # H5 — Juxtaposed marker: 1–2 digits immediately against an uppercase letter or
         # opening punctuation with no space (e.g. "3See", "14Cf", "8(See", "13'That").
         # This pattern almost never appears in body text. Uppercase avoids ordinals like
         # "1st". Applies to mislabeled SECTION_HEADERs too — real section headers always
@@ -442,7 +445,7 @@ class DoclingParser(BaseParser):
                 and re.match(r'^\d{1,2}[A-Z\[(\'\"]', text_item.text)):
             return True
 
-        # H5 — Positional: digit-start TEXT item with alpha content, preceded by a
+        # H6 — Positional: digit-start TEXT item with alpha content, preceded by a
         # mid-sentence body paragraph, sitting in the lower half of the page.
         # No font-size requirement — footnotes in narrow columns may match body font size.
         if (text_item.label == DocItemLabel.TEXT
@@ -455,7 +458,7 @@ class DoclingParser(BaseParser):
                 and text_item.prov[0].bbox.t < ctx.median_page_height * 0.5):
             return True
 
-        # Small-text gate: H6 and H7 require the item to be visually smaller than
+        # Small-text gate: H7 and H8 require the item to be visually smaller than
         # body text, and body text must have been seen already on this page.
         if not (ctx.text_seen_this_page
                 and is_small_text(text_item, ctx.single_line_height,
@@ -469,7 +472,7 @@ class DoclingParser(BaseParser):
 
         first: str = text_item.text[0]
 
-        # H6 — Symbol marker: small text whose first character is not a letter, in the
+        # H7 — Symbol marker: small text whose first character is not a letter, in the
         # lower half of the page. Covers OCR artifacts (e.g. '&' mangled from '6'),
         # bullet-style markers (·, *, †), and similar non-alpha footnote symbols.
         if (not first.isalpha()
@@ -479,11 +482,11 @@ class DoclingParser(BaseParser):
                 and text_item.prov[0].bbox.t < ctx.median_page_height * 0.5):
             return True
 
-        # Gate: H7 only applies to digit-start items.
+        # Gate: H8 only applies to digit-start items.
         if not first.isdigit():
             return False
 
-        # H7 — Small digit marker with context: small digit-start item with alpha
+        # H8 — Small digit marker with context: small digit-start item with alpha
         # content, preceded by a mid-sentence body paragraph.
         # Alpha check excludes pure index entries like "183-84".
         has_alpha: bool = any(c.isalpha() for c in text_item.text)
@@ -551,7 +554,9 @@ class DoclingParser(BaseParser):
             text_item: The item just routed to regular_texts.
             ctx: The context to update in place.
         """
-        if text_item.label == DocItemLabel.TEXT:
+        if text_item.label == DocItemLabel.SECTION_HEADER and text_item.text.rstrip().endswith(':'):
+            ctx.dangling_sentence = False
+        elif text_item.label == DocItemLabel.TEXT:
             text_stripped = text_item.text.rstrip()
             ends_sentence = is_sentence_end(text_stripped) or text_stripped.endswith(':')
             ctx.dangling_sentence = (len(text_item.text) >= self._short_text_threshold

@@ -201,14 +201,16 @@ class TestIsFootnote:
         """Digit-start LIST_ITEM after a mid-sentence body paragraph is a footnote."""
         item = make_doc_item(TextItem, DocItemLabel.LIST_ITEM.value, text)
         parser = make_parser([])
-        assert parser._is_footnote(item, make_ctx(dangling_sentence=True)) is True
+        assert parser._is_footnote(item, make_ctx(dangling_sentence=True,
+                                                   text_seen_this_page=True)) is True
 
     def test_letter_start_list_item_after_dangling_sentence_returns_false(self) -> None:
         """LIST_ITEM starting with a letter is not caught even after a dangling sentence."""
         item = make_doc_item(TextItem, DocItemLabel.LIST_ITEM.value,
                              "See Smith v. Jones, 42 U.S. 100 (1900).")
         parser = make_parser([])
-        assert parser._is_footnote(item, make_ctx(dangling_sentence=True)) is False
+        assert parser._is_footnote(item, make_ctx(dangling_sentence=True,
+                                                   text_seen_this_page=True)) is False
 
     def test_digit_list_item_without_dangling_sentence_not_caught(self) -> None:
         """Digit-start LIST_ITEM with no dangling sentence falls through to H2 (fails without small text)."""
@@ -829,12 +831,20 @@ class TestUpdateTextState:
         assert ctx.dangling_sentence is False
 
     def test_non_text_label_does_not_change_dangling_sentence(self) -> None:
-        """Non-TEXT items (section headers etc.) do not affect the H1 footnote gate."""
+        """Non-colon SECTION_HEADER does not affect dangling_sentence."""
         header = make_section_header("A Chapter")
         parser = make_parser([])
         ctx = make_ctx(dangling_sentence=True)
         parser._update_text_state(header, ctx)
         assert ctx.dangling_sentence is True
+
+    def test_colon_ending_section_header_clears_dangling_sentence(self) -> None:
+        """SECTION_HEADER ending with ':' clears dangling_sentence — it introduces a list."""
+        header = make_section_header("Weber is making the following claims:")
+        parser = make_parser([])
+        ctx = make_ctx(dangling_sentence=True)
+        parser._update_text_state(header, ctx)
+        assert ctx.dangling_sentence is False
 
 
 # --- TestGetProcessedTexts ---
