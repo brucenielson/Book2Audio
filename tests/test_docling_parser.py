@@ -798,28 +798,28 @@ class TestIsPageHeader:
 # --- TestUpdateTextState ---
 
 class TestUpdateTextState:
-    def test_long_mid_sentence_text_sets_prev_text_candidate(self) -> None:
+    def test_long_mid_sentence_text_sets_dangling_sentence(self) -> None:
         text = make_text_item("A" * 100)   # long, no sentence-ending punctuation
         parser = make_parser([], min_footnote_chars=100)
         ctx = make_ctx()
         parser._update_text_state(text, ctx)
         assert ctx.dangling_sentence is True
 
-    def test_short_text_clears_prev_text_candidate(self) -> None:
+    def test_short_text_clears_dangling_sentence(self) -> None:
         text = make_text_item("Short text")
         parser = make_parser([], min_footnote_chars=100)
         ctx = make_ctx(dangling_sentence=True)
         parser._update_text_state(text, ctx)
         assert ctx.dangling_sentence is False
 
-    def test_sentence_ending_text_clears_prev_text_candidate(self) -> None:
+    def test_sentence_ending_text_clears_dangling_sentence(self) -> None:
         text = make_text_item("A" * 100 + ".")
         parser = make_parser([], min_footnote_chars=100)
         ctx = make_ctx()
         parser._update_text_state(text, ctx)
         assert ctx.dangling_sentence is False
 
-    def test_colon_ending_clears_prev_text_candidate(self) -> None:
+    def test_colon_ending_clears_dangling_sentence(self) -> None:
         """Text ending with ':' clears dangling_sentence even when long.
         A following digit-start item after a colon is a list continuation, not a footnote."""
         text = make_text_item("A" * 100 + ":")
@@ -828,7 +828,7 @@ class TestUpdateTextState:
         parser._update_text_state(text, ctx)
         assert ctx.dangling_sentence is False
 
-    def test_non_text_label_does_not_change_prev_text_candidate(self) -> None:
+    def test_non_text_label_does_not_change_dangling_sentence(self) -> None:
         """Non-TEXT items (section headers etc.) do not affect the H1 footnote gate."""
         header = make_section_header("A Chapter")
         parser = make_parser([])
