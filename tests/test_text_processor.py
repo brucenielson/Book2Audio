@@ -114,7 +114,7 @@ class TestProcess:
         ]
         result = processor.process(chunks)
         assert any("Accumulated text." in r.text for r in result)
-        assert any("Chapter One" in r.text for r in result)
+        assert sum(1 for r in result if r.text == "Chapter One") == 1
 
     def test_section_header_resets_accumulator(self) -> None:
         processor = make_processor(min_paragraph_size=100)
@@ -125,7 +125,7 @@ class TestProcess:
         ]
         result = processor.process(chunks)
         assert any("Before header." in r.text for r in result)
-        assert any("Chapter One" in r.text for r in result)
+        assert sum(1 for r in result if r.text == "Chapter One") == 1
         assert any("After header." in r.text for r in result)
 
     def test_consecutive_section_headers_combined(self) -> None:
