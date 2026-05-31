@@ -294,7 +294,7 @@ class TestStripFootnoteNumbers:
     @pytest.mark.parametrize('text, expected', [
         # Basic: digit attached directly to sentence-ending punctuation
         ('Hello world.1',    'Hello world.'),
-        ('Hello world.123',  'Hello world.'),
+        ('Hello world.12',  'Hello world.'),
         ('Hello world!1',    'Hello world!'),
         ('Hello world?1',    'Hello world?'),
         # Digit separated from punctuation by whitespace

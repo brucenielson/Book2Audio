@@ -403,19 +403,19 @@ def strip_footnote_numbers(p_str: str) -> str:
     # Case A: number at bare end of string (no closer after digit). No lookbehind needed —
     # a bare trailing number is unambiguously a footnote regardless of word length.
     # e.g. "hypothesis h. 1" -> "hypothesis h."
-    p_str = re.sub(rf'(\w[{_cl}]*\s*[.!?][{_cl}]*)\s*\d+\s*$',
+    p_str = re.sub(rf'(\w[{_cl}]*\s*[.!?][{_cl}]*)\s*\d{{1,2}}\s*$',
                    r'\1', p_str)
     # Case B: number followed by a closer (bracket/quote). Require the word before
     # sentence-ending punctuation to be multi-char or follow an apostrophe, to avoid
     # stripping page numbers in parenthetical citations like "(Harris 2006, p. 25)".
-    p_str = re.sub(rf'((?<=[\w{_apos}])\w[{_cl}]*\s*[.!?][{_cl}]*)\s*\d+\s*([{_cl}]+)\s*$',
+    p_str = re.sub(rf'((?<=[\w{_apos}])\w[{_cl}]*\s*[.!?][{_cl}]*)\s*\d{{1,2}}\s*([{_cl}]+)\s*$',
                    r'\1\2', p_str)
     # Strip trailing footnote when a space separates sentence-ending punctuation
     # from a closing quote before the number, e.g. 'hit you. "2' -> 'hit you.'
     # Same two-case split as above.
-    p_str = re.sub(rf'(\w[{_cl}]*\s*[.!?]\s+[{_cl}]*)\s*\d+\s*$',
+    p_str = re.sub(rf'(\w[{_cl}]*\s*[.!?]\s+[{_cl}]*)\s*\d{{1,2}}\s*$',
                    r'\1', p_str)
-    p_str = re.sub(rf'((?<=[\w{_apos}])\w[{_cl}]*\s*[.!?]\s+[{_cl}]*)\s*\d+\s*([{_cl}]+)\s*$',
+    p_str = re.sub(rf'((?<=[\w{_apos}])\w[{_cl}]*\s*[.!?]\s+[{_cl}]*)\s*\d{{1,2}}\s*([{_cl}]+)\s*$',
                    r'\1\2', p_str)
     # Remove footnote numbers directly attached (no space) to sentence-ending
     # punctuation, mid-paragraph or at end of string.
@@ -427,19 +427,19 @@ def strip_footnote_numbers(p_str: str) -> str:
     # closing quotes are included. The space variant handles OCR output like ". '2" where
     # fix_punctuation_spacing would later collapse the space but runs after this function.
     _q = chr(0x27) + '"' + chr(0x2019) + chr(0x201D)
-    p_str = re.sub(rf"(?:(?<!\d)(?<![.][A-Z])\.|[!?)\]]|(?<=[.!?])[{_q}]|(?<=[.!?]\s)[{_q}])\d+(?=\s|$)",
+    p_str = re.sub(rf"(?:(?<!\d)(?<![.][A-Z])\.|[!?)\]]|(?<=[.!?])[{_q}]|(?<=[.!?]\s)[{_q}])\d{{1,2}}(?=\s|$)",
                    lambda m: m.group(0)[0], p_str)
     # Handle multi-space OCR artifacts between sentence punctuation and closing quote,
     # e.g. "valid.  '9 Thus" -> "valid.  ' Thus". Python re lookbehinds are fixed-width
     # so two-or-more spaces cannot be expressed as a lookbehind — a capturing group is used.
-    p_str = re.sub(rf"([.!?]\s{{2,}}[{_q}])\d+(?=\s|$)", r'\1', p_str)
+    p_str = re.sub(rf"([.!?]\s{{2,}}[{_q}])\d{{1,2}}(?=\s|$)", r'\1', p_str)
     # Handle any quote character directly after a word character followed by a footnote
     # number, e.g. "'the dice-playing god'2 is" -> "'the dice-playing god' is".
     # All six quote variants are included (straight, left curly, right curly, single and
     # double). Apostrophe false positives are not a concern: "can't2" matches "t'2" and
     # returns "t'", correctly giving "can't".
     _all_q = _q + chr(0x2018) + chr(0x201C)
-    p_str = re.sub(rf"(\w[{_all_q}])\d+(?=\s|$)", r'\1', p_str)
+    p_str = re.sub(rf"(\w[{_all_q}])\d{{1,2}}(?=\s|$)", r'\1', p_str)
     return p_str
 
 

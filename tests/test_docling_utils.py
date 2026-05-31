@@ -288,7 +288,7 @@ class TestCleanText:
         assert clean_text("Hello world.1", remove_footnotes=True) == "Hello world."
 
     def test_strips_multiple_trailing_footnote_numbers(self) -> None:
-        assert clean_text("Hello world.123", remove_footnotes=True) == "Hello world."
+        assert clean_text("Hello world.12", remove_footnotes=True) == "Hello world."
 
     def test_empty_string(self) -> None:
         assert clean_text("") == ""
