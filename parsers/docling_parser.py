@@ -363,7 +363,8 @@ class DoclingParser(BaseParser):
                     display_label = chunk.original_label if chunk.original_label else chunk.label
                     f.write(f"{page}: {display_label}: {chunk.text}\n")
 
-    def _is_footnote_structural(self, text_item: TextItem, ctx: _FootnoteContext) -> bool:
+    @staticmethod
+    def _is_footnote_structural(text_item: TextItem, ctx: _FootnoteContext) -> bool:
         """Classify a single item using structural heuristics H2–H8 only.
 
         Does not include H1 (propagation, requires accumulated page state) or
@@ -486,7 +487,8 @@ class DoclingParser(BaseParser):
 
         return False
 
-    def _is_footnote(self, text_item: TextItem, ctx: _FootnoteContext) -> bool:
+    @staticmethod
+    def _is_footnote(text_item: TextItem, ctx: _FootnoteContext) -> bool:
         """Return True if text_item should be classified as a footnote.
 
         Applies H1 (propagation), then delegates to _is_footnote_structural for
@@ -510,7 +512,7 @@ class DoclingParser(BaseParser):
             return True
 
         # H2–H8: structural heuristics, safe to call without lookahead.
-        if self._is_footnote_structural(text_item, ctx):
+        if DoclingParser._is_footnote_structural(text_item, ctx):
             return True
 
         # Is small text gate for rest of tests
@@ -738,7 +740,7 @@ class DoclingParser(BaseParser):
                 ))
                 continue
 
-            went_to_notes: bool = self._is_footnote(text_item, ctx)
+            went_to_notes: bool = DoclingParser._is_footnote(text_item, ctx)
             docling_label: str = str(text_item.label)
             if went_to_notes:
                 ctx.found_note_this_page = True
