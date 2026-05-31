@@ -482,6 +482,16 @@ class DoclingParser(BaseParser):
                 and text_item.prov[0].bbox.t < ctx.median_page_height * 0.5):
             return True
 
+        # H9 — Lowercase-start continuation: small text beginning with a lowercase letter
+        # in the lower half of the page is almost certainly a footnote continued from a
+        # prior page — body text always opens a new sentence with an uppercase letter.
+        if (first.islower()
+                and ctx.median_page_height > 0
+                and text_item.prov
+                and text_item.prov[0].bbox is not None
+                and text_item.prov[0].bbox.t < ctx.median_page_height * 0.5):
+            return True
+
         # Gate: H8 only applies to digit-start items.
         if not first.isdigit():
             return False

@@ -625,6 +625,58 @@ class TestIsFootnote:
                        body_line_height=10.0, median_page_height=100.0)
         assert parser._is_footnote(item, ctx) is False
 
+    # --- H9: lowercase-start small text in lower half — footnote continuation ---
+    # A TEXT item starting with a lowercase letter is almost certainly a footnote
+    # continuation from a prior page, not new body text (which always opens a sentence).
+
+    @pytest.mark.parametrize("text", [
+        "venerated Supreme Court opinion, McCulloch v. Maryland, 17 U.S. 316 (1819).",
+        "continued from the prior footnote, which argued that the ruling was sound.",
+        "see also the discussion above regarding the constitutional basis.",
+    ])
+    def test_lowercase_start_small_text_lower_half_returns_true(self, text: str) -> None:
+        """Small lowercase-start TEXT item in lower half with body text seen is a footnote continuation."""
+        item = make_sized_text_item(text, charspan_length=len(text), bbox_height=8.0)
+        item.prov[0].bbox.t = 30.0  # lower half of 100-height page
+        parser = make_parser([])
+        ctx = make_ctx(text_seen_this_page=True, single_line_height=10.0,
+                       median_chars_per_line=50.0, body_line_height=10.0,
+                       median_page_height=100.0)
+        assert parser._is_footnote(item, ctx) is True
+
+    def test_lowercase_start_upper_half_returns_false(self) -> None:
+        """Lowercase-start small text in the upper half is not caught — footnotes live at bottom."""
+        text = "venerated Supreme Court opinion, McCulloch v. Maryland, 17 U.S. 316 (1819)."
+        item = make_sized_text_item(text, charspan_length=len(text), bbox_height=8.0)
+        item.prov[0].bbox.t = 70.0  # upper half of 100-height page
+        parser = make_parser([])
+        ctx = make_ctx(text_seen_this_page=True, single_line_height=10.0,
+                       median_chars_per_line=50.0, body_line_height=10.0,
+                       median_page_height=100.0)
+        assert parser._is_footnote(item, ctx) is False
+
+    def test_lowercase_start_no_text_seen_returns_false(self) -> None:
+        """Without body text seen on the page, lowercase-start small text is not caught."""
+        text = "venerated Supreme Court opinion, McCulloch v. Maryland, 17 U.S. 316 (1819)."
+        item = make_sized_text_item(text, charspan_length=len(text), bbox_height=8.0)
+        item.prov[0].bbox.t = 30.0
+        parser = make_parser([])
+        ctx = make_ctx(text_seen_this_page=False, single_line_height=10.0,
+                       median_chars_per_line=50.0, body_line_height=10.0,
+                       median_page_height=100.0)
+        assert parser._is_footnote(item, ctx) is False
+
+    def test_uppercase_start_not_caught_by_h9(self) -> None:
+        """Uppercase-start small text in the lower half is not caught by H9."""
+        text = "Venerated Supreme Court opinion, McCulloch v. Maryland, 17 U.S. 316 (1819)."
+        item = make_sized_text_item(text, charspan_length=len(text), bbox_height=8.0)
+        item.prov[0].bbox.t = 30.0
+        parser = make_parser([])
+        ctx = make_ctx(text_seen_this_page=True, single_line_height=10.0,
+                       median_chars_per_line=50.0, body_line_height=10.0,
+                       median_page_height=100.0)
+        assert parser._is_footnote(item, ctx) is False
+
 
 # --- TestIsInPageRange ---
 
