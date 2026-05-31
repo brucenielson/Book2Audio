@@ -162,6 +162,26 @@ class TextProcessor:
         if self._cleaner is not None:
             self._page_contexts = self._build_page_contexts(chunks)
 
+        # Merge consecutive section headers into a single chunk so that a
+        # number label ("I.") and its title ("Decisions Matter.") are cleaned
+        # and spoken as one unit.
+        merged: list[RawChunk] = []
+        idx = 0
+        while idx < len(chunks):
+            chunk = chunks[idx]
+            if chunk.is_section_header:
+                texts = [chunk.text] if chunk.text else []
+                while idx + 1 < len(chunks) and chunks[idx + 1].is_section_header:
+                    idx += 1
+                    if chunks[idx].text:
+                        texts.append(chunks[idx].text)
+                merged.append(RawChunk(text='\n'.join(texts), meta=chunk.meta,
+                                       label=chunk.label, original_label=chunk.original_label))
+            else:
+                merged.append(chunk)
+            idx += 1
+        chunks = merged
+
         for i, chunk in enumerate(chunks):
             next_chunk: RawChunk | None = chunks[i + 1] if i < len(chunks) - 1 else None
 
