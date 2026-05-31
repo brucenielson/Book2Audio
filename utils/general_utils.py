@@ -445,6 +445,14 @@ def strip_footnote_numbers(p_str: str) -> str:
     # returns "t'", correctly giving "can't".
     _all_q = _q + chr(0x2018) + chr(0x201C)
     p_str = re.sub(rf"(\w[{_all_q}])\d{{1,2}}(?=\s|$)", r'\1', p_str)
+    # Strip footnote refs of the form: word(4+ chars). SPACE number SPACE Uppercase/quote.
+    # e.g. "Casey. 46 After" -> "Casey. After", "minorities. 81 'We" -> "minorities. 'We"
+    # The 4-char lookbehind excludes common abbreviations: p., v., ch., vol., art., sec.
+    # The uppercase/opening-quote lookahead excludes lowercase continuations like
+    # "p. 12 for details" even when the preceding word is long enough to match.
+    _open_q = chr(0x2018) + chr(0x201C) + "'\""
+    p_str = re.sub(rf"(?<=\w\w\w\w)\.\s+\d{{1,2}}(?=\s[A-Z{_open_q}])",
+                   '.', p_str)
     return p_str
 
 
