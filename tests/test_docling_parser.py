@@ -700,6 +700,63 @@ class TestIsFootnote:
                        body_line_height=10.0, median_page_height=100.0)
         assert parser._is_footnote(item, ctx) is False
 
+    # --- H9/H10 lookahead gate: abort if next item on page is regular body text ---
+    # If the item following a lowercase-start small item is body-sized, the current
+    # item is almost certainly a block quote continuation, not a footnote.
+
+    def test_h9_aborted_when_next_item_is_body_sized(self) -> None:
+        """H9 must not fire when the next item on the same page is regular body text."""
+        item = make_sized_text_item("venerated Supreme Court opinion, McCulloch v. Maryland.",
+                                    charspan_length=55, bbox_height=8.0)
+        item.prov[0].bbox.t = 30.0
+        next_item = make_sized_text_item("This is regular body text continuing the argument.",
+                                         charspan_length=200, bbox_height=10.0)
+        parser = make_parser([])
+        ctx = make_ctx(text_seen_this_page=True, dangling_sentence=True,
+                       single_line_height=10.0, median_chars_per_line=50.0,
+                       body_line_height=10.0, median_page_height=100.0,
+                       next_page_item=next_item)
+        assert parser._is_footnote(item, ctx) is False
+
+    def test_h10_aborted_when_next_item_is_body_sized(self) -> None:
+        """H10 must not fire when the next item on the same page is regular body text."""
+        item = make_sized_text_item("venerated Supreme Court opinion, McCulloch v. Maryland.",
+                                    charspan_length=55, bbox_height=8.0)
+        item.prov[0].bbox.t = 20.0  # bottom quarter
+        next_item = make_sized_text_item("This is regular body text continuing the argument.",
+                                         charspan_length=200, bbox_height=10.0)
+        parser = make_parser([])
+        ctx = make_ctx(text_seen_this_page=True, dangling_sentence=False,
+                       single_line_height=10.0, median_chars_per_line=50.0,
+                       body_line_height=10.0, median_page_height=100.0,
+                       next_page_item=next_item)
+        assert parser._is_footnote(item, ctx) is False
+
+    def test_h9_fires_when_next_item_is_none(self) -> None:
+        """H9 fires when the item is last on the page — no next item to check."""
+        item = make_sized_text_item("venerated Supreme Court opinion, McCulloch v. Maryland.",
+                                    charspan_length=55, bbox_height=8.0)
+        item.prov[0].bbox.t = 30.0
+        parser = make_parser([])
+        ctx = make_ctx(text_seen_this_page=True, dangling_sentence=True,
+                       single_line_height=10.0, median_chars_per_line=50.0,
+                       body_line_height=10.0, median_page_height=100.0,
+                       next_page_item=None)
+        assert parser._is_footnote(item, ctx) is True
+
+    def test_h9_fires_when_next_item_is_small(self) -> None:
+        """H9 fires when the next item is also small text — consistent footnote zone."""
+        item = make_sized_text_item("venerated Supreme Court opinion, McCulloch v. Maryland.",
+                                    charspan_length=55, bbox_height=8.0)
+        item.prov[0].bbox.t = 30.0
+        next_item = make_sized_text_item("continued footnote text here.", charspan_length=30, bbox_height=8.0)
+        parser = make_parser([])
+        ctx = make_ctx(text_seen_this_page=True, dangling_sentence=True,
+                       single_line_height=10.0, median_chars_per_line=50.0,
+                       body_line_height=10.0, median_page_height=100.0,
+                       next_page_item=next_item)
+        assert parser._is_footnote(item, ctx) is True
+
 
 # --- TestIsInPageRange ---
 
