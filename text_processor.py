@@ -255,6 +255,9 @@ class TextProcessor:
     def _handle_section_header(self, chunk: RawChunk) -> None:
         """Flush any accumulated paragraph and emit the section header.
 
+        If a cleaner is present, the header text is passed through the regular
+        LLM prompt so OCR artifacts are corrected before the header is spoken.
+
         Args:
             chunk: The section header RawChunk.
         """
@@ -262,13 +265,20 @@ class TextProcessor:
         self._section_name = chunk.text
         if self._paragraph:
             self._flush_paragraph(chunk.meta)
-        if chunk.text:
-            self._para_num += 1
-            self._result.append(ParsedChunk(
-                text=chunk.text,
-                meta=self._build_meta(chunk.meta),
-                label=chunk.label
-            ))
+        if not chunk.text:
+            return
+        text: str = chunk.text
+        if self._cleaner:
+            page_context: str = self._page_contexts.get(chunk.meta.get('page_#', ''), '')
+            cleaned, _ = self._cleaner.clean(text, page_context=page_context)
+            text = cleaned
+            self._section_name = text
+        self._para_num += 1
+        self._result.append(ParsedChunk(
+            text=text,
+            meta=self._build_meta(chunk.meta),
+            label=chunk.label
+        ))
 
     def _handle_formula(self, chunk: RawChunk) -> None:
         """Flush any accumulated paragraph and emit the formula as its own paragraph.
