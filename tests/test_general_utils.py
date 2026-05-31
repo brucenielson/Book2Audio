@@ -464,6 +464,29 @@ class TestStripFootnoteNumbers:
         assert strip_footnote_numbers(text) == expected
 
     @pytest.mark.parametrize("text, expected", [
+        # Pattern: sentence_end + SPACE + 1-2 digit number + SPACE + uppercase/quote.
+        # Seen in legal writing OCR: "Casey. 46 After all, Casey jettisoned..."
+        # The uppercase after the number distinguishes these from abbreviation citations
+        # like "p. 12 for details" (lowercase after) or "v. 42 U.S." (1-char abbreviation).
+        ("Casey jettisoned. 46 After all, Casey",
+         "Casey jettisoned. After all, Casey"),
+        ("merits a central position. 54 Numerous distinguished jurists",
+         "merits a central position. Numerous distinguished jurists"),
+        ("that lone citation appeared in a footnote. 63 This point",
+         "that lone citation appeared in a footnote. This point"),
+        # Single digit
+        ("the Court's opinion. 9 The following year",
+         "the Court's opinion. The following year"),
+        # Opening quote after number
+        ("portrayed as minorities. 81 'We appeal to the states",
+         "portrayed as minorities. 'We appeal to the states"),
+    ])
+    def test_mid_paragraph_space_before_uppercase_footnote(self, text: str, expected: str) -> None:
+        """sentence_end SPACE number SPACE uppercase — common inline footnote ref pattern
+        in legal writing where the number separates two sentences."""
+        assert strip_footnote_numbers(text) == expected
+
+    @pytest.mark.parametrize("text, expected", [
         # Pattern: sentence_punct + closing_quote + SPACE + 1-2 digit number (mid-paragraph).
         # Seen in legal writing OCR: "'finest hour.' 19 Pamela labeled it"
         # Straight single quote, 2-digit number
@@ -491,8 +514,11 @@ class TestStripFootnoteNumbers:
         # Decimal numbers must not be stripped
         ("value 3.14 The next",         "value 3.14 The next"),
         ("R1.2 (prior) = result.",      "R1.2 (prior) = result."),
-        # Space before number is out of scope for this fix
-        ("penicillin. 12 It describes", "penicillin. 12 It describes"),
+        # Bare period + space + number + lowercase — must NOT be stripped (abbreviation risk)
+        ("penicillin. 12 it describes", "penicillin. 12 it describes"),
+        # Single-letter abbreviation before period — must NOT be stripped even with uppercase after
+        ("See p. 12 For details", "See p. 12 For details"),
+        ("cited in v. 42 United States", "cited in v. 42 United States"),
         # Opening curly quote before a number must not strip the number (false positive guard)
         ("merely an appropriate technique. ‘10", "merely an appropriate technique. ‘10"),
         ("merely an appropriate technique. The '10 percent.'", "merely an appropriate technique. The '10 percent.'"),
