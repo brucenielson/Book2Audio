@@ -482,14 +482,25 @@ class DoclingParser(BaseParser):
                 and text_item.prov[0].bbox.t < ctx.median_page_height * 0.5):
             return True
 
-        # H9 — Lowercase-start continuation: small text beginning with a lowercase letter
-        # in the lower half of the page is almost certainly a footnote continued from a
-        # prior page — body text always opens a new sentence with an uppercase letter.
+        # H9 — Lowercase-start with dangling context: small lowercase-start text following
+        # a mid-sentence body paragraph in the lower half of the page. The dangling
+        # sentence implies a footnote marker appeared inline; this is the referenced note.
         if (first.islower()
+                and ctx.dangling_sentence
                 and ctx.median_page_height > 0
                 and text_item.prov
                 and text_item.prov[0].bbox is not None
                 and text_item.prov[0].bbox.t < ctx.median_page_height * 0.5):
+            return True
+
+        # H10 — Lowercase-start in bottom quarter: small lowercase-start text in the
+        # bottom 25% of the page. Stricter position removes the need for a dangling
+        # sentence — items this far down are almost certainly footnote continuations.
+        if (first.islower()
+                and ctx.median_page_height > 0
+                and text_item.prov
+                and text_item.prov[0].bbox is not None
+                and text_item.prov[0].bbox.t < ctx.median_page_height * 0.25):
             return True
 
         # Gate: H8 only applies to digit-start items.
