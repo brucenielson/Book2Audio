@@ -464,6 +464,30 @@ class TestStripFootnoteNumbers:
         assert strip_footnote_numbers(text) == expected
 
     @pytest.mark.parametrize("text, expected", [
+        # Pattern: sentence_punct + closing_quote + SPACE + 1-2 digit number (mid-paragraph).
+        # Seen in legal writing OCR: "'finest hour.' 19 Pamela labeled it"
+        # Straight single quote, 2-digit number
+        ("called Brown the 'finest hour.' 19 Pamela labeled it",
+         "called Brown the 'finest hour.' Pamela labeled it"),
+        # Straight single quote, 1-digit number
+        ("ruled forcefully.' 5 The court then held",
+         "ruled forcefully.' The court then held"),
+        # Straight double quote
+        ('"a landmark decision." 9 The following year',
+         '"a landmark decision." The following year'),
+        # Right curly single quote (U+2019)
+        (f"the Supreme Court's finest hour.{chr(0x2019)} 19 Pamela labeled it",
+         f"the Supreme Court's finest hour.{chr(0x2019)} Pamela labeled it"),
+        # Right curly double quote (U+201D)
+        (f'dismissed the claim.{chr(0x201D)} 12 The court then',
+         f'dismissed the claim.{chr(0x201D)} The court then'),
+    ])
+    def test_mid_paragraph_space_after_quote_footnote(self, text: str, expected: str) -> None:
+        """Closing quote directly after sentence punct, then a space, then a 1-2 digit
+        footnote number mid-paragraph. Common in legal writing OCR output."""
+        assert strip_footnote_numbers(text) == expected
+
+    @pytest.mark.parametrize("text, expected", [
         # Decimal numbers must not be stripped
         ("value 3.14 The next",         "value 3.14 The next"),
         ("R1.2 (prior) = result.",      "R1.2 (prior) = result."),
@@ -489,6 +513,11 @@ class TestStripFootnoteNumbers:
 
         ("The '10 percent.' must be enlightened and guided by some idea",
          "The '10 percent.' must be enlightened and guided by some idea"),
+        # 4-digit year after closing quote must NOT be stripped
+        ("the decision.' 2024 was a landmark year",
+         "the decision.' 2024 was a landmark year"),
+        (f"the ruling.{chr(0x2019)} 1984 Orwell described",
+         f"the ruling.{chr(0x2019)} 1984 Orwell described"),
     ])
     def test_no_false_positives(self, text: str, expected: str) -> None:
         assert strip_footnote_numbers(text) == expected
