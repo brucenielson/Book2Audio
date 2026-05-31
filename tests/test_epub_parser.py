@@ -67,7 +67,7 @@ class TestParseSection:
         parser = make_parser()
         html = "<h1>Chapter One</h1><p>Some content here.</p>"
         docs, meta = parser._parse_section(html, {})
-        assert any("Chapter One" in d for d in docs)
+        assert sum(1 for d in docs if d == "Chapter One") == 1
 
     def test_section_header_flushes_accumulated(self) -> None:
         parser = make_parser(min_paragraph_size=100)
