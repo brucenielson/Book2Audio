@@ -128,6 +128,49 @@ class TestProcess:
         assert any("Chapter One" in r.text for r in result)
         assert any("After header." in r.text for r in result)
 
+    def test_consecutive_section_headers_combined(self) -> None:
+        """Two back-to-back section headers are merged into a single paragraph."""
+        processor = make_processor()
+        chunks = [
+            make_chunk("I.", label='section_header'),
+            make_chunk("Decisions Matter.", label='section_header'),
+        ]
+        result = processor.process(chunks)
+        assert len(result) == 1
+        assert "I." in result[0].text
+        assert "Decisions Matter." in result[0].text
+
+    def test_three_consecutive_section_headers_combined(self) -> None:
+        """Three back-to-back section headers are merged into a single paragraph."""
+        processor = make_processor()
+        chunks = [
+            make_chunk("Part I.", label='section_header'),
+            make_chunk("Chapter One.", label='section_header'),
+            make_chunk("Introduction.", label='section_header'),
+        ]
+        result = processor.process(chunks)
+        assert len(result) == 1
+        assert "Part I." in result[0].text
+        assert "Chapter One." in result[0].text
+        assert "Introduction." in result[0].text
+
+    def test_section_header_sent_to_llm_cleaner(self) -> None:
+        """Section headers are passed through the LLM cleaner when one is present."""
+        cleaner = make_cleaner(cleaned="Decisions Matter.")
+        processor = TextProcessor(cleaner=cleaner)
+        chunks = [make_chunk("D ECISIONS M ATTER .", label='section_header')]
+        result = processor.process(chunks)
+        cleaner.clean.assert_called_once()
+        assert result[0].text == "Decisions Matter."
+
+    def test_section_header_label_preserved_after_cleaning(self) -> None:
+        """The section_header label is retained in the output even after LLM cleaning."""
+        cleaner = make_cleaner(cleaned="Decisions Matter.")
+        processor = TextProcessor(cleaner=cleaner)
+        chunks = [make_chunk("D ECISIONS M ATTER .", label='section_header')]
+        result = processor.process(chunks)
+        assert result[0].label == 'section_header'
+
     def test_section_name_in_meta_after_header(self) -> None:
         processor = make_processor()
         chunks = [
