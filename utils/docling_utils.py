@@ -98,7 +98,7 @@ def is_page_header(text: DocItem | None) -> bool:
     return text.label == DocItemLabel.PAGE_HEADER
 
 
-def is_footnote(text: DocItem | None) -> bool:
+def is_docling_footnote(text: DocItem | None) -> bool:
     """Check if a DocItem is a footnote.
 
     Args:
@@ -141,7 +141,7 @@ def is_text_break(text: DocItem | None) -> bool:
     """
     if not is_text_bearing(text):
         return False
-    return is_page_header(text) or is_section_header(text) or is_footnote(text)
+    return is_page_header(text) or is_section_header(text) or is_docling_footnote(text)
 
 
 _BODY_TEXT_LABELS: frozenset[DocItemLabel] = frozenset({

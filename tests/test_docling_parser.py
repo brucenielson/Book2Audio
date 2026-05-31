@@ -110,6 +110,7 @@ def make_ctx(
     median_page_height: float = 0.0,
     body_line_height: float = 0.0,
     in_notes_section: bool = False,
+    next_page_item=None,
 ) -> _FootnoteContext:
     """Create a _FootnoteContext with sensible defaults for unit testing."""
     return _FootnoteContext(
@@ -122,6 +123,7 @@ def make_ctx(
         median_page_height=median_page_height,
         body_line_height=body_line_height,
         in_notes_section=in_notes_section,
+        next_page_item=next_page_item,
     )
 
 
@@ -705,12 +707,13 @@ class TestIsFootnote:
     # item is almost certainly a block quote continuation, not a footnote.
 
     def test_h9_aborted_when_next_item_is_body_sized(self) -> None:
-        """H9 must not fire when the next item on the same page is regular body text."""
+        """H9 must not fire when the next item on the same page is regular body text.
+        Body-sized: charspan_length=50 → 50 chars/line ≤ median(50)*1.25=62.5 → not small."""
         item = make_sized_text_item("venerated Supreme Court opinion, McCulloch v. Maryland.",
                                     charspan_length=55, bbox_height=8.0)
         item.prov[0].bbox.t = 30.0
         next_item = make_sized_text_item("This is regular body text continuing the argument.",
-                                         charspan_length=200, bbox_height=10.0)
+                                         charspan_length=50, bbox_height=10.0)
         parser = make_parser([])
         ctx = make_ctx(text_seen_this_page=True, dangling_sentence=True,
                        single_line_height=10.0, median_chars_per_line=50.0,
@@ -724,7 +727,7 @@ class TestIsFootnote:
                                     charspan_length=55, bbox_height=8.0)
         item.prov[0].bbox.t = 20.0  # bottom quarter
         next_item = make_sized_text_item("This is regular body text continuing the argument.",
-                                         charspan_length=200, bbox_height=10.0)
+                                         charspan_length=50, bbox_height=10.0)
         parser = make_parser([])
         ctx = make_ctx(text_seen_this_page=True, dangling_sentence=False,
                        single_line_height=10.0, median_chars_per_line=50.0,

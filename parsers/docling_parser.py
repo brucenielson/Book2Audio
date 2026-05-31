@@ -14,7 +14,7 @@ from text_chunk import RawChunk, ParsedChunk
 from text_processor import TextProcessor
 from text_cleaner import TextCleaner
 from parsers.base_parser import BaseParser
-from utils.docling_utils import (is_footnote,
+from utils.docling_utils import (is_docling_footnote,
                                  is_text_bearing,
                                  is_too_short,
                                  should_skip_element,
@@ -49,6 +49,7 @@ class _FootnoteContext:
     median_page_height: float       # median page height across the document
     body_line_height: float         # median bbox.height of single-line body TEXT items
     in_notes_section: bool          # True once a "Notes" / "Endnotes" section header is seen
+    next_page_item: TextItem | None  # next item on the same page in sort order, or None
 
 
 class DoclingParser(BaseParser):
@@ -379,7 +380,7 @@ class DoclingParser(BaseParser):
             True if the item looks like a footnote by structural signals alone.
         """
         # Pass-through: Docling already labeled this item as a footnote.
-        if is_footnote(text_item):
+        if is_docling_footnote(text_item):
             return True
 
         # Guard: skip items with no content or labels we never classify as footnotes.
@@ -515,7 +516,7 @@ class DoclingParser(BaseParser):
         if DoclingParser._is_footnote_structural(text_item, ctx):
             return True
 
-        # Is small text gate for rest of tests
+        # Gate for H9/H10: item must be small, lowercase-start text.
         if not (text_item.text
                 and text_item.label in (DocItemLabel.TEXT, DocItemLabel.SECTION_HEADER)
                 and is_small_text(text_item, ctx.single_line_height,
@@ -523,6 +524,19 @@ class DoclingParser(BaseParser):
                                   body_line_height=ctx.body_line_height)
                 and ctx.text_seen_this_page
                 and text_item.text[0].islower()):
+            return False
+
+        # Lookahead gate: abort H9/H10 only if the next item on this page is clearly body
+        # text — i.e. neither a structural footnote (H2–H8) nor small text. If either
+        # condition holds, the current item is likely in a footnote zone and H9/H10 can
+        # fire. Using both checks catches cases where the next item is a footnote via a
+        # non-size heuristic (e.g. juxtaposed marker H5) or is small but not digit-start.
+        # If next_page_item is None (last on page), allow H9/H10 to proceed.
+        if (ctx.next_page_item is not None
+                and not DoclingParser._is_footnote_structural(ctx.next_page_item, ctx)
+                and not is_small_text(ctx.next_page_item, ctx.single_line_height,
+                                      ctx.median_chars_per_line,
+                                      body_line_height=ctx.body_line_height)):
             return False
 
         first: str = text_item.text[0]
@@ -701,9 +715,10 @@ class DoclingParser(BaseParser):
             median_page_height=median_page_height,
             body_line_height=body_line_height,
             in_notes_section=False,
+            next_page_item=None,
         )
 
-        for text_item in all_text_items:
+        for i, text_item in enumerate(all_text_items):
             page_number: int = text_item.prov[0].page_no
 
             if page_number != current_page:
@@ -739,6 +754,15 @@ class DoclingParser(BaseParser):
                     original_label=str(text_item.label),
                 ))
                 continue
+
+            next_item = all_text_items[i + 1] if i + 1 < len(all_text_items) else None
+            ctx.next_page_item = (
+                next_item
+                if next_item is not None
+                and next_item.prov
+                and next_item.prov[0].page_no == page_number
+                else None
+            )
 
             went_to_notes: bool = DoclingParser._is_footnote(text_item, ctx)
             docling_label: str = str(text_item.label)

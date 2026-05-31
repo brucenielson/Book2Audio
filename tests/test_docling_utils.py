@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 from docling_core.types import DoclingDocument
 from docling_core.types.doc.document import SectionHeaderItem, ListItem, TextItem, DocItem, DocItemLabel
 from utils.docling_utils import (
-    is_section_header, is_page_footer, is_page_header, is_footnote,
+    is_section_header, is_page_footer, is_page_header, is_docling_footnote,
     is_list_item, is_text_break, is_body_text,
     is_too_short, is_text_item, get_next_text,
     get_current_page, should_skip_element,
@@ -93,13 +93,13 @@ class TestIsPageHeader:
 
 class TestIsFootnote:
     def test_returns_true_for_footnote(self) -> None:
-        assert is_footnote(make_text_item(DocItemLabel.FOOTNOTE.value)) is True
+        assert is_docling_footnote(make_text_item(DocItemLabel.FOOTNOTE.value)) is True
 
     def test_returns_false_for_non_footnote(self) -> None:
-        assert is_footnote(make_text_item(DocItemLabel.TEXT.value)) is False
+        assert is_docling_footnote(make_text_item(DocItemLabel.TEXT.value)) is False
 
     def test_returns_false_for_none(self) -> None:
-        assert is_footnote(None) is False
+        assert is_docling_footnote(None) is False
 
 
 # --- is_list_item ---
