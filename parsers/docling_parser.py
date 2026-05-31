@@ -40,7 +40,7 @@ class _FootnoteContext:
     Bundled here so _is_footnote(), _is_page_header(), and _update_text_state()
     all receive what they need in one argument.
     """
-    prev_text_candidate: bool       # last TEXT item was long with no sentence end (H1 footnote gate)
+    dangling_sentence: bool       # last TEXT item was long with no sentence end (H1 footnote gate)
     text_seen_this_page: bool       # body text has been seen on the current page
     found_note_this_page: bool      # a footnote has been seen on the current page
     single_line_height: float       # median height of one line (from headers/footers)
@@ -448,7 +448,7 @@ class DoclingParser(BaseParser):
         if (text_item.label == DocItemLabel.TEXT
                 and text_item.text[0].isdigit()
                 and any(c.isalpha() for c in text_item.text)
-                and ctx.prev_text_candidate
+                and ctx.dangling_sentence
                 and ctx.median_page_height > 0
                 and text_item.prov
                 and text_item.prov[0].bbox is not None
@@ -487,7 +487,7 @@ class DoclingParser(BaseParser):
         # content, preceded by a mid-sentence body paragraph.
         # Alpha check excludes pure index entries like "183-84".
         has_alpha: bool = any(c.isalpha() for c in text_item.text)
-        if has_alpha and ctx.prev_text_candidate:
+        if has_alpha and ctx.dangling_sentence:
             return True
 
         return False
@@ -542,7 +542,7 @@ class DoclingParser(BaseParser):
     def _update_text_state(self, text_item: TextItem, ctx: _FootnoteContext) -> None:
         """Update tracking state after an item is routed to regular body text.
 
-        For TEXT items, refreshes prev_text_candidate (used by the footnote H1
+        For TEXT items, refreshes dangling_sentence (used by the footnote H1
         heuristic to detect unlabelled footnotes that follow mid-sentence body text).
         A sentence-ending text item or a text item ending with a colon clears the
         candidate flag, since a following digit-start item is not a plausible footnote.
@@ -554,8 +554,8 @@ class DoclingParser(BaseParser):
         if text_item.label == DocItemLabel.TEXT:
             text_stripped = text_item.text.rstrip()
             ends_sentence = is_sentence_end(text_stripped) or text_stripped.endswith(':')
-            ctx.prev_text_candidate = (len(text_item.text) >= self._short_text_threshold
-                                       and not ends_sentence)
+            ctx.dangling_sentence = (len(text_item.text) >= self._short_text_threshold
+                                     and not ends_sentence)
 
     def _get_processed_texts(self) -> list[RawChunk]:
         """Classify the document's text items and return them as RawChunks in document order.
@@ -636,7 +636,7 @@ class DoclingParser(BaseParser):
         chunks: list[RawChunk] = []
         current_page: int | None = None
         ctx: _FootnoteContext = _FootnoteContext(
-            prev_text_candidate=False,
+            dangling_sentence=False,
             text_seen_this_page=False,
             found_note_this_page=False,
             single_line_height=single_line_height,

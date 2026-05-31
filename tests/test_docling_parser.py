@@ -101,7 +101,7 @@ def make_parser(texts: list,
 
 
 def make_ctx(
-    prev_text_candidate: bool = False,
+    dangling_sentence: bool = False,
     text_seen_this_page: bool = False,
     found_note_this_page: bool = False,
     single_line_height: float = 10.0,
@@ -113,7 +113,7 @@ def make_ctx(
 ) -> _FootnoteContext:
     """Create a _FootnoteContext with sensible defaults for unit testing."""
     return _FootnoteContext(
-        prev_text_candidate=prev_text_candidate,
+        dangling_sentence=dangling_sentence,
         text_seen_this_page=text_seen_this_page,
         found_note_this_page=found_note_this_page,
         single_line_height=single_line_height,
@@ -158,7 +158,7 @@ class TestIsFootnote:
     def test_labeled_footnote_ignores_ctx(self) -> None:
         """FOOTNOTE label is sufficient on its own — context state is irrelevant."""
         parser = make_parser([])
-        ctx = make_ctx(prev_text_candidate=False, text_seen_this_page=False,
+        ctx = make_ctx(dangling_sentence=False, text_seen_this_page=False,
                        found_note_this_page=False)
         assert parser._is_footnote(make_footnote("1 Already labeled."), ctx) is True
 
@@ -171,7 +171,7 @@ class TestIsFootnote:
     def test_section_header_with_digit_start_returns_false(self) -> None:
         """SECTION_HEADER label must fail the guard even when text starts with a digit."""
         parser = make_parser([])
-        ctx = make_ctx(prev_text_candidate=True, found_note_this_page=True)
+        ctx = make_ctx(dangling_sentence=True, found_note_this_page=True)
         assert parser._is_footnote(make_section_header("1. Introduction"), ctx) is False
 
     def test_page_header_returns_false(self) -> None:
@@ -186,7 +186,37 @@ class TestIsFootnote:
         """LIST_ITEM with digit-start is not a footnote when text_seen_this_page is False."""
         item = make_doc_item(TextItem, DocItemLabel.LIST_ITEM.value, "1 list entry")
         parser = make_parser([])
-        assert parser._is_footnote(item, make_ctx(prev_text_candidate=True)) is False
+        assert parser._is_footnote(item, make_ctx(dangling_sentence=True)) is False
+
+    # --- Digit-start LIST_ITEM preceded by dangling (mid-sentence) body text ---
+    # A LIST_ITEM starting with a digit that follows an incomplete body sentence
+    # is almost certainly a footnote that leaked into the body flow.
+
+    @pytest.mark.parametrize("text", [
+        "84. 539 U.S. 558, 604 (2003) (Scalia, J., dissenting).",
+        "85. See id.",
+        "1 This ignores the earlier analysis entirely.",
+    ])
+    def test_digit_list_item_after_dangling_sentence_returns_true(self, text: str) -> None:
+        """Digit-start LIST_ITEM after a mid-sentence body paragraph is a footnote."""
+        item = make_doc_item(TextItem, DocItemLabel.LIST_ITEM.value, text)
+        parser = make_parser([])
+        assert parser._is_footnote(item, make_ctx(dangling_sentence=True)) is True
+
+    def test_letter_start_list_item_after_dangling_sentence_returns_false(self) -> None:
+        """LIST_ITEM starting with a letter is not caught even after a dangling sentence."""
+        item = make_doc_item(TextItem, DocItemLabel.LIST_ITEM.value,
+                             "See Smith v. Jones, 42 U.S. 100 (1900).")
+        parser = make_parser([])
+        assert parser._is_footnote(item, make_ctx(dangling_sentence=True)) is False
+
+    def test_digit_list_item_without_dangling_sentence_not_caught(self) -> None:
+        """Digit-start LIST_ITEM with no dangling sentence falls through to H2 (fails without small text)."""
+        item = make_doc_item(TextItem, DocItemLabel.LIST_ITEM.value,
+                             "84. 539 U.S. 558, 604 (2003) (Scalia, J., dissenting).")
+        parser = make_parser([])
+        assert parser._is_footnote(item, make_ctx(dangling_sentence=False,
+                                                  text_seen_this_page=True)) is False
 
     # --- Digit-start LIST_ITEM as first footnote on page ---
     # Docling often labels bottom-of-page footnotes as LIST_ITEM when they use
@@ -246,7 +276,7 @@ class TestIsFootnote:
     def test_text_starting_with_space_returns_false(self) -> None:
         """A leading space before a digit is not a digit-start — guard must not pass."""
         parser = make_parser([])
-        ctx = make_ctx(prev_text_candidate=True)
+        ctx = make_ctx(dangling_sentence=True)
         assert parser._is_footnote(make_text_item(" 1 Leading space."), ctx) is False
 
     # --- H1: digit-start TEXT following mid-sentence body text, in lower half of page ---
@@ -258,7 +288,7 @@ class TestIsFootnote:
                                     charspan_length=33, bbox_height=10.0)
         item.prov[0].bbox.t = 30.0  # lower half of 100-height page
         parser = make_parser([])
-        ctx = make_ctx(prev_text_candidate=True, text_seen_this_page=True,
+        ctx = make_ctx(dangling_sentence=True, text_seen_this_page=True,
                        single_line_height=10.0, median_chars_per_line=50.0,
                        body_line_height=10.0, median_page_height=100.0)
         assert parser._is_footnote(item, ctx) is True
@@ -270,7 +300,7 @@ class TestIsFootnote:
                                     charspan_length=46, bbox_height=20.0)
         item.prov[0].bbox.t = 30.0  # lower half of 100-height page
         parser = make_parser([])
-        ctx = make_ctx(prev_text_candidate=True, text_seen_this_page=True,
+        ctx = make_ctx(dangling_sentence=True, text_seen_this_page=True,
                        single_line_height=10.0, median_chars_per_line=50.0,
                        body_line_height=10.0, median_page_height=100.0)
         assert parser._is_footnote(item, ctx) is True
@@ -282,7 +312,7 @@ class TestIsFootnote:
                                     charspan_length=33, bbox_height=10.0)
         item.prov[0].bbox.t = 80.0  # upper half of 100-height page
         parser = make_parser([])
-        ctx = make_ctx(prev_text_candidate=True, text_seen_this_page=True,
+        ctx = make_ctx(dangling_sentence=True, text_seen_this_page=True,
                        single_line_height=10.0, median_chars_per_line=50.0,
                        body_line_height=10.0, median_page_height=100.0)
         assert parser._is_footnote(item, ctx) is False
@@ -291,13 +321,13 @@ class TestIsFootnote:
         """Index entries like '183-84' contain no alpha — H1 must not fire."""
         parser = make_parser([])
         item = make_text_item("183-84")
-        assert parser._is_footnote(item, make_ctx(prev_text_candidate=True)) is False
+        assert parser._is_footnote(item, make_ctx(dangling_sentence=True)) is False
 
     def test_h1_alpha_without_prev_candidate_returns_false(self) -> None:
-        """Alpha alone is not enough — H1 also requires prev_text_candidate."""
+        """Alpha alone is not enough — H1 also requires dangling_sentence."""
         parser = make_parser([])
         item = make_text_item("1 Some text.")
-        assert parser._is_footnote(item, make_ctx(prev_text_candidate=False)) is False
+        assert parser._is_footnote(item, make_ctx(dangling_sentence=False)) is False
 
     # --- H2: small font, preceded by body text on this page ---
     # is_small_text: chars_per_line = charspan / (height / single_line_height)
@@ -588,7 +618,7 @@ class TestIsFootnote:
         item = make_sized_text_item(text, charspan_length=len(text), bbox_height=8.0)
         item.prov[0].bbox.t = 70.0  # upper half of 100-height page
         parser = make_parser([])
-        ctx = make_ctx(text_seen_this_page=True, prev_text_candidate=False,
+        ctx = make_ctx(text_seen_this_page=True, dangling_sentence=False,
                        single_line_height=10.0, median_chars_per_line=50.0,
                        body_line_height=10.0, median_page_height=100.0)
         assert parser._is_footnote(item, ctx) is False
@@ -773,38 +803,38 @@ class TestUpdateTextState:
         parser = make_parser([], min_footnote_chars=100)
         ctx = make_ctx()
         parser._update_text_state(text, ctx)
-        assert ctx.prev_text_candidate is True
+        assert ctx.dangling_sentence is True
 
     def test_short_text_clears_prev_text_candidate(self) -> None:
         text = make_text_item("Short text")
         parser = make_parser([], min_footnote_chars=100)
-        ctx = make_ctx(prev_text_candidate=True)
+        ctx = make_ctx(dangling_sentence=True)
         parser._update_text_state(text, ctx)
-        assert ctx.prev_text_candidate is False
+        assert ctx.dangling_sentence is False
 
     def test_sentence_ending_text_clears_prev_text_candidate(self) -> None:
         text = make_text_item("A" * 100 + ".")
         parser = make_parser([], min_footnote_chars=100)
         ctx = make_ctx()
         parser._update_text_state(text, ctx)
-        assert ctx.prev_text_candidate is False
+        assert ctx.dangling_sentence is False
 
     def test_colon_ending_clears_prev_text_candidate(self) -> None:
-        """Text ending with ':' clears prev_text_candidate even when long.
+        """Text ending with ':' clears dangling_sentence even when long.
         A following digit-start item after a colon is a list continuation, not a footnote."""
         text = make_text_item("A" * 100 + ":")
         parser = make_parser([], min_footnote_chars=100)
         ctx = make_ctx()
         parser._update_text_state(text, ctx)
-        assert ctx.prev_text_candidate is False
+        assert ctx.dangling_sentence is False
 
     def test_non_text_label_does_not_change_prev_text_candidate(self) -> None:
         """Non-TEXT items (section headers etc.) do not affect the H1 footnote gate."""
         header = make_section_header("A Chapter")
         parser = make_parser([])
-        ctx = make_ctx(prev_text_candidate=True)
+        ctx = make_ctx(dangling_sentence=True)
         parser._update_text_state(header, ctx)
-        assert ctx.prev_text_candidate is True
+        assert ctx.dangling_sentence is True
 
 
 # --- TestGetProcessedTexts ---
@@ -1007,7 +1037,7 @@ class TestRun:
         body text (high bbox.t) is always processed before footnotes (low bbox.t),
         regardless of Docling's emission order.
         """
-        # Page 1: long body text ending mid-sentence → sets prev_text_candidate=True
+        # Page 1: long body text ending mid-sentence → sets dangling_sentence=True
         body_p1 = make_sized_text_item("A" * 150, charspan_length=150, bbox_height=10.0,
                                         page_no=1)
         body_p1.prov[0].bbox.t = 580.0
@@ -1070,19 +1100,19 @@ class TestRun:
         detection.  Only TEXT items should contribute to the l-spread calculation.
 
         Setup mirrors the real p.293 problem.  A body text item on page 1 sets
-        prev_text_candidate=True (ends mid-sentence).  On page 2, Docling emits a
+        dangling_sentence=True (ends mid-sentence).  On page 2, Docling emits a
         footnote (physically at bottom, low bbox.t) before the body text (physically
         at the top, high bbox.t).  A SECTION_HEADER with bbox.l=178 sits on page 2,
         pushing the ALL-item l-spread above 100.
 
         Without the TEXT-only filter: sort skipped → footnote processed first →
-        H1 fires (prev_text_candidate=True from p.1, digit-start, lower half) →
+        H1 fires (dangling_sentence=True from p.1, digit-start, lower half) →
         found_note_this_page=True → H3 sweeps body text → body text lost.
 
         With the fix: only TEXT items contribute to the l-spread → spread < 100 →
         sort fires → body text processed first → survives.
         """
-        # Page 1: long mid-sentence body text → sets prev_text_candidate=True
+        # Page 1: long mid-sentence body text → sets dangling_sentence=True
         prev_body = make_sized_text_item("A" * 150, charspan_length=150,
                                          bbox_height=10.0, page_no=1)
         prev_body.prov[0].bbox.t = 400.0
