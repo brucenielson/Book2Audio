@@ -433,6 +433,11 @@ def strip_footnote_numbers(p_str: str) -> str:
     # e.g. "valid.  '9 Thus" -> "valid.  ' Thus". Python re lookbehinds are fixed-width
     # so two-or-more spaces cannot be expressed as a lookbehind — a capturing group is used.
     p_str = re.sub(rf"([.!?]\s{{2,}}[{_q}])\d{{1,2}}(?=\s|$)", r'\1', p_str)
+    # Handle closing quote directly after sentence punct, then a space, then footnote number.
+    # e.g. "'finest hour.' 19 Pamela" -> "'finest hour.' Pamela"
+    # Seen in legal writing OCR where superscript refs are separated from closing quotes.
+    # Limited to \d{1,2} so 4-digit years (1990, 2024) are never stripped.
+    p_str = re.sub(rf"((?<=[.!?])[{_q}])\s+\d{{1,2}}(?=\s|$)", r'\1', p_str)
     # Handle any quote character directly after a word character followed by a footnote
     # number, e.g. "'the dice-playing god'2 is" -> "'the dice-playing god' is".
     # All six quote variants are included (straight, left curly, right curly, single and
