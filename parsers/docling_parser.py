@@ -526,15 +526,17 @@ class DoclingParser(BaseParser):
                 and text_item.text[0].islower()):
             return False
 
-        # Lookahead gate: abort H9/H10 only if the next item on this page is clearly body
-        # text — i.e. neither a structural footnote (H2–H8) nor small text. If either
-        # condition holds, the current item is likely in a footnote zone and H9/H10 can
-        # fire. Using both checks catches cases where the next item is a footnote via a
-        # non-size heuristic (e.g. juxtaposed marker H5) or is small but not digit-start.
-        # If next_page_item is None (last on page), allow H9/H10 to proceed.
-        if (ctx.next_page_item is not None
-                and not DoclingParser._is_footnote_structural(ctx.next_page_item, ctx)
-                and not is_small_text(ctx.next_page_item, ctx.single_line_height,
+        # Lookahead gate: only block H9 when the next item clearly opens a new body
+        # sentence — i.e. starts with an uppercase letter AND is neither a structural
+        # footnote nor small text. A non-uppercase start (symbol, lowercase, digit)
+        # is never how body text begins, so never block in that case.
+        # If next_page_item is None (last on page), allow H9 to proceed.
+        next_item = ctx.next_page_item
+        if (next_item is not None
+                and next_item.text
+                and next_item.text[0].isupper()
+                and not DoclingParser._is_footnote_structural(next_item, ctx)
+                and not is_small_text(next_item, ctx.single_line_height,
                                       ctx.median_chars_per_line,
                                       body_line_height=ctx.body_line_height)):
             return False
