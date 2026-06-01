@@ -117,6 +117,7 @@ class TextProcessor:
         self._n_llm_calls = 0
         self._last_reported_page = -1
         self._pending_header = ""
+        self._last_formula_page: str = ""
 
     def _clear_state(self) -> None:
         """Clear processing state after a run to free memory."""
@@ -200,7 +201,7 @@ class TextProcessor:
             if chunk.is_footnote and not self._include_footnotes:
                 continue
 
-            if chunk.is_formula and (self._cleaner is None or self._cleaner.formula_mode != FormulaMode.NONE):
+            if chunk.is_formula and (self._formulas_only or self._cleaner is None or self._cleaner.formula_mode != FormulaMode.NONE):
                 self._handle_formula(chunk)
                 continue
 
@@ -290,6 +291,8 @@ class TextProcessor:
         self._section_name = chunk.text
         if self._paragraph:
             self._flush_paragraph(chunk.meta)
+        if self._formulas_only:
+            return
         if not chunk.text:
             return
         text: str = chunk.text
@@ -322,26 +325,25 @@ class TextProcessor:
             self._flush_paragraph(chunk.meta)
         if not chunk.text:
             return
-        if self._formulas_only:
-            page = chunk.meta.get('page_#', '?')
-            print(f"\n--- Page {page} ---")
-            print(f"  original: {chunk.text!r}")
         text: str = chunk.text
         if self._cleaner:
             page_context: str = self._page_contexts.get(chunk.meta.get('page_#', ''), '')
             if self._cleaner.formula_mode == FormulaMode.AUDIO:
                 cleaned, _ = self._cleaner.clean(chunk.text, page_context=page_context, formula=True)
                 text = self._cleaner.clean_formula(cleaned, page_context=page_context)
-            else:  # CLEAN
+            else:  # CLEAN or NONE (formulas_only mode routes here regardless)
                 cleaned, _ = self._cleaner.clean(chunk.text, page_context=page_context, formula=True)
                 text = cleaned
-            if self._formulas_only:
-                print(f"  cleaned:  {text!r}")
             if self._verbose:
                 self._vprint(f"  [FORMULA] original: {chunk.text!r}")
                 self._vprint(f"  [FORMULA] cleaned:  {cleaned!r}")
                 if self._cleaner.formula_mode == FormulaMode.AUDIO:
                     self._vprint(f"  [FORMULA] audio:    {text!r}")
+        if self._formulas_only:
+            page = chunk.meta.get('page_#', '?')
+            page_header = f"--- Page {page} ---\n" if page != self._last_formula_page else ""
+            self._last_formula_page = page
+            text = f"{page_header}original: {chunk.text!r}\ncleaned:  {text!r}"
         if text:
             self._para_num += 1
             self._result.append(ParsedChunk(
@@ -392,8 +394,11 @@ class TextProcessor:
             pass
 
         if self._cleaner:
+            if self._formulas_only:
+                self._paragraph = []
+                return
             t0 = time.perf_counter()
-            _skip = self._formulas_only or _all_words_valid(p_str, verbose=self._verbose)
+            _skip = _all_words_valid(p_str, verbose=self._verbose)
             self._t_validation += time.perf_counter() - t0
 
             # vprint(self._verbose, f"{'[SKIP]' if _skip else '[LLM ] '} {p_str[:100]!r}")
