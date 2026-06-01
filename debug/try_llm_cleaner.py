@@ -57,7 +57,8 @@ main(
     show_pages=True,
     skip_index=True,
     skip_front_matter=True,
-    formula_mode='clean',
+    formula_mode='none',
+    formulas_only=True,
 )
 
 if not SOURCE.exists():

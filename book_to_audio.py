@@ -50,6 +50,7 @@ def main(file_path: str | None = None,
          llm_cleaner: bool = False,
          llm_model: str = 'llama3.1:8b',
          formula_mode: str | None = None,
+         formulas_only: bool = False,
          verbose: bool = False,
          show_pages: bool = False) -> None:
     """Entry point for the book-to-audio conversion tool.
@@ -107,6 +108,9 @@ def main(file_path: str | None = None,
                         help='Formula processing mode: none (treat as body text), '
                              'clean (fix OCR notation), or audio (translate to spoken English). '
                              'Default: none')
+    parser.add_argument('--formulas-only', action='store_true', default=formulas_only,
+                        help='Only invoke the LLM for formula chunks; pass body text through unchanged. '
+                             'Useful for evaluating formula mode output in isolation (default: off)')
     parser.add_argument('--verbose', action='store_true', default=verbose,
                         help='Print progress and LLM responses during conversion (default: off)')
     parser.add_argument('--show-pages', action='store_true', default=show_pages,
@@ -134,7 +138,8 @@ def main(file_path: str | None = None,
 
     cleaner: TextCleaner | None = (
         TextCleaner(model=args.llm_model, verbose=args.verbose,
-                    formula_mode=args.formula_mode) if args.llm_cleaner else None
+                    formula_mode=args.formula_mode,
+                    formulas_only=args.formulas_only) if args.llm_cleaner else None
     )
 
     engine = _create_engine(args)

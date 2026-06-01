@@ -419,7 +419,8 @@ class TextCleaner:
                  temperature: float | None = None,
                  max_length_change: float = 0.20,
                  formula_mode: FormulaMode | str = FormulaMode.NONE,
-                 verbose: bool = False) -> None:
+                 verbose: bool = False,
+                 formulas_only: bool = False) -> None:
         """Initialise TextCleaner.
 
         Args:
@@ -434,6 +435,8 @@ class TextCleaner:
             formula_mode: Controls how formula chunks are processed. CLEAN reconstructs
                 OCR notation (default); AUDIO runs CLEAN then translates to spoken English.
             verbose: If True, prints LLM responses for debugging. Defaults to False.
+            formulas_only: If True, the LLM is only invoked for formula chunks —
+                body text is passed through unchanged. Defaults to False.
         """
         self._model: str = model
         self._max_retries: int = max_retries
@@ -441,6 +444,7 @@ class TextCleaner:
         self._max_length_change: float = max_length_change
         self.formula_mode: FormulaMode = FormulaMode(formula_mode) if isinstance(formula_mode, str) else formula_mode
         self._verbose: bool = verbose
+        self.formulas_only: bool = formulas_only
 
     def clean(self, paragraph: str, page_context: str = "", formula: bool = False) -> tuple[str, ClassificationType]:
         """Clean and classify a paragraph of text.

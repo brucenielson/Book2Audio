@@ -308,8 +308,10 @@ class DoclingParser(BaseParser):
             processor_chunks.append(chunk)
 
         output_path: Path | None = None
+        formulas_only: bool = getattr(self._cleaner, 'formulas_only', False) if self._cleaner else False
         if generate_text_file and self._file_path is not None:
-            output_path = self._file_path.parent / self._doc.name
+            doc_name = self._doc.name + ('_math_only' if formulas_only else '')
+            output_path = self._file_path.parent / doc_name
             # Write the debug file before TextProcessor mutates chunk.text and chunk.label
             # in place (cleaning, footnote reclassification). The debug file must reflect
             # the raw Docling text and our own classification labels, not the cleaned output.
@@ -321,6 +323,7 @@ class DoclingParser(BaseParser):
             cleaner=self._cleaner,
             verbose=self._verbose,
             show_pages=self._show_pages,
+            formulas_only=formulas_only,
         )
 
         parsed_chunks: list[ParsedChunk] = processor.process(

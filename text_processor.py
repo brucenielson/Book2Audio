@@ -59,7 +59,8 @@ class TextProcessor:
                  cleaner: str | TextCleaner | None = None,
                  verbose: bool = False,
                  show_pages: bool = False,
-                 strip_footnote_markers: bool = True) -> None:
+                 strip_footnote_markers: bool = True,
+                 formulas_only: bool = False) -> None:
         """Initialise TextProcessor.
 
         Args:
@@ -73,12 +74,16 @@ class TextProcessor:
             strip_footnote_markers: If True (default), removes footnote reference
                      numbers from body text chunks. Footnote chunks are never
                      stripped regardless of this setting.
+            formulas_only: If True, the LLM is only invoked for formula chunks —
+                     body text is passed through unchanged. Useful for quickly
+                     evaluating formula mode output in isolation. Defaults to False.
         """
         self._min_paragraph_size: int = min_paragraph_size
         self._include_footnotes: bool = include_footnotes
         self._strip_footnote_markers: bool = strip_footnote_markers
         self._verbose: bool = verbose
         self._show_pages: bool = show_pages
+        self._formulas_only: bool = formulas_only
         if isinstance(cleaner, str):
             self._cleaner: TextCleaner | None = TextCleaner(model=cleaner)
         else:
@@ -317,6 +322,10 @@ class TextProcessor:
             self._flush_paragraph(chunk.meta)
         if not chunk.text:
             return
+        if self._formulas_only:
+            page = chunk.meta.get('page_#', '?')
+            print(f"\n--- Page {page} ---")
+            print(f"  original: {chunk.text!r}")
         text: str = chunk.text
         if self._cleaner:
             page_context: str = self._page_contexts.get(chunk.meta.get('page_#', ''), '')
@@ -326,6 +335,8 @@ class TextProcessor:
             else:  # CLEAN
                 cleaned, _ = self._cleaner.clean(chunk.text, page_context=page_context, formula=True)
                 text = cleaned
+            if self._formulas_only:
+                print(f"  cleaned:  {text!r}")
             if self._verbose:
                 self._vprint(f"  [FORMULA] original: {chunk.text!r}")
                 self._vprint(f"  [FORMULA] cleaned:  {cleaned!r}")
@@ -382,7 +393,7 @@ class TextProcessor:
 
         if self._cleaner:
             t0 = time.perf_counter()
-            _skip = _all_words_valid(p_str, verbose=self._verbose)
+            _skip = self._formulas_only or _all_words_valid(p_str, verbose=self._verbose)
             self._t_validation += time.perf_counter() - t0
 
             # vprint(self._verbose, f"{'[SKIP]' if _skip else '[LLM ] '} {p_str[:100]!r}")
