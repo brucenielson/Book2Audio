@@ -191,6 +191,9 @@ class TextProcessor:
         for i, chunk in enumerate(chunks):
             next_chunk: RawChunk | None = chunks[i + 1] if i < len(chunks) - 1 else None
 
+            if self._formulas_only and not chunk.is_formula:
+                continue
+
             if chunk.is_section_header:
                 self._handle_section_header(chunk)
                 continue
@@ -201,7 +204,7 @@ class TextProcessor:
             if chunk.is_footnote and not self._include_footnotes:
                 continue
 
-            if chunk.is_formula and (self._formulas_only or self._cleaner is None or self._cleaner.formula_mode != FormulaMode.NONE):
+            if chunk.is_formula and (self._cleaner is None or self._cleaner.formula_mode != FormulaMode.NONE or self._formulas_only):
                 self._handle_formula(chunk)
                 continue
 
@@ -291,8 +294,6 @@ class TextProcessor:
         self._section_name = chunk.text
         if self._paragraph:
             self._flush_paragraph(chunk.meta)
-        if self._formulas_only:
-            return
         if not chunk.text:
             return
         text: str = chunk.text
@@ -394,9 +395,6 @@ class TextProcessor:
             pass
 
         if self._cleaner:
-            if self._formulas_only:
-                self._paragraph = []
-                return
             t0 = time.perf_counter()
             _skip = _all_words_valid(p_str, verbose=self._verbose)
             self._t_validation += time.perf_counter() - t0
