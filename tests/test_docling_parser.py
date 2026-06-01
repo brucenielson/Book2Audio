@@ -724,6 +724,43 @@ class TestIsFootnote:
                        next_page_item=next_item)
         assert parser._is_footnote(item, ctx) is True
 
+    # --- Lookahead gate: uppercase-start next item required to block H9 ---
+    # Only a next item that starts with an uppercase letter looks like a new body
+    # sentence. Symbol-start or lowercase-start next items should not block H9.
+
+    @pytest.mark.parametrize("next_text", [
+        "·Treatise, loc. cit. Yet Hume appeared to understand.",   # symbol start
+        "continued from the prior footnote text here.",             # lowercase start
+        "1 See Smith v. Jones, 42 U.S. 100 (1900).",               # digit start
+    ])
+    def test_h9_fires_when_next_item_starts_non_uppercase(self, next_text: str) -> None:
+        """H9 fires when next item starts with a non-uppercase character — not a new body sentence."""
+        item = make_sized_text_item("venerated Supreme Court opinion, McCulloch v. Maryland.",
+                                    charspan_length=55, bbox_height=8.0)
+        item.prov[0].bbox.t = 30.0
+        # next_item is body-sized (charspan=50 → not small) but doesn't start with uppercase
+        next_item = make_sized_text_item(next_text, charspan_length=50, bbox_height=10.0)
+        parser = make_parser([])
+        ctx = make_ctx(text_seen_this_page=True, dangling_sentence=True,
+                       single_line_height=10.0, median_chars_per_line=50.0,
+                       body_line_height=10.0, median_page_height=100.0,
+                       next_page_item=next_item)
+        assert parser._is_footnote(item, ctx) is True
+
+    def test_h9_blocked_when_next_item_starts_uppercase_and_body_sized(self) -> None:
+        """H9 is blocked when next item starts with uppercase and is body-sized — a new body sentence."""
+        item = make_sized_text_item("venerated Supreme Court opinion, McCulloch v. Maryland.",
+                                    charspan_length=55, bbox_height=8.0)
+        item.prov[0].bbox.t = 30.0
+        next_item = make_sized_text_item("This is regular body text continuing the argument.",
+                                         charspan_length=50, bbox_height=10.0)
+        parser = make_parser([])
+        ctx = make_ctx(text_seen_this_page=True, dangling_sentence=True,
+                       single_line_height=10.0, median_chars_per_line=50.0,
+                       body_line_height=10.0, median_page_height=100.0,
+                       next_page_item=next_item)
+        assert parser._is_footnote(item, ctx) is False
+
 
 # --- TestIsInPageRange ---
 
