@@ -523,7 +523,7 @@ class DoclingParser(BaseParser):
                                   ctx.median_chars_per_line,
                                   body_line_height=ctx.body_line_height)
                 and ctx.text_seen_this_page
-                and text_item.text[0].islower()):
+                and (text_item.text[0].islower() or ctx.dangling_sentence)):
             return False
 
         # Lookahead gate: only block H9 when the next item clearly opens a new body
