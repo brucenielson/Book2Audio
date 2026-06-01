@@ -650,14 +650,14 @@ class TestIsFootnote:
         assert parser._is_footnote(item, ctx) is True
 
     @pytest.mark.parametrize("text,bbox_t,dangling", [
-        # Upper half — position check fails
+        # Upper half — position check fails regardless of case or dangling
         ("venerated Supreme Court opinion, McCulloch v. Maryland, 17 U.S. 316 (1819).", 70.0, True),
         ("venerated Supreme Court opinion, McCulloch v. Maryland, 17 U.S. 316 (1819).", 70.0, False),
-        # Uppercase start — first-char check fails
-        ("Venerated Supreme Court opinion, McCulloch v. Maryland, 17 U.S. 316 (1819).", 20.0, True),
+        # Uppercase start without dangling — neither condition passes
+        ("Venerated Supreme Court opinion, McCulloch v. Maryland, 17 U.S. 316 (1819).", 20.0, False),
     ])
     def test_h9_does_not_fire(self, text: str, bbox_t: float, dangling: bool) -> None:
-        """H9 does not fire when position is upper half or first char is uppercase."""
+        """H9 does not fire when position is upper half, or uppercase start without dangling."""
         item = make_sized_text_item(text, charspan_length=len(text), bbox_height=8.0)
         item.prov[0].bbox.t = bbox_t
         parser = make_parser([])
@@ -665,6 +665,18 @@ class TestIsFootnote:
                        single_line_height=10.0, median_chars_per_line=50.0,
                        body_line_height=10.0, median_page_height=100.0)
         assert parser._is_footnote(item, ctx) is False
+
+    def test_h9_fires_for_uppercase_start_after_dangling_sentence(self) -> None:
+        """H9 fires for uppercase-start small text when the preceding sentence is dangling.
+        Models the 'California Law Review )' case — a cross-page footnote continuation."""
+        text = "California Law Review ) ('[M]aybe the most important thing."
+        item = make_sized_text_item(text, charspan_length=len(text), bbox_height=8.0)
+        item.prov[0].bbox.t = 30.0
+        parser = make_parser([])
+        ctx = make_ctx(text_seen_this_page=True, dangling_sentence=True,
+                       single_line_height=10.0, median_chars_per_line=50.0,
+                       body_line_height=10.0, median_page_height=100.0)
+        assert parser._is_footnote(item, ctx) is True
 
     # --- H9/H10 lookahead gate: abort if next item on page is regular body text ---
     # If the item following a lowercase-start small item is body-sized, the current
