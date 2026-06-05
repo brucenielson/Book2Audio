@@ -47,6 +47,7 @@ def main(file_path: str | None = None,
          sections_to_skip: list[str] | None = None,
          skip_front_matter: bool = False,
          skip_index: bool = False,
+         include_footnotes: bool = False,
          llm_cleaner: bool = False,
          llm_model: str = 'llama3.1:8b',
          formula_mode: str | None = None,
@@ -97,6 +98,8 @@ def main(file_path: str | None = None,
                         help='Skip Roman-numeral-labelled front-matter pages (default: off)')
     parser.add_argument('--skip-index', action='store_true', default=skip_index,
                         help='Auto-detect and skip back-matter index pages (default: off)')
+    parser.add_argument('--include-footnotes', action='store_true', default=include_footnotes,
+                        help='Include footnotes in the audio output (default: off)')
 
     # LLM cleaner arguments
     parser.add_argument('--llm-cleaner', action='store_true', default=llm_cleaner,
@@ -165,7 +168,8 @@ def main(file_path: str | None = None,
                                    generate_text_file=args.generate_text_file,
                                    sections_to_skip=args.sections_to_skip,
                                    skip_front_matter=args.skip_front_matter,
-                                   skip_index=args.skip_index)
+                                   skip_index=args.skip_index,
+                                   include_footnotes=args.include_footnotes)
 
 
 # noinspection ALL

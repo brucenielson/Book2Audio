@@ -37,4 +37,5 @@ main(
     show_pages=True,
     skip_index=True,
     skip_front_matter=True,
+    include_footnotes=False,
 )

@@ -46,7 +46,8 @@ class BookToAudio:
                          generate_text_file: bool = False,
                          sections_to_skip: list[str] | None = None,
                          skip_front_matter: bool = False,
-                         skip_index: bool = False) -> None:
+                         skip_index: bool = False,
+                         include_footnotes: bool = False) -> None:
         """Convert text, a PDF, an EPUB, or a TXT file to audio.
 
         Dispatches to the appropriate parser based on the type and extension
@@ -72,6 +73,8 @@ class BookToAudio:
             skip_index: If True, the back-matter index section is detected
                         automatically and excluded from output along with all
                         pages that follow it. PDF only. Defaults to False.
+            include_footnotes: If True, footnotes are included in the output.
+                               Defaults to False.
         """
         paragraphs: list[str]
 
@@ -89,7 +92,7 @@ class BookToAudio:
         if suffix == '.txt':
             paragraphs = [source.read_text(encoding='utf-8')]
         elif suffix == '.pdf':
-            parser: DoclingParser = DoclingParser(source, include_footnotes=False,
+            parser: DoclingParser = DoclingParser(source, include_footnotes=include_footnotes,
                                                   start_page=start_page, end_page=end_page,
                                                   skip_front_matter=skip_front_matter,
                                                   skip_index=skip_index,
@@ -98,7 +101,7 @@ class BookToAudio:
                                                   show_pages=self._show_pages)
             paragraphs, _ = parser.run(generate_text_file=generate_text_file)
         elif suffix == '.epub':
-            epub_parser: EpubParser = EpubParser(source, include_footnotes=False,
+            epub_parser: EpubParser = EpubParser(source, include_footnotes=include_footnotes,
                                                  sections_to_skip=sections_to_skip,
                                                  llm_cleaner=self._llm_cleaner)
             paragraphs, _ = epub_parser.run(generate_text_file=generate_text_file)

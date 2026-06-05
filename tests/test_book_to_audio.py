@@ -243,9 +243,10 @@ class TestBookToAudio:
         Path(pdf_path).touch()
         with patch('book_to_audio.BookToAudio') as mock_converter_cls:
             with patch('book_to_audio._create_engine'):
-                mock_converter = MagicMock()
-                mock_converter_cls.return_value = mock_converter
-                book_to_audio_main(file_path=pdf_path, include_footnotes=True)
+                with patch('sys.argv', ['book_to_audio.py', pdf_path, '--include-footnotes']):
+                    mock_converter = MagicMock()
+                    mock_converter_cls.return_value = mock_converter
+                    book_to_audio_main()
         _, call_kwargs = mock_converter.convert_to_audio.call_args
         assert call_kwargs.get('include_footnotes') is True
 
