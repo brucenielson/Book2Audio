@@ -579,6 +579,19 @@ class TestCleanText:
     def test_empty_string(self) -> None:
         assert clean_text("") == ""
 
+    @pytest.mark.parametrize('text, expected', [
+        # Single-digit marker at sentence end
+        ('The argument fails.$^{2}',        'The argument fails.'),
+        # Single-digit marker mid-sentence
+        ('word$^{3} more text',             'word more text'),
+        # Multi-token two-digit marker (Docling renders "10" as $^{1}$^{0})
+        ('conclusion$^{1}$^{0} follows',    'conclusion follows'),
+        # No marker: no change
+        ('Hello world.',                    'Hello world.'),
+    ])
+    def test_strips_latex_footnote_markers(self, text: str, expected: str) -> None:
+        assert clean_text(text) == expected
+
 
 # --- load_sections_to_skip ---
 
