@@ -28,7 +28,7 @@ if not FILE.exists():
 main(
     file_path=str(FILE),
     output_file=OUTPUT_FILE,
-    dry_run=True,
+    dry_run=False,
     generate_text_file=True,
     # llm_cleaner=True,
     # llm_model='llama3.1:8b',
@@ -38,4 +38,5 @@ main(
     skip_index=True,
     skip_front_matter=True,
     include_footnotes=False,
+    end_page=222,
 )

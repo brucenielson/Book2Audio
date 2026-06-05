@@ -456,14 +456,34 @@ def strip_footnote_numbers(p_str: str) -> str:
     return p_str
 
 
+def strip_latex_superscripts(p_str: str) -> str:
+    """Remove LaTeX-style superscript footnote markers from text.
+
+    Docling renders inline superscript references from PDFs as LaTeX tokens,
+    e.g. $^{2} for footnote 2, or $^{1}$^{0} for footnote 10 (two consecutive
+    single-digit tokens). These are rendering artifacts that should never appear
+    in output text.
+
+    # TODO: Consider moving this to DoclingParser._get_processed_texts, since
+    #       $^{N} is a Docling-specific artifact rather than a general text issue.
+
+    Args:
+        p_str: The raw string to clean.
+
+    Returns:
+        The string with all $^{N} sequences removed.
+    """
+    return re.sub(r'(\$\^\{\d\})+', '', p_str)
+
+
 def clean_text(p_str: str, remove_footnotes: bool = False) -> str:
     """Clean and normalize a text string.
 
-    Applies a pipeline of normalization steps in order: ligature normalization,
-    encoding artifact correction, punctuation spacing, bracket spacing,
-    apostrophe normalization, dash-hyphen detection, quote normalization,
-    and whitespace normalization. Optionally strips trailing footnote numbers
-    before the main pipeline runs.
+    Applies a pipeline of normalization steps in order: LaTeX superscript
+    removal, ligature normalization, encoding artifact correction, punctuation
+    spacing, bracket spacing, apostrophe normalization, dash-hyphen detection,
+    quote normalization, and whitespace normalization. Optionally strips
+    trailing footnote numbers before the main pipeline runs.
 
     Args:
         p_str: The raw string to clean.
@@ -473,6 +493,7 @@ def clean_text(p_str: str, remove_footnotes: bool = False) -> str:
     Returns:
         The cleaned and normalized string.
     """
+    p_str = strip_latex_superscripts(p_str)
     if remove_footnotes:
         p_str = strip_footnote_numbers(p_str)
     p_str = normalize_ligatures(p_str)
