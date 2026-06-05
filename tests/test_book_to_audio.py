@@ -225,6 +225,30 @@ class TestBookToAudio:
         mock_audio_generator.generate.assert_not_called()
         mock_audio_generator.save.assert_not_called()
 
+    def test_include_footnotes_true_passed_to_docling_parser(
+            self, mock_audio_generator, tmp_path) -> None:
+        """include_footnotes=True is forwarded from convert_to_audio to DoclingParser."""
+        with patch('book_converter.DoclingParser') as mock_parser_cls:
+            mock_parser_cls.return_value.run.return_value = ([], [])
+            converter = BookToAudio(audio_generator=mock_audio_generator)
+            converter.convert_to_audio(Path(str(tmp_path / "test.pdf")),
+                                       include_footnotes=True)
+        _, call_kwargs = mock_parser_cls.call_args
+        assert call_kwargs.get('include_footnotes') is True
+
+    def test_main_include_footnotes_flag_passed_to_convert(
+            self, tmp_path) -> None:
+        """--include-footnotes CLI flag flows all the way to convert_to_audio."""
+        pdf_path = str(tmp_path / "test.pdf")
+        Path(pdf_path).touch()
+        with patch('book_to_audio.BookToAudio') as mock_converter_cls:
+            with patch('book_to_audio._create_engine'):
+                mock_converter = MagicMock()
+                mock_converter_cls.return_value = mock_converter
+                book_to_audio_main(file_path=pdf_path, include_footnotes=True)
+        _, call_kwargs = mock_converter.convert_to_audio.call_args
+        assert call_kwargs.get('include_footnotes') is True
+
     def test_skip_front_matter_includes_all_pages_by_default(
             self, mock_audio_generator) -> None:
         """With skip_front_matter=False (default), Roman-numbered pages are kept."""
